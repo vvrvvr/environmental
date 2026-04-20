@@ -1,8 +1,9 @@
+using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
 
-public class Node : MonoBehaviour
+public partial class Node : MonoBehaviour
 {
     [Header("Main Visual")]
     [Tooltip("Основной спрайт ноды, который реагирует на наведение и клики.")]
@@ -28,15 +29,18 @@ public class Node : MonoBehaviour
     [SerializeField] private Ease clickPressEase = Ease.OutQuad;
     [SerializeField] private Ease clickReleaseEase = Ease.OutBack;
 
-    [Header("Selection (draft; full state machine later)")]
+    [Header("Selection")]
     [Tooltip("Кольцо/селектор: показывает выбранную ноду. Включается при выборе.")]
     [SerializeField] private SpriteRenderer selectionRing;
     [Tooltip("Как быстро кольцо масштабируется от 0 до исходного размера при выборе.")]
     [SerializeField, Min(0f)] private float selectionRingAppearDuration = 0.1f;
     [SerializeField] private Ease selectionRingAppearEase = Ease.OutQuad;
+    [Tooltip("Как быстро кольцо сжимается к 0 при снятии выбора (состояние Deselected).")]
+    [SerializeField, Min(0f)] private float selectionRingDisappearDuration = 0.12f;
+    [SerializeField] private Ease selectionRingDisappearEase = Ease.InQuad;
 
-    /// <summary>Нода выбрана (в будущем будет частью стейт-машины).</summary>
-    public bool IsSelected { get; private set; }
+    private Sprite _mainSpriteDefaultSprite;
+    private Collider[] _cachedColliders = System.Array.Empty<Collider>();
 
     private readonly HashSet<Collider> overlappingNodes = new HashSet<Collider>();
     private bool mouseOver;
@@ -55,11 +59,12 @@ public class Node : MonoBehaviour
         {
             mainSpriteTransform = mainSprite.transform;
             mainSpriteBaseScale = mainSpriteTransform.localScale;
+            _mainSpriteDefaultSprite = mainSprite.sprite;
         }
 
+        _cachedColliders = GetComponentsInChildren<Collider>(true);
+
         CacheSelectionRingBaseScale();
-        if (selectionRing != null)
-            ApplySelectionRingDeselectedImmediate();
 
         TryCacheMapCamera();
     }
@@ -77,31 +82,18 @@ public class Node : MonoBehaviour
         KillHoverTween();
         KillClickTween();
         KillSelectionRingTween();
+        KillStateDelayedTween();
         ApplyBaseScaleImmediate();
         mouseOver = false;
-    }
-
-    /// <summary>Выбор ноды (из клика или позже из GameManager).</summary>
-    public void SetSelected(bool selected)
-    {
-        if (IsSelected == selected)
-            return;
-
-        IsSelected = selected;
-
-        if (selectionRing == null)
-            return;
-
-        if (IsSelected)
-            ShowSelectionRingPopIn();
-        else
-            HideSelectionRing();
     }
 
     private void Update() => ProcessInput();
 
     private void ProcessInput()
     {
+        if (!ShouldProcessMapPointer())
+            return;
+
         bool over = IsMouseHoveringThisNode();
         if (over != mouseOver)
         {
@@ -143,7 +135,7 @@ public class Node : MonoBehaviour
     protected virtual void OnNodePointerClick()
     {
         PlayClickAnimation();
-        SetSelected(true);
+        SetState(NodeMapState.Selected);
         Debug.Log("click");
     }
 
@@ -264,6 +256,42 @@ public class Node : MonoBehaviour
         KillSelectionRingTween();
         selectionRingTransform.localScale = Vector3.zero;
         selectionRing.gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// Сжимает кольцо от текущего масштаба к нулю, затем выключает объект. Если кольца нет или оно уже скрыто — сразу вызывает <paramref name="onComplete"/>.
+    /// </summary>
+    private void HideSelectionRingWithShrink(Action onComplete)
+    {
+        if (selectionRingTransform == null)
+        {
+            onComplete?.Invoke();
+            return;
+        }
+
+        KillSelectionRingTween();
+
+        if (!selectionRing.gameObject.activeSelf || selectionRingTransform.localScale.sqrMagnitude < 1e-8f)
+        {
+            selectionRingTransform.localScale = Vector3.zero;
+            selectionRing.gameObject.SetActive(false);
+            onComplete?.Invoke();
+            return;
+        }
+
+        selectionRingTween = selectionRingTransform
+            .DOScale(Vector3.zero, selectionRingDisappearDuration)
+            .SetEase(selectionRingDisappearEase)
+            .OnComplete(() =>
+            {
+                selectionRingTween = null;
+                if (selectionRing != null)
+                {
+                    selectionRing.gameObject.SetActive(false);
+                }
+
+                onComplete?.Invoke();
+            });
     }
 
     private void KillSelectionRingTween()
