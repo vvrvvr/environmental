@@ -28,13 +28,26 @@ public class Node : MonoBehaviour
     [SerializeField] private Ease clickPressEase = Ease.OutQuad;
     [SerializeField] private Ease clickReleaseEase = Ease.OutBack;
 
+    [Header("Selection (draft; full state machine later)")]
+    [Tooltip("Кольцо/селектор: показывает выбранную ноду. Включается при выборе.")]
+    [SerializeField] private SpriteRenderer selectionRing;
+    [Tooltip("Как быстро кольцо масштабируется от 0 до исходного размера при выборе.")]
+    [SerializeField, Min(0f)] private float selectionRingAppearDuration = 0.1f;
+    [SerializeField] private Ease selectionRingAppearEase = Ease.OutQuad;
+
+    /// <summary>Нода выбрана (в будущем будет частью стейт-машины).</summary>
+    public bool IsSelected { get; private set; }
+
     private readonly HashSet<Collider> overlappingNodes = new HashSet<Collider>();
     private bool mouseOver;
     private Transform mainSpriteTransform;
     private Vector3 mainSpriteBaseScale;
     private Tween hoverTween;
     private Tween clickTween;
+    private Tween selectionRingTween;
     private Camera cachedMapCamera;
+    private Transform selectionRingTransform;
+    private Vector3 selectionRingBaseScale;
 
     private void Awake()
     {
@@ -43,6 +56,10 @@ public class Node : MonoBehaviour
             mainSpriteTransform = mainSprite.transform;
             mainSpriteBaseScale = mainSpriteTransform.localScale;
         }
+
+        CacheSelectionRingBaseScale();
+        if (selectionRing != null)
+            ApplySelectionRingDeselectedImmediate();
 
         TryCacheMapCamera();
     }
@@ -59,8 +76,26 @@ public class Node : MonoBehaviour
     {
         KillHoverTween();
         KillClickTween();
+        KillSelectionRingTween();
         ApplyBaseScaleImmediate();
         mouseOver = false;
+    }
+
+    /// <summary>Выбор ноды (из клика или позже из GameManager).</summary>
+    public void SetSelected(bool selected)
+    {
+        if (IsSelected == selected)
+            return;
+
+        IsSelected = selected;
+
+        if (selectionRing == null)
+            return;
+
+        if (IsSelected)
+            ShowSelectionRingPopIn();
+        else
+            HideSelectionRing();
     }
 
     private void Update() => ProcessInput();
@@ -108,6 +143,7 @@ public class Node : MonoBehaviour
     protected virtual void OnNodePointerClick()
     {
         PlayClickAnimation();
+        SetSelected(true);
         Debug.Log("click");
     }
 
@@ -186,5 +222,57 @@ public class Node : MonoBehaviour
         if (clickTween.IsActive())
             clickTween.Kill();
         clickTween = null;
+    }
+
+    private void CacheSelectionRingBaseScale()
+    {
+        if (selectionRing == null)
+            return;
+
+        selectionRingTransform = selectionRing.transform;
+        selectionRingBaseScale = selectionRingTransform.localScale;
+    }
+
+    private void ApplySelectionRingDeselectedImmediate()
+    {
+        if (selectionRingTransform == null)
+            return;
+
+        KillSelectionRingTween();
+        selectionRingTransform.localScale = Vector3.zero;
+        selectionRing.gameObject.SetActive(false);
+    }
+
+    private void ShowSelectionRingPopIn()
+    {
+        if (selectionRingTransform == null)
+            return;
+
+        KillSelectionRingTween();
+        selectionRing.gameObject.SetActive(true);
+        selectionRingTransform.localScale = Vector3.zero;
+        selectionRingTween = selectionRingTransform
+            .DOScale(selectionRingBaseScale, selectionRingAppearDuration)
+            .SetEase(selectionRingAppearEase);
+    }
+
+    private void HideSelectionRing()
+    {
+        if (selectionRingTransform == null)
+            return;
+
+        KillSelectionRingTween();
+        selectionRingTransform.localScale = Vector3.zero;
+        selectionRing.gameObject.SetActive(false);
+    }
+
+    private void KillSelectionRingTween()
+    {
+        if (selectionRingTween == null)
+            return;
+
+        if (selectionRingTween.IsActive())
+            selectionRingTween.Kill();
+        selectionRingTween = null;
     }
 }
