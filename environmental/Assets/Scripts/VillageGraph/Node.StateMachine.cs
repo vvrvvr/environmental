@@ -34,6 +34,13 @@ public partial class Node
     /// <summary>Вызывается из GameManager или UI: сменить состояние.</summary>
     public void SetState(NodeMapState newState)
     {
+        // Дочерняя нода не становится «выбранной» сама — выбор и селектор у родителя группы.
+        if (newState == NodeMapState.Selected && groupParent != null)
+        {
+            groupParent.SetState(NodeMapState.Selected);
+            return;
+        }
+
         TransitionToState(newState, force: false);
     }
 
