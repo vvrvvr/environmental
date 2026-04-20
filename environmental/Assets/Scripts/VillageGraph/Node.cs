@@ -4,8 +4,6 @@ using UnityEngine;
 
 public class Node : MonoBehaviour
 {
-    [Tooltip("Камера, из которой строится луч к курсору (обязательно назначить для отладки наведения).")]
-    [SerializeField] private Camera raycastCamera;
     [Header("Main Visual")]
     [Tooltip("Основной спрайт ноды, который реагирует на наведение и клики.")]
     [SerializeField] private SpriteRenderer mainSprite;
@@ -36,6 +34,7 @@ public class Node : MonoBehaviour
     private Vector3 mainSpriteBaseScale;
     private Tween hoverTween;
     private Tween clickTween;
+    private Camera cachedMapCamera;
 
     private void Awake()
     {
@@ -44,6 +43,16 @@ public class Node : MonoBehaviour
             mainSpriteTransform = mainSprite.transform;
             mainSpriteBaseScale = mainSpriteTransform.localScale;
         }
+
+        TryCacheMapCamera();
+    }
+
+    private void TryCacheMapCamera()
+    {
+        if (cachedMapCamera != null)
+            return;
+        if (GameManager.Instance != null)
+            cachedMapCamera = GameManager.Instance.MapCamera;
     }
 
     private void OnDisable()
@@ -104,10 +113,11 @@ public class Node : MonoBehaviour
 
     private bool IsMouseHoveringThisNode()
     {
-        if (raycastCamera == null)
+        TryCacheMapCamera();
+        if (cachedMapCamera == null)
             return false;
 
-        Ray ray = raycastCamera.ScreenPointToRay(Input.mousePosition);
+        Ray ray = cachedMapCamera.ScreenPointToRay(Input.mousePosition);
         if (!Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~0, QueryTriggerInteraction.Collide))
             return false;
 
