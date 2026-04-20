@@ -42,7 +42,7 @@ public partial class Node : MonoBehaviour
     private Sprite _mainSpriteDefaultSprite;
     private Collider[] _cachedColliders = System.Array.Empty<Collider>();
 
-    private readonly HashSet<Collider> overlappingNodes = new HashSet<Collider>();
+    private readonly HashSet<Node> overlappingNeighborNodes = new HashSet<Node>();
     private bool mouseOver;
     private Transform mainSpriteTransform;
     private Vector3 mainSpriteBaseScale;
@@ -110,9 +110,9 @@ public partial class Node : MonoBehaviour
 
         if (!Input.GetKeyDown(KeyCode.Space))
             return;
-        foreach (var c in overlappingNodes)
-            if (c != null)
-                Debug.Log("trigger");
+        foreach (var n in overlappingNeighborNodes)
+            if (n != null)
+                Debug.Log($"trigger neighbor: {n.name}", n);
     }
 
     protected virtual void OnNodePointerEnter()
@@ -136,7 +136,7 @@ public partial class Node : MonoBehaviour
     {
         PlayClickAnimation();
         SetState(NodeMapState.Selected);
-        Debug.Log("click");
+        Debug.Log($"click → selection owner: {SelectionOwner.name}", SelectionOwner);
     }
 
     private bool IsMouseHoveringThisNode()
@@ -154,13 +154,20 @@ public partial class Node : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Node"))
-            overlappingNodes.Add(other);
+        Node neighbor = other.GetComponentInParent<Node>();
+        if (neighbor == null || neighbor == this)
+            return;
+
+        overlappingNeighborNodes.Add(neighbor);
     }
 
     private void OnTriggerExit(Collider other)
     {
-        overlappingNodes.Remove(other);
+        Node neighbor = other.GetComponentInParent<Node>();
+        if (neighbor == null)
+            return;
+
+        overlappingNeighborNodes.Remove(neighbor);
     }
 
     private void AnimateMainSpriteScale(Vector3 targetScale, float duration, Ease ease)
