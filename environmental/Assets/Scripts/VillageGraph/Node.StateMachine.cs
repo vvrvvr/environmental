@@ -90,6 +90,15 @@ public partial class Node
         EnterMapState(newState, previous);
         OnMapStateEntered(newState, previous);
         OnEnterMapState(newState, previous);
+
+        ReportMapStateToGameManager(newState, previous);
+    }
+
+    private void ReportMapStateToGameManager(NodeMapState newState, NodeMapState? previousState)
+    {
+        if (GameManager.Instance == null)
+            return;
+        GameManager.Instance.NotifyNodeMapStateChanged(this, newState, previousState);
     }
 
     private bool _stateInitialized;

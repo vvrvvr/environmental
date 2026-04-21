@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -13,14 +14,59 @@ public class GameManager : MonoBehaviour
     [Tooltip("Камера, с которой строится луч для нод карты и прочего взаимодействия с картой.")]
     [SerializeField] private Camera mapCamera;
 
+    [Tooltip("Писать в консоль каждое уведомление о смене состояния ноды на карте.")]
+    [SerializeField] private bool logMapNodeStateChanges;
+
     [Header("Debug")]
-    [Tooltip("Нода для отладки: горячие клавиши 1–6 переключают её состояния (см. Update в GameManager).")]
+    [Tooltip("Запасная нода для горячих клавиш, пока ни одна нода не вызвала NotifyNodeMapStateChanged (иначе используется Last Map State Source Node).")]
     public Node debugTargetNode;
 
     [Tooltip("Включить переключение состояний ноды по цифрам 1–9.")]
     [SerializeField] private bool enableNodeStateHotkeys = true;
 
     public Camera MapCamera => mapCamera;
+
+    /// <summary>Нода, для которой последний раз пришло уведомление о смене <see cref="NodeMapState"/>.</summary>
+    public Node LastMapStateSourceNode { get; private set; }
+
+    /// <summary>Актуальное состояние у <see cref="LastMapStateSourceNode"/> на момент последнего уведомления.</summary>
+    public NodeMapState LastReportedMapState { get; private set; }
+
+    /// <summary>Предыдущее состояние той же ноды в том же переходе; для первого применения в сцене — null.</summary>
+    public NodeMapState? PreviousReportedMapState { get; private set; }
+
+    /// <summary>Нода в состоянии <see cref="NodeMapState.Selected"/> (логический выбор на карте); null если ни одна не в Selected.</summary>
+    public Node CurrentSelectedMapNode { get; private set; }
+
+    /// <summary>Вызывается из <see cref="Node"/> после каждого успешного перехода стейт-машины карты.</summary>
+    public event Action<Node, NodeMapState, NodeMapState?> MapNodeStateChanged;
+
+    /// <summary>
+    /// Уведомление о смене состояния ноды (вызывается из <see cref="Node"/>). Позже сюда можно добавить фильтры и правила «одна активная нода».
+    /// </summary>
+    public void NotifyNodeMapStateChanged(Node node, NodeMapState newState, NodeMapState? previousState)
+    {
+        if (node == null)
+            return;
+
+        LastMapStateSourceNode = node;
+        LastReportedMapState = newState;
+        PreviousReportedMapState = previousState;
+
+        if (newState == NodeMapState.Selected)
+            CurrentSelectedMapNode = node;
+        else if (previousState == NodeMapState.Selected && CurrentSelectedMapNode == node)
+            CurrentSelectedMapNode = null;
+
+        MapNodeStateChanged?.Invoke(node, newState, previousState);
+
+        if (logMapNodeStateChanges)
+        {
+            Debug.Log(
+                $"[GameManager] Map state: «{node.name}» {previousState?.ToString() ?? "∅"} → {newState}",
+                node);
+        }
+    }
 
     private void Awake()
     {
@@ -41,32 +87,45 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
-        if (!enableNodeStateHotkeys || debugTargetNode == null)
+        if (!enableNodeStateHotkeys)
             return;
 
         TryDebugNodeStateHotkeys();
     }
 
+    /// <summary>Нода для дебаг-горячих клавиш: последняя из <see cref="NotifyNodeMapStateChanged"/>, иначе <see cref="debugTargetNode"/>.</summary>
+    public Node GetDebugHotkeyTargetNode()
+    {
+        if (LastMapStateSourceNode != null)
+            return LastMapStateSourceNode;
+        return debugTargetNode;
+    }
+
     /// <summary>
     /// Дебаг: 1–6 — <see cref="NodeMapState"/> по порядку enum; 7–9 — зарезервировано (лог в консоль).
-    /// Работает и с цифрами над буквами, и с NumPad.
+    /// Работает и с цифрами над буквами, и с NumPad. Цель — <see cref="GetDebugHotkeyTargetNode"/>.
     /// </summary>
     private void TryDebugNodeStateHotkeys()
     {
-        if (TryGetPressedDebugStateKey(out NodeMapState state, out string keyLabel))
-        {
-            Debug.Log(
-                $"[GameManager][Debug] Клавиша {keyLabel} → вызов {nameof(Node.SetState)}({state}) на «{debugTargetNode.name}».",
-                debugTargetNode);
-            debugTargetNode.SetState(state);
-            return;
-        }
-
         if (WasReservedDebugKeyPressed(out string reservedLabel))
         {
             Debug.Log(
                 $"[GameManager][Debug] Клавиша {reservedLabel} зарезервирована (пока нет состояния). Доступны 1–6 под текущие {nameof(NodeMapState)}.",
                 this);
+            return;
+        }
+
+        Node target = GetDebugHotkeyTargetNode();
+        if (target == null)
+            return;
+
+        if (TryGetPressedDebugStateKey(out NodeMapState state, out string keyLabel))
+        {
+            string source = LastMapStateSourceNode != null ? nameof(LastMapStateSourceNode) : nameof(debugTargetNode);
+            Debug.Log(
+                $"[GameManager][Debug] Клавиша {keyLabel} → {nameof(Node.SetState)}({state}) на «{target.name}» (источник: {source}).",
+                target);
+            target.SetState(state);
         }
     }
 
