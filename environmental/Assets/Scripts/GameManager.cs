@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Video;
 
 /// <summary>
 /// Глобальная точка доступа к настройкам сцены/игры. Камера карты назначается один раз в инспекторе.
@@ -16,6 +18,15 @@ public class GameManager : MonoBehaviour
 
     [Tooltip("Писать в консоль каждое уведомление о смене состояния ноды на карте.")]
     [SerializeField] private bool logMapNodeStateChanges;
+
+    [Header("Minimap video")]
+    [Tooltip("Единый VideoPlayer для ролика выбранной ноды (выход на RawImage / Camera и т.д. настраивается на нём).")]
+    [SerializeField] private VideoPlayer mapVideoPlayer;
+
+    private Node _groupPlaylistRoot;
+    private Node _groupPlaylistFocusNode;
+    private bool _groupLoopHandlerRegistered;
+    private VideoPlayer.EventHandler _groupLoopPointHandler;
 
     [Header("Debug")]
     [Tooltip("Запасная нода для горячих клавиш, пока ни одна нода не вызвала NotifyNodeMapStateChanged (иначе используется Last Map State Source Node).")]
@@ -38,6 +49,9 @@ public class GameManager : MonoBehaviour
     /// <summary>Нода в состоянии <see cref="NodeMapState.Selected"/> (логический выбор на карте); null если ни одна не в Selected.</summary>
     public Node CurrentSelectedMapNode { get; private set; }
 
+    /// <summary>Для группы: чей ролик сейчас идёт (родитель или дочерняя); иначе null.</summary>
+    public Node CurrentGroupPlaybackFocusNode => _groupPlaylistFocusNode;
+
     /// <summary>Вызывается из <see cref="Node"/> после каждого успешного перехода стейт-машины карты.</summary>
     public event Action<Node, NodeMapState, NodeMapState?> MapNodeStateChanged;
 
@@ -54,9 +68,15 @@ public class GameManager : MonoBehaviour
         PreviousReportedMapState = previousState;
 
         if (newState == NodeMapState.Selected)
+        {
             CurrentSelectedMapNode = node;
+            PlayMinimapVideoForSelectedNode(node);
+        }
         else if (previousState == NodeMapState.Selected && CurrentSelectedMapNode == node)
+        {
             CurrentSelectedMapNode = null;
+            StopMinimapVideo();
+        }
 
         MapNodeStateChanged?.Invoke(node, newState, previousState);
 
@@ -66,6 +86,200 @@ public class GameManager : MonoBehaviour
                 $"[GameManager] Map state: «{node.name}» {previousState?.ToString() ?? "∅"} → {newState}",
                 node);
         }
+    }
+
+    /// <summary>
+    /// Клик по ноде на карте: для группы — переключение ролика или повтор с начала; для одиночной ноды — повтор если уже выбрана.
+    /// Возвращает true, если <see cref="Node.SetState"/> вызывать не нужно (уже выбрано и обработано).
+    /// </summary>
+    public bool HandleMapNodeClick(Node logicalOwner, Node clickedNode)
+    {
+        if (mapVideoPlayer == null || logicalOwner == null)
+            return false;
+
+        bool groupPlaylistActive =
+            _groupPlaylistRoot != null &&
+            logicalOwner.IsGroupParent &&
+            logicalOwner.OrderedChildNodes.Count > 0 &&
+            CurrentSelectedMapNode == logicalOwner;
+
+        if (groupPlaylistActive && IsPartOfSelectedGroup(logicalOwner, clickedNode))
+        {
+            if (clickedNode == _groupPlaylistFocusNode)
+            {
+                RestartMinimapVideoFromStart();
+                return true;
+            }
+
+            JumpGroupPlaylistTo(clickedNode);
+            return true;
+        }
+
+        if (CurrentSelectedMapNode == logicalOwner)
+        {
+            RestartMinimapVideoFromStart();
+            return true;
+        }
+
+        return false;
+    }
+
+    private void PlayMinimapVideoForSelectedNode(Node node)
+    {
+        if (mapVideoPlayer == null || node == null)
+            return;
+
+        EndGroupPlaylist();
+
+        if (node.IsGroupParent && node.OrderedChildNodes.Count > 0)
+        {
+            BeginGroupPlaylist(node);
+            return;
+        }
+
+        VideoClip clip = node.MinimapVideoClip;
+        if (clip == null)
+            return;
+
+        mapVideoPlayer.clip = clip;
+        mapVideoPlayer.isLooping = true;
+        mapVideoPlayer.Play();
+    }
+
+    private void BeginGroupPlaylist(Node root)
+    {
+        if (mapVideoPlayer == null)
+            return;
+
+        _groupPlaylistRoot = root;
+        RegisterGroupLoopHandler();
+        PlayGroupClip(root);
+    }
+
+    private void EndGroupPlaylist()
+    {
+        if (mapVideoPlayer != null && _groupLoopHandlerRegistered && _groupLoopPointHandler != null)
+        {
+            mapVideoPlayer.loopPointReached -= _groupLoopPointHandler;
+            _groupLoopHandlerRegistered = false;
+            _groupLoopPointHandler = null;
+        }
+
+        _groupPlaylistRoot = null;
+        _groupPlaylistFocusNode = null;
+    }
+
+    private void RegisterGroupLoopHandler()
+    {
+        if (mapVideoPlayer == null || _groupLoopHandlerRegistered)
+            return;
+
+        _groupLoopPointHandler = OnGroupVideoLoopPointReached;
+        mapVideoPlayer.loopPointReached += _groupLoopPointHandler;
+        _groupLoopHandlerRegistered = true;
+    }
+
+    private void OnGroupVideoLoopPointReached(VideoPlayer source)
+    {
+        if (_groupPlaylistRoot == null || mapVideoPlayer == null)
+            return;
+        if (CurrentSelectedMapNode != _groupPlaylistRoot)
+            return;
+
+        Node next = GetNextInGroupPlaylist(_groupPlaylistRoot, _groupPlaylistFocusNode);
+        PlayGroupClip(next);
+    }
+
+    private static Node GetNextInGroupPlaylist(Node root, Node current)
+    {
+        if (root == null || current == null)
+            return root;
+
+        if (current == root)
+        {
+            IReadOnlyList<Node> children = root.OrderedChildNodes;
+            return children.Count > 0 ? children[0] : root;
+        }
+
+        IReadOnlyList<Node> list = root.OrderedChildNodes;
+        for (var i = 0; i < list.Count; i++)
+        {
+            if (list[i] != current)
+                continue;
+            if (i + 1 < list.Count)
+                return list[i + 1];
+            return root;
+        }
+
+        return root;
+    }
+
+    private void PlayGroupClip(Node target, int skipDepth = 0)
+    {
+        if (mapVideoPlayer == null || _groupPlaylistRoot == null || target == null)
+            return;
+
+        const int maxSkips = 24;
+        if (skipDepth > maxSkips)
+            return;
+
+        _groupPlaylistFocusNode = target;
+        VideoClip clip = target.MinimapVideoClip;
+        if (clip == null)
+        {
+            Node next = GetNextInGroupPlaylist(_groupPlaylistRoot, target);
+            if (next != target || skipDepth == 0)
+                PlayGroupClip(next, skipDepth + 1);
+            return;
+        }
+
+        mapVideoPlayer.clip = clip;
+        mapVideoPlayer.isLooping = false;
+        mapVideoPlayer.Play();
+    }
+
+    private void JumpGroupPlaylistTo(Node target)
+    {
+        if (_groupPlaylistRoot == null || mapVideoPlayer == null)
+            return;
+        if (!IsPartOfSelectedGroup(_groupPlaylistRoot, target))
+            return;
+
+        PlayGroupClip(target);
+    }
+
+    private static bool IsPartOfSelectedGroup(Node groupRoot, Node any)
+    {
+        if (groupRoot == null || any == null)
+            return false;
+        if (any == groupRoot)
+            return true;
+
+        IReadOnlyList<Node> list = groupRoot.OrderedChildNodes;
+        for (var i = 0; i < list.Count; i++)
+        {
+            if (list[i] == any)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void RestartMinimapVideoFromStart()
+    {
+        if (mapVideoPlayer == null || mapVideoPlayer.clip == null)
+            return;
+
+        mapVideoPlayer.time = 0;
+        mapVideoPlayer.Play();
+    }
+
+    private void StopMinimapVideo()
+    {
+        if (mapVideoPlayer == null)
+            return;
+        mapVideoPlayer.Stop();
+        EndGroupPlaylist();
     }
 
     private void Awake()
@@ -81,6 +295,7 @@ public class GameManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        EndGroupPlaylist();
         if (Instance == this)
             Instance = null;
     }
