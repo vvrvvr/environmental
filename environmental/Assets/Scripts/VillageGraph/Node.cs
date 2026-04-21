@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Video;
 
@@ -46,6 +48,10 @@ public partial class Node : MonoBehaviour
 
     /// <summary>Клип мини-карты; для группы задаётся на родительской ноде (логический выбор — SelectionOwner).</summary>
     public VideoClip MinimapVideoClip => minimapVideoClip;
+
+    [Header("UI")]
+    [Tooltip("Оставшееся время до конца ролика (сек, один знак). Пусто, пока нода не выбрана на карте или не играет её клип.")]
+    [SerializeField] private TMP_Text remainingTimeText;
 
     private Sprite _mainSpriteDefaultSprite;
     private Collider[] _cachedColliders = System.Array.Empty<Collider>();
@@ -93,9 +99,35 @@ public partial class Node : MonoBehaviour
         KillStateDelayedTween();
         ApplyBaseScaleImmediate();
         mouseOver = false;
+        ClearRemainingTimeText();
     }
 
-    private void Update() => ProcessInput();
+    private void Update()
+    {
+        ProcessInput();
+        UpdateRemainingTimeText();
+    }
+
+    private void UpdateRemainingTimeText()
+    {
+        if (remainingTimeText == null)
+            return;
+
+        if (GameManager.Instance == null ||
+            !GameManager.Instance.TryGetRemainingTimeForNodeDisplay(this, out float seconds))
+        {
+            remainingTimeText.text = string.Empty;
+            return;
+        }
+
+        remainingTimeText.text = seconds.ToString("F1", CultureInfo.InvariantCulture);
+    }
+
+    private void ClearRemainingTimeText()
+    {
+        if (remainingTimeText != null)
+            remainingTimeText.text = string.Empty;
+    }
 
     private void ProcessInput()
     {

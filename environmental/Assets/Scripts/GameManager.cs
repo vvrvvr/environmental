@@ -282,6 +282,39 @@ public class GameManager : MonoBehaviour
         EndGroupPlaylist();
     }
 
+    /// <summary>
+    /// Показывать ли на этой ноде оставшееся время до конца текущего клипа (синхронно с <see cref="mapVideoPlayer"/>).
+    /// Для дочерней ноды группы — когда играет её ролик; для корня — когда выбрана на карте и играет её ролик.
+    /// </summary>
+    public bool ShouldShowRemainingTimeOnNode(Node node)
+    {
+        if (node == null || mapVideoPlayer == null)
+            return false;
+
+        VideoClip nodeClip = node.MinimapVideoClip;
+        if (nodeClip == null || mapVideoPlayer.clip != nodeClip)
+            return false;
+        if (CurrentSelectedMapNode != node.SelectionOwner)
+            return false;
+
+        // Одиночная нода или родитель группы: только в Selected (в т.ч. пусто в Deselected / Visible).
+        if (node.GroupParent == null && node.CurrentState != NodeMapState.Selected)
+            return false;
+
+        return true;
+    }
+
+    /// <summary>Оставшееся время в секундах (для UI); false если таймер для этой ноды не показываем.</summary>
+    public bool TryGetRemainingTimeForNodeDisplay(Node node, out float remainingSeconds)
+    {
+        remainingSeconds = 0f;
+        if (!ShouldShowRemainingTimeOnNode(node))
+            return false;
+
+        remainingSeconds = Mathf.Max(0f, (float)(mapVideoPlayer.length - mapVideoPlayer.time));
+        return true;
+    }
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
