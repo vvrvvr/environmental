@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using DG.Tweening;
 using UnityEngine;
 
@@ -67,7 +68,26 @@ public partial class Node
 
     private void Start()
     {
+        if (groupParent != null)
+        {
+            StartCoroutine(CoSyncFromParentOnStart());
+            return;
+        }
+
         TransitionToState(initialState, force: true);
+    }
+
+    /// <summary>
+    /// Дочерняя нода: после кадра подтягиваем состояние родителя (порядок Start у MonoBehaviour не гарантирован).
+    /// </summary>
+    private IEnumerator CoSyncFromParentOnStart()
+    {
+        yield return null;
+        if (this == null || groupParent == null)
+            yield break;
+        if (_stateInitialized && CurrentState == groupParent.CurrentState)
+            yield break;
+        SyncMapStateFromGroupParent(groupParent.CurrentState, force: true);
     }
 
     private void TransitionToState(NodeMapState newState, bool force)
@@ -91,8 +111,47 @@ public partial class Node
         OnMapStateEntered(newState, previous);
         OnEnterMapState(newState, previous);
 
-        ReportMapStateToGameManager(newState, previous);
+        if (!_syncFromGroupParent)
+            ReportMapStateToGameManager(newState, previous);
+
+        if (!_syncFromGroupParent && isGroupParent)
+            PropagateGroupMemberStateToChildren(newState, force);
     }
+
+    /// <summary>
+    /// Только для вызова с родителя группы: тот же переход, что у родителя, без перенаправления Selected и без дублирующего уведомления GM с дочерних.
+    /// </summary>
+    public void SyncMapStateFromGroupParent(NodeMapState newState, bool force)
+    {
+        _syncFromGroupParent = true;
+        try
+        {
+            TransitionToState(newState, force);
+        }
+        finally
+        {
+            _syncFromGroupParent = false;
+        }
+    }
+
+    private void PropagateGroupMemberStateToChildren(NodeMapState newState, bool force)
+    {
+        if (orderedChildNodes == null)
+            return;
+
+        for (var i = 0; i < orderedChildNodes.Count; i++)
+        {
+            var child = orderedChildNodes[i];
+            if (child == null || child == this)
+                continue;
+            if (child.groupParent != this)
+                continue;
+
+            child.SyncMapStateFromGroupParent(newState, force);
+        }
+    }
+
+    private bool _syncFromGroupParent;
 
     private void ReportMapStateToGameManager(NodeMapState newState, NodeMapState? previousState)
     {
@@ -235,6 +294,13 @@ public partial class Node
         if (selectionRing == null)
             return;
 
+        // У дочерней ноды кольцо не показываем — селектор только у родителя группы.
+        if (groupParent != null)
+        {
+            HideSelectionRing();
+            return;
+        }
+
         switch (state)
         {
             case NodeMapState.Selected:
@@ -261,10 +327,11 @@ public partial class Node
             mainSprite.gameObject.SetActive(active);
         if (selectionRing != null)
         {
-            // Deselected: кольцо ещё видно, пока идёт сжатие до нуля.
+            // Только у корня группы / одиночной ноды; у дочерней кольцо не используем.
             bool showRing =
-                CurrentState == NodeMapState.Selected ||
-                CurrentState == NodeMapState.Deselected;
+                groupParent == null &&
+                (CurrentState == NodeMapState.Selected ||
+                 CurrentState == NodeMapState.Deselected);
             selectionRing.gameObject.SetActive(active && showRing);
         }
 
