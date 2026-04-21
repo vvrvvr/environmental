@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.Video;
 
 public partial class Node : MonoBehaviour
 {
@@ -38,6 +39,13 @@ public partial class Node : MonoBehaviour
     [Tooltip("Как быстро кольцо сжимается к 0 при снятии выбора (состояние Deselected).")]
     [SerializeField, Min(0f)] private float selectionRingDisappearDuration = 0.12f;
     [SerializeField] private Ease selectionRingDisappearEase = Ease.InQuad;
+
+    [Header("Minimap video")]
+    [Tooltip("Ролик мини-карты для этой ноды (уникальный). Воспроизведение ведёт GameManager.")]
+    [SerializeField] private VideoClip minimapVideoClip;
+
+    /// <summary>Клип мини-карты; для группы задаётся на родительской ноде (логический выбор — SelectionOwner).</summary>
+    public VideoClip MinimapVideoClip => minimapVideoClip;
 
     private Sprite _mainSpriteDefaultSprite;
     private Collider[] _cachedColliders = System.Array.Empty<Collider>();
@@ -135,8 +143,11 @@ public partial class Node : MonoBehaviour
     protected virtual void OnNodePointerClick()
     {
         PlayClickAnimation();
+        Node owner = SelectionOwner;
+        if (GameManager.Instance != null && GameManager.Instance.HandleMapNodeClick(owner, this))
+            return;
         SetState(NodeMapState.Selected);
-        Debug.Log($"click → selection owner: {SelectionOwner.name}", SelectionOwner);
+        Debug.Log($"click → selection owner: {owner.name}", owner);
     }
 
     private bool IsMouseHoveringThisNode()
