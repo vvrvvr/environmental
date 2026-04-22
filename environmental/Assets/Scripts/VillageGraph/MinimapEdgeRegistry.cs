@@ -15,6 +15,9 @@ public class MinimapEdgeRegistry : MonoBehaviour
     [Tooltip("Рисовать линии FromNode → ToNode в Scene-вью (для проверки связей).")]
     [SerializeField] private bool debugDrawEdgeGraph;
 
+    [Tooltip("В Play Mode: 1–5 и NumPad — состояние всем рёбрам из списка (MinimapEdgeState: Disabled…Blocked).")]
+    [SerializeField] private bool debugDigitKeysSetAllEdgeStates;
+
     private readonly Dictionary<Node, List<MinimapEdge>> _outgoingByFromNode = new Dictionary<Node, List<MinimapEdge>>();
 
     public IReadOnlyList<MinimapEdge> Edges => edges;
@@ -26,6 +29,40 @@ public class MinimapEdgeRegistry : MonoBehaviour
 #if UNITY_EDITOR
     private void OnValidate() => RebuildEdgeCache();
 #endif
+
+    private void Update()
+    {
+        if (!Application.isPlaying || !debugDigitKeysSetAllEdgeStates || edges == null)
+            return;
+
+        MinimapEdgeState? hotkeyState = null;
+        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
+            hotkeyState = MinimapEdgeState.Disabled;
+        else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+            hotkeyState = MinimapEdgeState.Appearing;
+        else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3))
+            hotkeyState = MinimapEdgeState.MovingAlongEdge;
+        else if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4))
+            hotkeyState = MinimapEdgeState.Idle;
+        else if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5))
+            hotkeyState = MinimapEdgeState.Blocked;
+
+        if (hotkeyState == null)
+            return;
+
+        var s = hotkeyState.Value;
+        var n = 0;
+        for (var i = 0; i < edges.Count; i++)
+        {
+            var e = edges[i];
+            if (e == null)
+                continue;
+            e.SetEdgeState(s, forceLog: true);
+            n++;
+        }
+
+        Debug.Log($"[MinimapEdgeRegistry] Дебаг: всем рёбрам в списке ({n}) задано состояние {s}", this);
+    }
 
     /// <summary>Пересобрать кэш после смены списка рёбер в инспекторе или кода.</summary>
     public void RebuildEdgeCache()

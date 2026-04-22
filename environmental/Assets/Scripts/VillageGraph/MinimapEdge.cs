@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -33,6 +34,13 @@ public class MinimapEdge : MonoBehaviour
     [Tooltip("Линия между якорями; positionCount будет 2, useWorldSpace = true. Ширина/материал — как настроишь.")]
     [SerializeField] private LineRenderer lineRenderer;
 
+    [Header("Edge state")]
+    [Tooltip("Длительность «перемещение по ребру» перед автопереходом в Idle (только Play Mode).")]
+    [SerializeField, Min(0.01f)] private float movingAlongEdgeDuration = 2f;
+
+    [Tooltip("Цвет линии в состоянии Blocked (start/end).")]
+    [SerializeField] private Color blockedLineColor = new Color(0.55f, 0.2f, 0.2f, 1f);
+
     [Header("Nodes")]
     [SerializeField] private Node fromNode;
     [SerializeField] private Node toNode;
@@ -56,12 +64,35 @@ public class MinimapEdge : MonoBehaviour
     public Node FromNode => fromNode;
     public Node ToNode => toNode;
 
+    public MinimapEdgeState CurrentEdgeState => _currentState;
+
+    private MinimapEdgeState _currentState = MinimapEdgeState.Idle;
+    private Color _defaultStart = Color.white;
+    private Color _defaultEnd = Color.white;
+    private bool _capturedDefaultLineColors;
+    private Coroutine _movingCoroutine;
+
+    private void Awake()
+    {
+        CacheLineDefaultColorsIfNeeded();
+    }
+
+    private void Start()
+    {
+        if (!Application.isPlaying)
+            return;
+        _currentState = MinimapEdgeState.Idle;
+        ApplyStateVisuals();
+    }
+
     private void OnEnable()
     {
+        CacheLineDefaultColorsIfNeeded();
         RefreshLinePositions();
 #if UNITY_EDITOR
         EditorApplication.update += EditorPoll;
 #endif
+        ApplyStateVisuals();
     }
 
     private void OnDisable()
@@ -69,6 +100,7 @@ public class MinimapEdge : MonoBehaviour
 #if UNITY_EDITOR
         EditorApplication.update -= EditorPoll;
 #endif
+        StopMovingIfAny();
     }
 
 #if UNITY_EDITOR
@@ -80,8 +112,10 @@ public class MinimapEdge : MonoBehaviour
 
     private void OnValidate()
     {
+        CacheLineDefaultColorsIfNeeded();
         if (!EditorApplication.isPlayingOrWillChangePlaymode)
             RefreshLinePositions();
+        ApplyStateVisuals();
     }
 #endif
 
@@ -89,6 +123,90 @@ public class MinimapEdge : MonoBehaviour
     {
         if (Application.isPlaying)
             RefreshLinePositions();
+    }
+
+    /// <summary>Смена состояния (в т.ч. дебаг с реестра по цифрам 1–5).</summary>
+    public void SetEdgeState(MinimapEdgeState next, bool forceLog = true)
+    {
+        if (!Application.isPlaying)
+        {
+            var prev = _currentState;
+            _currentState = next;
+            if (forceLog && prev != next)
+                Debug.Log($"[{name}] MinimapEdge state: {prev} → {next} (не Play Mode — таймер Moving не запускается)", this);
+            ApplyStateVisuals();
+            return;
+        }
+
+        if (_currentState == next && next != MinimapEdgeState.MovingAlongEdge)
+            return;
+
+        StopMovingIfAny();
+        var prevPlay = _currentState;
+        _currentState = next;
+        if (forceLog)
+            Debug.Log($"[{name}] MinimapEdge state: {prevPlay} → {next}", this);
+
+        if (next == MinimapEdgeState.MovingAlongEdge)
+            _movingCoroutine = StartCoroutine(CoMovingAlongEdge());
+
+        ApplyStateVisuals();
+    }
+
+    private IEnumerator CoMovingAlongEdge()
+    {
+        Debug.Log($"[{name}] Moving along edge: {movingAlongEdgeDuration:0.##} s…", this);
+        float t = 0f;
+        while (t < movingAlongEdgeDuration)
+        {
+            t += Time.deltaTime;
+            yield return null;
+        }
+
+        _movingCoroutine = null;
+        _currentState = MinimapEdgeState.Idle;
+        Debug.Log($"[{name}] MinimapEdge state: MovingAlongEdge → Idle (timer done)", this);
+        ApplyStateVisuals();
+    }
+
+    private void StopMovingIfAny()
+    {
+        if (_movingCoroutine == null)
+            return;
+        StopCoroutine(_movingCoroutine);
+        _movingCoroutine = null;
+    }
+
+    private void CacheLineDefaultColorsIfNeeded()
+    {
+        if (lineRenderer == null || _capturedDefaultLineColors)
+            return;
+        _defaultStart = lineRenderer.startColor;
+        _defaultEnd = lineRenderer.endColor;
+        _capturedDefaultLineColors = true;
+    }
+
+    private void ApplyStateVisuals()
+    {
+        if (lineRenderer == null)
+            return;
+
+        bool lineOn = _currentState != MinimapEdgeState.Disabled;
+        lineRenderer.enabled = lineOn;
+
+        if (!lineOn)
+            return;
+
+        if (_currentState == MinimapEdgeState.Blocked)
+        {
+            lineRenderer.startColor = blockedLineColor;
+            lineRenderer.endColor = blockedLineColor;
+        }
+        else
+        {
+            lineRenderer.startColor = _defaultStart;
+            lineRenderer.endColor = _defaultEnd;
+        }
     }
 
     [ContextMenu("Refresh line")]

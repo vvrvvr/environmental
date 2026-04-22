@@ -3321,6 +3321,7 @@ MonoBehaviour:
   - {fileID: 2110931836}
   - {fileID: 1645072887}
   debugDrawEdgeGraph: 1
+  debugDigitKeysSetAllEdgeStates: 1
 --- !u!4 &1017511042
 Transform:
   m_ObjectHideFlags: 0
@@ -5613,7 +5614,7 @@ LineRenderer:
     colorGradient:
       serializedVersion: 2
       key0: {r: 0.2985047, g: 0.8113208, b: 0.34056675, a: 1}
-      key1: {r: 0.94716984, g: 0.46286222, b: 0.46286222, a: 1}
+      key1: {r: 0.9490196, g: 0.4627451, b: 0.4627451, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -5669,6 +5670,8 @@ MonoBehaviour:
   startInset: 0
   endInset: 0
   lineRenderer: {fileID: 1645072886}
+  movingAlongEdgeDuration: 2
+  blockedLineColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
   fromNode: {fileID: 887139304}
   toNode: {fileID: 1539766903}
 --- !u!4 &1645072888
@@ -5887,7 +5890,7 @@ LineRenderer:
     colorGradient:
       serializedVersion: 2
       key0: {r: 0.2985047, g: 0.8113208, b: 0.34056675, a: 1}
-      key1: {r: 0.94716984, g: 0.46286222, b: 0.46286222, a: 1}
+      key1: {r: 0.9490196, g: 0.4627451, b: 0.4627451, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -5943,6 +5946,8 @@ MonoBehaviour:
   startInset: 1.54
   endInset: 1.15
   lineRenderer: {fileID: 1664285685}
+  movingAlongEdgeDuration: 2
+  blockedLineColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
   fromNode: {fileID: 885760709}
   toNode: {fileID: 1679207555}
 --- !u!4 &1664285687
@@ -7422,7 +7427,7 @@ LineRenderer:
     colorGradient:
       serializedVersion: 2
       key0: {r: 0.2985047, g: 0.8113208, b: 0.34056675, a: 1}
-      key1: {r: 0.94716984, g: 0.46286222, b: 0.46286222, a: 1}
+      key1: {r: 0.9490196, g: 0.4627451, b: 0.4627451, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -7478,6 +7483,8 @@ MonoBehaviour:
   startInset: 0
   endInset: 0
   lineRenderer: {fileID: 2110931835}
+  movingAlongEdgeDuration: 2
+  blockedLineColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
   fromNode: {fileID: 885760709}
   toNode: {fileID: 887139304}
 --- !u!4 &2110931837
