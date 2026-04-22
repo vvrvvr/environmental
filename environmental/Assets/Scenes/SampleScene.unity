@@ -3320,6 +3320,7 @@ MonoBehaviour:
   - {fileID: 1664285686}
   - {fileID: 2110931836}
   - {fileID: 1645072887}
+  debugDrawEdgeGraph: 1
 --- !u!4 &1017511042
 Transform:
   m_ObjectHideFlags: 0
