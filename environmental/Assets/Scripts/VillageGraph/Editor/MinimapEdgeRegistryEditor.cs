@@ -13,7 +13,17 @@ public class MinimapEdgeRegistryEditor : Editor
         {
             if (GUILayout.Button("Собрать все рёбра со сцены"))
                 CollectAllEdgesFromScene();
+            if (GUILayout.Button("Пересобрать кэш рёбер"))
+                RebuildCacheOnly();
         }
+    }
+
+    private void RebuildCacheOnly()
+    {
+        var registry = (MinimapEdgeRegistry)target;
+        Undo.RecordObject(registry, "Пересобрать кэш MinimapEdgeRegistry");
+        registry.RebuildEdgeCache();
+        EditorUtility.SetDirty(registry);
     }
 
     private void CollectAllEdgesFromScene()
@@ -41,6 +51,7 @@ public class MinimapEdgeRegistryEditor : Editor
         }
 
         serializedObject.ApplyModifiedProperties();
+        registry.RebuildEdgeCache();
         EditorUtility.SetDirty(registry);
     }
 }
