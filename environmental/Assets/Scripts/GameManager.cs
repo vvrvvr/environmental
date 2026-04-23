@@ -39,6 +39,11 @@ public class GameManager : MonoBehaviour
     private bool _groupLoopHandlerRegistered;
     private VideoPlayer.EventHandler _groupLoopPointHandler;
 
+    private bool _suppressMapTravelSelectionClear;
+    private bool _mapSelectionTravelInProgress;
+    private Node _mapTravelTargetRoot;
+    private Coroutine _mapTravelCoroutine;
+
     [Header("Debug")]
     [Tooltip("Запасная нода для горячих клавиш, пока ни одна нода не вызвала NotifyNodeMapStateChanged (иначе используется Last Map State Source Node).")]
     public Node debugTargetNode;
@@ -72,6 +77,9 @@ public class GameManager : MonoBehaviour
         edge != null &&
         edge.FromNode != null &&
         _minimapStartRootCache.Contains(edge.FromNode.SelectionOwner);
+
+    /// <summary>Идёт секвенция перехода выбора по карте (клики гасятся в <see cref="HandleMapNodeClick"/>).</summary>
+    public bool IsMapSelectionTravelInProgress => _mapSelectionTravelInProgress;
 
     /// <summary>
     /// Пересчитать видимость корней карты от стартовых нод и рёбер реестра. Не трогает ноду в <see cref="CurrentSelectedMapNode"/>, если она в <see cref="NodeMapState.Selected"/>.
@@ -214,8 +222,11 @@ public class GameManager : MonoBehaviour
         }
         else if (previousState == NodeMapState.Selected && CurrentSelectedMapNode == node)
         {
-            CurrentSelectedMapNode = null;
-            StopMinimapVideo();
+            if (!_suppressMapTravelSelectionClear)
+            {
+                CurrentSelectedMapNode = null;
+                StopMinimapVideo();
+            }
         }
 
         MapNodeStateChanged?.Invoke(node, newState, previousState);
@@ -238,6 +249,12 @@ public class GameManager : MonoBehaviour
     {
         if (debugRevealFullMinimap)
             return false;
+
+        if (_mapSelectionTravelInProgress)
+            return true;
+
+        if (TryBeginMapTravelToNeighbor(logicalOwner, clickedNode))
+            return true;
 
         if (mapVideoPlayer == null || logicalOwner == null)
             return false;
@@ -267,6 +284,70 @@ public class GameManager : MonoBehaviour
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Клик по другой активной ноде, соединённой исходящим ребром с текущей выбранной: секвенция Deselected → (кольцо) → Blocked → ребро Moving → новая Selected + ребро Idle.
+    /// </summary>
+    private bool TryBeginMapTravelToNeighbor(Node logicalOwner, Node clickedNode)
+    {
+        if (logicalOwner == null)
+            return false;
+
+        Node selected = CurrentSelectedMapNode;
+        if (selected == null)
+            return false;
+
+        if (logicalOwner == selected)
+            return false;
+
+        if (logicalOwner.CurrentState != NodeMapState.Visible)
+            return false;
+
+        var registry = ResolveMinimapEdgeRegistry();
+        if (registry == null)
+            return false;
+
+        var edge = registry.TryFindDirectedEdgeBetweenMapRoots(selected, logicalOwner);
+        if (edge == null)
+            return false;
+
+        if (_mapTravelCoroutine != null)
+        {
+            StopCoroutine(_mapTravelCoroutine);
+            _mapTravelCoroutine = null;
+        }
+
+        _mapTravelTargetRoot = logicalOwner;
+        _mapTravelCoroutine = StartCoroutine(CoMapSelectionTravel(selected, logicalOwner, edge));
+        return true;
+    }
+
+    private IEnumerator CoMapSelectionTravel(Node fromRoot, Node toRoot, MinimapEdge edge)
+    {
+        _mapSelectionTravelInProgress = true;
+        _suppressMapTravelSelectionClear = true;
+        try
+        {
+            fromRoot.SetState(NodeMapState.Deselected);
+            float ring = fromRoot.SelectionRingDisappearDuration;
+            if (ring > 0f)
+                yield return new WaitForSeconds(ring);
+            fromRoot.ForceMapState(NodeMapState.Blocked);
+            edge.SetEdgeState(MinimapEdgeState.MovingAlongEdge, forceLog: false);
+            while (edge.CurrentEdgeState == MinimapEdgeState.MovingAlongEdge)
+                yield return null;
+            _suppressMapTravelSelectionClear = false;
+            toRoot.SetState(NodeMapState.Selected);
+            RefreshMinimapEdgeRegistryLines();
+        }
+        finally
+        {
+            _suppressMapTravelSelectionClear = false;
+            _mapSelectionTravelInProgress = false;
+            _mapTravelTargetRoot = null;
+            _mapTravelCoroutine = null;
+        }
     }
 
     private void PlayMinimapVideoForSelectedNode(Node node)
@@ -482,6 +563,12 @@ public class GameManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (_mapTravelCoroutine != null)
+        {
+            StopCoroutine(_mapTravelCoroutine);
+            _mapTravelCoroutine = null;
+        }
+
         EndGroupPlaylist();
         if (Instance == this)
             Instance = null;
@@ -504,6 +591,9 @@ public class GameManager : MonoBehaviour
     private void ApplyMinimapRulesAfterMapNotify()
     {
         if (!Application.isPlaying)
+            return;
+
+        if (_mapSelectionTravelInProgress)
             return;
 
         if (_suppressMinimapPostNotify)

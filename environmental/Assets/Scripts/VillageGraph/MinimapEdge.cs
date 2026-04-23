@@ -68,6 +68,9 @@ public class MinimapEdge : MonoBehaviour
 
     public MinimapEdgeState CurrentEdgeState => _currentState;
 
+    /// <summary>Длительность состояния <see cref="MinimapEdgeState.MovingAlongEdge"/> (оркестратор карты ждёт это время).</summary>
+    public float MovingAlongEdgeDuration => movingAlongEdgeDuration;
+
     /// <summary>В Play: разрешение по выбору на карте (<see cref="MinimapEdgeRegistry"/>).</summary>
     public bool MapOutgoingLineVisible => _mapOutgoingLineVisible;
 
