@@ -334,7 +334,7 @@ public class GameManager : MonoBehaviour
             if (ring > 0f)
                 yield return new WaitForSeconds(ring);
             fromRoot.ForceMapState(NodeMapState.Blocked);
-            edge.SetEdgeState(MinimapEdgeState.MovingAlongEdge, forceLog: false);
+            edge.SetEdgeState(MinimapEdgeState.MovingAlongEdge, forceLog: false, MinimapEdgeState.Blocked);
             while (edge.CurrentEdgeState == MinimapEdgeState.MovingAlongEdge)
                 yield return null;
             _suppressMapTravelSelectionClear = false;
