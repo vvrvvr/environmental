@@ -38,6 +38,9 @@ public class MinimapEdge : MonoBehaviour
     [Tooltip("Длительность «перемещение по ребру» перед автопереходом в Idle (только Play Mode).")]
     [SerializeField, Min(0.01f)] private float movingAlongEdgeDuration = 2f;
 
+    [Tooltip("Длительность Appearing перед переходом в Idle (Play). 0 — считается как 1 с (заглушка).")]
+    [SerializeField, Min(0f)] private float appearingToIdleDuration;
+
     [Tooltip("Цвет линии в состоянии Blocked (start/end).")]
     [SerializeField] private Color blockedLineColor = new Color(0.55f, 0.2f, 0.2f, 1f);
 
@@ -81,6 +84,7 @@ public class MinimapEdge : MonoBehaviour
     private Color _defaultEnd = Color.white;
     private bool _capturedDefaultLineColors;
     private Coroutine _movingCoroutine;
+    private Coroutine _appearingCoroutine;
 
     private void Awake()
     {
@@ -110,7 +114,7 @@ public class MinimapEdge : MonoBehaviour
 #if UNITY_EDITOR
         EditorApplication.update -= EditorPoll;
 #endif
-        StopMovingIfAny();
+        StopEdgePlayCoroutines();
     }
 
 #if UNITY_EDITOR
@@ -163,10 +167,10 @@ public class MinimapEdge : MonoBehaviour
             return;
         }
 
-        if (_currentState == next && next != MinimapEdgeState.MovingAlongEdge)
+        if (_currentState == next && next != MinimapEdgeState.MovingAlongEdge && next != MinimapEdgeState.Appearing)
             return;
 
-        StopMovingIfAny();
+        StopEdgePlayCoroutines();
         var prevPlay = _currentState;
         _currentState = next;
         if (forceLog)
@@ -178,7 +182,11 @@ public class MinimapEdge : MonoBehaviour
             _movingCoroutine = StartCoroutine(CoMovingAlongEdge());
         }
         else
+        {
             _stateAfterMovingCompletes = MinimapEdgeState.Idle;
+            if (next == MinimapEdgeState.Appearing)
+                _appearingCoroutine = StartCoroutine(CoAppearingThenIdle());
+        }
 
         ApplyCombinedVisual();
     }
@@ -201,12 +209,37 @@ public class MinimapEdge : MonoBehaviour
         ApplyCombinedVisual();
     }
 
+    private IEnumerator CoAppearingThenIdle()
+    {
+        float d = appearingToIdleDuration <= 0f ? 1f : appearingToIdleDuration;
+        yield return new WaitForSeconds(d);
+        _appearingCoroutine = null;
+        if (_currentState != MinimapEdgeState.Appearing)
+            yield break;
+        _currentState = MinimapEdgeState.Idle;
+        ApplyCombinedVisual();
+    }
+
+    private void StopEdgePlayCoroutines()
+    {
+        StopMovingIfAny();
+        StopAppearingIfAny();
+    }
+
     private void StopMovingIfAny()
     {
         if (_movingCoroutine == null)
             return;
         StopCoroutine(_movingCoroutine);
         _movingCoroutine = null;
+    }
+
+    private void StopAppearingIfAny()
+    {
+        if (_appearingCoroutine == null)
+            return;
+        StopCoroutine(_appearingCoroutine);
+        _appearingCoroutine = null;
     }
 
     private void CacheLineDefaultColorsIfNeeded()

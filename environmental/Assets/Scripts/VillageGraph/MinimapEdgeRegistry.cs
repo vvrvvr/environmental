@@ -224,7 +224,10 @@ public class MinimapEdgeRegistry : MonoBehaviour
         }
     }
 
-    /// <summary>Сбросить визуальное состояние всех рёбер в списке в <see cref="MinimapEdgeState.Idle"/> (без логов).</summary>
+    /// <summary>
+    /// Сбросить визуальное состояние рёбер в <see cref="MinimapEdgeState.Idle"/> (без логов).
+    /// Пропускает рёбра в анимации / заблокированные, чтобы не рвать оркестратор карты.
+    /// </summary>
     public void SetAllEdgesVisualStateIdle()
     {
         if (edges == null)
@@ -232,8 +235,14 @@ public class MinimapEdgeRegistry : MonoBehaviour
         for (var i = 0; i < edges.Count; i++)
         {
             var e = edges[i];
-            if (e != null)
-                e.SetEdgeState(MinimapEdgeState.Idle, forceLog: false);
+            if (e == null)
+                continue;
+            var s = e.CurrentEdgeState;
+            if (s == MinimapEdgeState.Appearing ||
+                s == MinimapEdgeState.MovingAlongEdge ||
+                s == MinimapEdgeState.Blocked)
+                continue;
+            e.SetEdgeState(MinimapEdgeState.Idle, forceLog: false);
         }
     }
 
