@@ -13,7 +13,7 @@ public class MinimapEdgeRegistry : MonoBehaviour
 
     [Header("Selection → line visibility")]
     [Tooltip(
-        "В Play Mode: LineRenderer только у рёбер, у которых FromNode.SelectionOwner совпадает с GameManager.CurrentSelectedMapNode. При снятии выбора — все линии выкл. В редакторе без Play линии всегда вкл.")]
+        "В Play Mode: при выбранной ноде — LineRenderer только у исходящих от неё рёбер. Без выбора — исходящие от всех стартовых нод (см. GameManager). В редакторе без Play линии всегда вкл.")]
     [SerializeField]
     private bool showOutgoingLinesOnlyForSelectedMapNode = true;
 
@@ -122,6 +122,18 @@ public class MinimapEdgeRegistry : MonoBehaviour
         if (edges == null)
             return;
 
+        if (Application.isPlaying && GameManager.Instance != null && GameManager.Instance.DebugRevealFullMinimap)
+        {
+            for (var i = 0; i < edges.Count; i++)
+            {
+                var e = edges[i];
+                if (e != null)
+                    e.SetMapOutgoingLineVisible(true);
+            }
+
+            return;
+        }
+
         if (!Application.isPlaying)
         {
             for (var i = 0; i < edges.Count; i++)
@@ -155,9 +167,17 @@ public class MinimapEdgeRegistry : MonoBehaviour
             if (e == null)
                 continue;
 
-            bool show = selected != null &&
-                        e.FromNode != null &&
-                        e.FromNode.SelectionOwner == selected;
+            bool show;
+            if (selected != null)
+            {
+                show = e.FromNode != null &&
+                       e.FromNode.SelectionOwner == selected;
+            }
+            else
+            {
+                show = gm != null && gm.ShouldShowMinimapEdgeWhenNothingSelected(e);
+            }
+
             e.SetMapOutgoingLineVisible(show);
         }
     }
@@ -181,6 +201,41 @@ public class MinimapEdgeRegistry : MonoBehaviour
             RefreshOutgoingLineVisibilityForMapSelection();
     }
 #endif
+
+    /// <summary>
+    /// Соседи в неориентированном графе рёбер (и from, и to).
+    /// </summary>
+    public void AddUndirectedNeighbors(Node node, HashSet<Node> into)
+    {
+        if (node == null || into == null || edges == null)
+            return;
+
+        for (var i = 0; i < edges.Count; i++)
+        {
+            var e = edges[i];
+            if (e == null)
+                continue;
+            Node a = e.FromNode;
+            Node b = e.ToNode;
+            if (a == node && b != null)
+                into.Add(b);
+            else if (b == node && a != null)
+                into.Add(a);
+        }
+    }
+
+    /// <summary>Сбросить визуальное состояние всех рёбер в списке в <see cref="MinimapEdgeState.Idle"/> (без логов).</summary>
+    public void SetAllEdgesVisualStateIdle()
+    {
+        if (edges == null)
+            return;
+        for (var i = 0; i < edges.Count; i++)
+        {
+            var e = edges[i];
+            if (e != null)
+                e.SetEdgeState(MinimapEdgeState.Idle, forceLog: false);
+        }
+    }
 
     /// <summary>Пересобрать кэш после смены списка рёбер в инспекторе или кода.</summary>
     public void RebuildEdgeCache()

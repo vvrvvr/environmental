@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Video;
@@ -16,8 +17,18 @@ public class GameManager : MonoBehaviour
     [Tooltip("Камера, с которой строится луч для нод карты и прочего взаимодействия с картой.")]
     [SerializeField] private Camera mapCamera;
 
+    [Tooltip("Рёбра мини-карты. Если пусто — ищется MinimapEdgeRegistry в сцене.")]
+    [SerializeField] private MinimapEdgeRegistry minimapEdgeRegistry;
+
     [Tooltip("Писать в консоль каждое уведомление о смене состояния ноды на карте.")]
     [SerializeField] private bool logMapNodeStateChanges;
+
+    [Header("Minimap discovery")]
+    [Tooltip("Дебаг: все ноды карты Visible (кроме уже выбранной), можно кликнуть любую и выбрать. Выкл — достижимость только от нод с IsMinimapStartNode по рёбрам реестра.")]
+    [SerializeField] private bool debugRevealFullMinimap;
+
+    [Tooltip("Лог разметки стартовых нод / блокировки других стартов.")]
+    [SerializeField] private bool logMinimapDiscovery;
 
     [Header("Minimap video")]
     [Tooltip("Единый VideoPlayer для ролика выбранной ноды (выход на RawImage / Camera и т.д. настраивается на нём).")]
@@ -35,7 +46,136 @@ public class GameManager : MonoBehaviour
     [Tooltip("Включить переключение состояний ноды по цифрам 1–9.")]
     [SerializeField] private bool enableNodeStateHotkeys = true;
 
+    private bool _lastDebugRevealFullMinimap;
+
+    /// <summary>Гасит повторный вход из <see cref="NotifyNodeMapStateChanged"/> при массовых <see cref="Node.ForceMapState"/>.</summary>
+    private bool _suppressMinimapPostNotify;
+
+    private readonly HashSet<Node> _scratchNodesB = new HashSet<Node>();
+
+    /// <summary>Корни карты с <see cref="Node.IsMinimapStartNode"/>; обновляется в <see cref="RefreshMinimapDiscoveryFromStartNodes"/> для линий при отсутствии выбора.</summary>
+    private readonly HashSet<Node> _minimapStartRootCache = new HashSet<Node>();
+
     public Camera MapCamera => mapCamera;
+
+    /// <summary>Дебаг: вся карта доступна для клика и выбора.</summary>
+    public bool DebugRevealFullMinimap => debugRevealFullMinimap;
+
+    /// <summary>Корень карты помечен как стартовый (кэш актуален после последнего <see cref="RefreshMinimapDiscoveryFromStartNodes"/>).</summary>
+    public bool IsMinimapStartMapRoot(Node mapRoot) =>
+        mapRoot != null && _minimapStartRootCache.Contains(mapRoot);
+
+    /// <summary>
+    /// При отсутствии выбранной ноды: показывать ребро, если оно исходит от любой стартовой ноды (<see cref="Node.IsMinimapStartNode"/> у корня <see cref="Node.SelectionOwner"/> от <see cref="MinimapEdge.FromNode"/>).
+    /// </summary>
+    public bool ShouldShowMinimapEdgeWhenNothingSelected(MinimapEdge edge) =>
+        edge != null &&
+        edge.FromNode != null &&
+        _minimapStartRootCache.Contains(edge.FromNode.SelectionOwner);
+
+    /// <summary>
+    /// Пересчитать видимость корней карты от стартовых нод и рёбер реестра. Не трогает ноду в <see cref="CurrentSelectedMapNode"/>, если она в <see cref="NodeMapState.Selected"/>.
+    /// </summary>
+    public void RefreshMinimapDiscoveryFromStartNodes()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        var ownsSuppress = false;
+        if (!_suppressMinimapPostNotify)
+        {
+            _suppressMinimapPostNotify = true;
+            ownsSuppress = true;
+        }
+
+        try
+        {
+            if (debugRevealFullMinimap)
+            {
+                ApplyDebugFullMinimapLayout();
+                ResetAllMinimapEdgesIdle();
+                RefreshMinimapEdgeRegistryLines();
+                return;
+            }
+
+            var mapRoots = CollectMapRootNodes();
+            var registry = ResolveMinimapEdgeRegistry();
+            _minimapStartRootCache.Clear();
+            for (var i = 0; i < mapRoots.Count; i++)
+            {
+                var r = mapRoots[i];
+                if (r != null && r.IsMinimapStartNode)
+                    _minimapStartRootCache.Add(r);
+            }
+
+            var startCount = _minimapStartRootCache.Count;
+
+            if (startCount == 0)
+            {
+                for (var i = 0; i < mapRoots.Count; i++)
+                {
+                    var r = mapRoots[i];
+                    if (r == null)
+                        continue;
+                    if (ShouldSkipStateOverrideBecauseSelected(r))
+                        continue;
+                    r.ForceMapState(NodeMapState.Visible);
+                }
+
+                Debug.LogWarning(
+                    "[GameManager] Нет ни одной ноды с IsMinimapStartNode — все корни карты оставлены Visible.",
+                    this);
+                ResetAllMinimapEdgesIdle();
+                RefreshMinimapEdgeRegistryLines();
+                return;
+            }
+
+            // Видимые (активные) корни: все старты + логические владельцы концов исходящих от стартов рёбер (один шаг по направлению ребра).
+            _scratchNodesB.Clear();
+            foreach (var s in _minimapStartRootCache)
+                _scratchNodesB.Add(s);
+
+            if (registry != null && registry.Edges != null)
+            {
+                for (var i = 0; i < registry.Edges.Count; i++)
+                {
+                    var e = registry.Edges[i];
+                    if (e == null || e.FromNode == null)
+                        continue;
+                    var fromOwner = e.FromNode.SelectionOwner;
+                    if (fromOwner == null || !_minimapStartRootCache.Contains(fromOwner))
+                        continue;
+                    if (e.ToNode == null)
+                        continue;
+                    var toOwner = e.ToNode.SelectionOwner;
+                    if (toOwner != null)
+                        _scratchNodesB.Add(toOwner);
+                }
+            }
+
+            for (var i = 0; i < mapRoots.Count; i++)
+            {
+                var root = mapRoots[i];
+                if (root == null)
+                    continue;
+                if (ShouldSkipStateOverrideBecauseSelected(root))
+                    continue;
+                var state = _scratchNodesB.Contains(root) ? NodeMapState.Visible : NodeMapState.Inactive;
+                root.ForceMapState(state);
+            }
+
+            if (logMinimapDiscovery)
+                Debug.Log($"[GameManager] Minimap discovery: стартов {startCount}, корней Visible (старт + 1 шаг по исходящим) {_scratchNodesB.Count} из {mapRoots.Count}.", this);
+
+            ResetAllMinimapEdgesIdle();
+            RefreshMinimapEdgeRegistryLines();
+        }
+        finally
+        {
+            if (ownsSuppress)
+                _suppressMinimapPostNotify = false;
+        }
+    }
 
     /// <summary>Нода, для которой последний раз пришло уведомление о смене <see cref="NodeMapState"/>.</summary>
     public Node LastMapStateSourceNode { get; private set; }
@@ -86,6 +226,8 @@ public class GameManager : MonoBehaviour
                 $"[GameManager] Map state: «{node.name}» {previousState?.ToString() ?? "∅"} → {newState}",
                 node);
         }
+
+        ApplyMinimapRulesAfterMapNotify();
     }
 
     /// <summary>
@@ -94,6 +236,9 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public bool HandleMapNodeClick(Node logicalOwner, Node clickedNode)
     {
+        if (debugRevealFullMinimap)
+            return false;
+
         if (mapVideoPlayer == null || logicalOwner == null)
             return false;
 
@@ -324,6 +469,15 @@ public class GameManager : MonoBehaviour
         }
 
         Instance = this;
+        _lastDebugRevealFullMinimap = debugRevealFullMinimap;
+    }
+
+    private IEnumerator Start()
+    {
+        yield return null;
+        yield return null;
+        if (this != null)
+            RefreshMinimapDiscoveryFromStartNodes();
     }
 
     private void OnDestroy()
@@ -335,10 +489,208 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
+        if (debugRevealFullMinimap != _lastDebugRevealFullMinimap)
+        {
+            _lastDebugRevealFullMinimap = debugRevealFullMinimap;
+            RefreshMinimapDiscoveryFromStartNodes();
+        }
+
         if (!enableNodeStateHotkeys)
             return;
 
         TryDebugNodeStateHotkeys();
+    }
+
+    private void ApplyMinimapRulesAfterMapNotify()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        if (_suppressMinimapPostNotify)
+            return;
+
+        _suppressMinimapPostNotify = true;
+        try
+        {
+            if (debugRevealFullMinimap)
+            {
+                ApplyDebugFullMinimapLayout();
+                ResetAllMinimapEdgesIdle();
+                RefreshMinimapEdgeRegistryLines();
+                return;
+            }
+
+            if (CurrentSelectedMapNode != null &&
+                CurrentSelectedMapNode.IsMinimapStartNode &&
+                CountMinimapStartRoots() > 1)
+            {
+                ApplyNonChosenMinimapStartsBlocked(CurrentSelectedMapNode);
+                RefreshMinimapEdgeRegistryLines();
+                return;
+            }
+
+            RefreshMinimapDiscoveryFromStartNodes();
+        }
+        finally
+        {
+            _suppressMinimapPostNotify = false;
+        }
+    }
+
+    private static bool ShouldSkipStateOverrideBecauseSelected(Node root) =>
+        root.CurrentState == NodeMapState.Selected;
+
+    private void ApplyDebugFullMinimapLayout()
+    {
+        var mapRoots = CollectMapRootNodes();
+        for (var i = 0; i < mapRoots.Count; i++)
+        {
+            var r = mapRoots[i];
+            if (r == null)
+                continue;
+            if (ShouldSkipStateOverrideBecauseSelected(r))
+                continue;
+            r.ForceMapState(NodeMapState.Visible);
+        }
+
+        if (logMinimapDiscovery)
+            Debug.Log($"[GameManager] debugRevealFullMinimap: корней карты {mapRoots.Count} → Visible (кроме выбранной).", this);
+    }
+
+    private int CountMinimapStartRoots()
+    {
+        var mapRoots = CollectMapRootNodes();
+        var n = 0;
+        for (var i = 0; i < mapRoots.Count; i++)
+        {
+            if (mapRoots[i] != null && mapRoots[i].IsMinimapStartNode)
+                n++;
+        }
+
+        return n;
+    }
+
+    private void ApplyNonChosenMinimapStartsBlocked(Node selectedStartRoot)
+    {
+        if (selectedStartRoot == null || !selectedStartRoot.IsMinimapStartNode)
+            return;
+
+        ResetAllMinimapEdgesIdle();
+
+        var mapRoots = CollectMapRootNodes();
+        var otherStarts = new HashSet<Node>();
+        for (var i = 0; i < mapRoots.Count; i++)
+        {
+            var r = mapRoots[i];
+            if (r != null && r.IsMinimapStartNode && r != selectedStartRoot)
+                otherStarts.Add(r);
+        }
+
+        if (otherStarts.Count == 0)
+            return;
+
+        foreach (var os in otherStarts)
+            os.ForceMapState(NodeMapState.Blocked);
+
+        var registry = ResolveMinimapEdgeRegistry();
+        if (registry != null && registry.Edges != null)
+        {
+            for (var i = 0; i < registry.Edges.Count; i++)
+            {
+                var e = registry.Edges[i];
+                if (e == null)
+                    continue;
+                if (MinimapEdgeTouchesAnyRoot(e, otherStarts))
+                    e.SetEdgeState(MinimapEdgeState.Blocked, forceLog: false);
+            }
+        }
+
+        var visited = new HashSet<Node>();
+        var queue = new Queue<Node>();
+        foreach (var os in otherStarts)
+        {
+            if (visited.Add(os))
+                queue.Enqueue(os);
+        }
+
+        var neigh = new HashSet<Node>();
+        while (queue.Count > 0)
+        {
+            var cur = queue.Dequeue();
+            neigh.Clear();
+            if (registry != null)
+                registry.AddUndirectedNeighbors(cur, neigh);
+            foreach (var nb in neigh)
+            {
+                if (nb == null)
+                    continue;
+                if (nb.SelectionOwner == selectedStartRoot)
+                    continue;
+                if (!visited.Add(nb))
+                    continue;
+                queue.Enqueue(nb);
+            }
+        }
+
+        foreach (var v in visited)
+        {
+            var root = v.SelectionOwner;
+            if (root == null || root == selectedStartRoot)
+                continue;
+            if (root.CurrentState == NodeMapState.Inactive)
+                continue;
+            root.ForceMapState(NodeMapState.Blocked);
+        }
+
+        if (logMinimapDiscovery)
+            Debug.Log(
+                $"[GameManager] Выбран старт «{selectedStartRoot.name}»: остальные старты и их компонента заблокированы (узлов в обходе {visited.Count}).",
+                selectedStartRoot);
+    }
+
+    private static bool MinimapEdgeTouchesAnyRoot(MinimapEdge edge, HashSet<Node> roots)
+    {
+        if (edge == null || roots == null || roots.Count == 0)
+            return false;
+        Node a = edge.FromNode != null ? edge.FromNode.SelectionOwner : null;
+        Node b = edge.ToNode != null ? edge.ToNode.SelectionOwner : null;
+        if (a != null && roots.Contains(a))
+            return true;
+        if (b != null && roots.Contains(b))
+            return true;
+        return false;
+    }
+
+    private static List<Node> CollectMapRootNodes()
+    {
+        var all = FindObjectsOfType<Node>(true);
+        var list = new List<Node>();
+        for (var i = 0; i < all.Length; i++)
+        {
+            var n = all[i];
+            if (n != null && n.GroupParent == null)
+                list.Add(n);
+        }
+
+        return list;
+    }
+
+    private MinimapEdgeRegistry ResolveMinimapEdgeRegistry()
+    {
+        if (minimapEdgeRegistry != null)
+            return minimapEdgeRegistry;
+        return FindObjectOfType<MinimapEdgeRegistry>();
+    }
+
+    private void ResetAllMinimapEdgesIdle()
+    {
+        var reg = ResolveMinimapEdgeRegistry();
+        reg?.SetAllEdgesVisualStateIdle();
+    }
+
+    private void RefreshMinimapEdgeRegistryLines()
+    {
+        ResolveMinimapEdgeRegistry()?.RefreshOutgoingLineVisibilityForMapSelection();
     }
 
     /// <summary>Нода для дебаг-горячих клавиш: последняя из <see cref="NotifyNodeMapStateChanged"/>, иначе <see cref="debugTargetNode"/>.</summary>

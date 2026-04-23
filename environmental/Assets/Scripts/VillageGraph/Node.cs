@@ -42,9 +42,16 @@ public partial class Node : MonoBehaviour
     [SerializeField, Min(0f)] private float selectionRingDisappearDuration = 0.12f;
     [SerializeField] private Ease selectionRingDisappearEase = Ease.InQuad;
 
+    [Header("Minimap")]
+    [Tooltip("Стартовая нода карты: при старте Visible; сразу видны исходящие рёбра и ноды на их концах (один шаг). Остальные корни карты — Inactive. См. GameManager.")]
+    [SerializeField] private bool isMinimapStartNode;
+
     [Header("Minimap video")]
     [Tooltip("Ролик мини-карты для этой ноды (уникальный). Воспроизведение ведёт GameManager.")]
     [SerializeField] private VideoClip minimapVideoClip;
+
+    /// <summary>Стартовая точка обхода мини-карты (флаг в инспекторе).</summary>
+    public bool IsMinimapStartNode => isMinimapStartNode;
 
     /// <summary>Клип мини-карты; для группы задаётся на родительской ноде (логический выбор — SelectionOwner).</summary>
     public VideoClip MinimapVideoClip => minimapVideoClip;
@@ -158,18 +165,18 @@ public partial class Node : MonoBehaviour
     protected virtual void OnNodePointerEnter()
     {
         AnimateMainSpriteScale(mainSpriteBaseScale * hoverScaleMultiplier, hoverEnterDuration, hoverEnterEase);
-        Debug.Log("enter");
+        // Debug.Log("enter");
     }
 
     protected virtual void OnNodePointerHold()
     {
-        Debug.Log("hold");
+        // Debug.Log("hold");
     }
 
     protected virtual void OnNodePointerExit()
     {
         AnimateMainSpriteScale(mainSpriteBaseScale, hoverExitDuration, hoverExitEase);
-        Debug.Log("exit");
+        // Debug.Log("exit");
     }
 
     protected virtual void OnNodePointerClick()

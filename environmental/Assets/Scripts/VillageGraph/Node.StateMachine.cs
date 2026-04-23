@@ -45,6 +45,20 @@ public partial class Node
         TransitionToState(newState, force: false);
     }
 
+    /// <summary>
+    /// Принудительная смена состояния карты. Для разметки достижимости и блокировок из <see cref="GameManager"/>; предпочтительно вызывать с корня карты (<see cref="GroupParent"/> == null).
+    /// </summary>
+    public void ForceMapState(NodeMapState newState)
+    {
+        if (newState == NodeMapState.Selected && groupParent != null)
+        {
+            groupParent.ForceMapState(NodeMapState.Selected);
+            return;
+        }
+
+        TransitionToState(newState, force: true);
+    }
+
     /// <summary>Совместимость с прошлым API: выбор / снятие выбора.</summary>
     public void SetSelected(bool selected)
     {
