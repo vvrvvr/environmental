@@ -42,7 +42,9 @@ public class MinimapEdge : MonoBehaviour
     [SerializeField] private Color blockedLineColor = new Color(0.55f, 0.2f, 0.2f, 1f);
 
     [Header("Nodes")]
+    [Tooltip("Начало ориентированного ребра на карте. Для группы — только родительская нода, не дочерняя.")]
     [SerializeField] private Node fromNode;
+
     [SerializeField] private Node toNode;
 
     public Transform StartAnchor => startAnchor;
@@ -66,7 +68,11 @@ public class MinimapEdge : MonoBehaviour
 
     public MinimapEdgeState CurrentEdgeState => _currentState;
 
+    /// <summary>В Play: разрешение по выбору на карте (<see cref="MinimapEdgeRegistry"/>).</summary>
+    public bool MapOutgoingLineVisible => _mapOutgoingLineVisible;
+
     private MinimapEdgeState _currentState = MinimapEdgeState.Idle;
+    private bool _mapOutgoingLineVisible;
     private Color _defaultStart = Color.white;
     private Color _defaultEnd = Color.white;
     private bool _capturedDefaultLineColors;
@@ -82,7 +88,7 @@ public class MinimapEdge : MonoBehaviour
         if (!Application.isPlaying)
             return;
         _currentState = MinimapEdgeState.Idle;
-        ApplyStateVisuals();
+        ApplyCombinedVisual();
     }
 
     private void OnEnable()
@@ -92,7 +98,7 @@ public class MinimapEdge : MonoBehaviour
 #if UNITY_EDITOR
         EditorApplication.update += EditorPoll;
 #endif
-        ApplyStateVisuals();
+        ApplyCombinedVisual();
     }
 
     private void OnDisable()
@@ -112,10 +118,14 @@ public class MinimapEdge : MonoBehaviour
 
     private void OnValidate()
     {
+        if (fromNode != null && fromNode.GroupParent != null)
+            Debug.LogWarning($"{name}: у ребра FromNode — дочерняя нода группы. Рёбра должны исходить только от родителя.", this);
+
         CacheLineDefaultColorsIfNeeded();
         if (!EditorApplication.isPlayingOrWillChangePlaymode)
             RefreshLinePositions();
-        ApplyStateVisuals();
+
+        ApplyCombinedVisual();
     }
 #endif
 
@@ -125,7 +135,17 @@ public class MinimapEdge : MonoBehaviour
             RefreshLinePositions();
     }
 
-    /// <summary>Смена состояния (в т.ч. дебаг с реестра по цифрам 1–5).</summary>
+    /// <summary>
+    /// Слой выбора на карте: в Play выставляет <see cref="MinimapEdgeRegistry"/> (исходящие от <see cref="Node.SelectionOwner"/>).
+    /// Не меняет <see cref="MinimapEdgeState"/>; итоговый вид — <see cref="ApplyCombinedVisual"/>.
+    /// </summary>
+    public void SetMapOutgoingLineVisible(bool visible)
+    {
+        _mapOutgoingLineVisible = visible;
+        ApplyCombinedVisual();
+    }
+
+    /// <summary>Смена состояния ребра (в т.ч. дебаг с реестра по цифрам 1–5).</summary>
     public void SetEdgeState(MinimapEdgeState next, bool forceLog = true)
     {
         if (!Application.isPlaying)
@@ -133,8 +153,8 @@ public class MinimapEdge : MonoBehaviour
             var prev = _currentState;
             _currentState = next;
             if (forceLog && prev != next)
-                Debug.Log($"[{name}] MinimapEdge state: {prev} → {next} (не Play Mode — таймер Moving не запускается)", this);
-            ApplyStateVisuals();
+                Debug.Log($"[{name}] MinimapEdge state: {prev} → {next} (не Play — таймер Moving не запускается)", this);
+            ApplyCombinedVisual();
             return;
         }
 
@@ -150,7 +170,7 @@ public class MinimapEdge : MonoBehaviour
         if (next == MinimapEdgeState.MovingAlongEdge)
             _movingCoroutine = StartCoroutine(CoMovingAlongEdge());
 
-        ApplyStateVisuals();
+        ApplyCombinedVisual();
     }
 
     private IEnumerator CoMovingAlongEdge()
@@ -166,7 +186,7 @@ public class MinimapEdge : MonoBehaviour
         _movingCoroutine = null;
         _currentState = MinimapEdgeState.Idle;
         Debug.Log($"[{name}] MinimapEdge state: MovingAlongEdge → Idle (timer done)", this);
-        ApplyStateVisuals();
+        ApplyCombinedVisual();
     }
 
     private void StopMovingIfAny()
@@ -186,15 +206,20 @@ public class MinimapEdge : MonoBehaviour
         _capturedDefaultLineColors = true;
     }
 
-    private void ApplyStateVisuals()
+    /// <summary>
+    /// Карта вне Play всегда «разрешает» линию для вёрстки; в Play — по <see cref="_mapOutgoingLineVisible"/>.
+    /// Состояние <see cref="MinimapEdgeState.Disabled"/> выключает линию всегда.
+    /// </summary>
+    private void ApplyCombinedVisual()
     {
         if (lineRenderer == null)
             return;
 
-        bool lineOn = _currentState != MinimapEdgeState.Disabled;
-        lineRenderer.enabled = lineOn;
+        bool mapAllows = !Application.isPlaying || _mapOutgoingLineVisible;
+        bool stateShowsLine = _currentState != MinimapEdgeState.Disabled;
+        lineRenderer.enabled = mapAllows && stateShowsLine;
 
-        if (!lineOn)
+        if (!lineRenderer.enabled)
             return;
 
         if (_currentState == MinimapEdgeState.Blocked)

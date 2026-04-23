@@ -23,6 +23,8 @@ public class MinimapEdgeRegistryEditor : Editor
         var registry = (MinimapEdgeRegistry)target;
         Undo.RecordObject(registry, "Пересобрать кэш MinimapEdgeRegistry");
         registry.RebuildEdgeCache();
+        if (Application.isPlaying)
+            registry.RefreshOutgoingLineVisibilityForMapSelection();
         EditorUtility.SetDirty(registry);
     }
 
@@ -52,6 +54,8 @@ public class MinimapEdgeRegistryEditor : Editor
 
         serializedObject.ApplyModifiedProperties();
         registry.RebuildEdgeCache();
+        if (Application.isPlaying)
+            registry.RefreshOutgoingLineVisibilityForMapSelection();
         EditorUtility.SetDirty(registry);
     }
 }
