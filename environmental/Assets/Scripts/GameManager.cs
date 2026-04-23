@@ -287,7 +287,7 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Клик по другой активной ноде, соединённой исходящим ребром с текущей выбранной: секвенция Deselected → (кольцо) → Blocked → ребро Moving → новая Selected + ребро Idle.
+    /// Клик по другой активной ноде, соединённой исходящим ребром с текущей выбранной: прочие исходящие рёбра и их активные концы — Blocked; затем секвенция Deselected → (кольцо) → Blocked → ребро Moving → новая Selected.
     /// </summary>
     private bool TryBeginMapTravelToNeighbor(Node logicalOwner, Node clickedNode)
     {
@@ -319,16 +319,59 @@ public class GameManager : MonoBehaviour
         }
 
         _mapTravelTargetRoot = logicalOwner;
-        _mapTravelCoroutine = StartCoroutine(CoMapSelectionTravel(selected, logicalOwner, edge));
+        _mapTravelCoroutine = StartCoroutine(CoMapSelectionTravel(registry, selected, logicalOwner, edge));
         return true;
     }
 
-    private IEnumerator CoMapSelectionTravel(Node fromRoot, Node toRoot, MinimapEdge edge)
+    /// <summary>
+    /// Исходящие от <paramref name="fromRoot"/> рёбра, кроме <paramref name="chosenEdge"/>: ребро <see cref="MinimapEdgeState.Blocked"/>;
+    /// корень конца (<see cref="Node.SelectionOwner"/>) — <see cref="NodeMapState.Blocked"/>, если нода сейчас «как доступный сосед» (Visible / Deselected / Appearing).
+    /// </summary>
+    private static void BlockAlternateOutgoingPathsForMapTravel(MinimapEdgeRegistry registry, Node fromRoot, MinimapEdge chosenEdge)
+    {
+        if (registry == null || fromRoot == null || chosenEdge == null)
+            return;
+
+        var outgoing = registry.GetEdgesFrom(fromRoot);
+        for (var i = 0; i < outgoing.Count; i++)
+        {
+            var e = outgoing[i];
+            if (e == null || ReferenceEquals(e, chosenEdge))
+                continue;
+
+            e.SetEdgeState(MinimapEdgeState.Blocked, forceLog: false);
+
+            if (e.ToNode == null)
+                continue;
+
+            Node neighborRoot = e.ToNode.SelectionOwner;
+            if (neighborRoot == null || !IsActiveAlternateNeighborForMapTravel(neighborRoot))
+                continue;
+
+            neighborRoot.ForceMapState(NodeMapState.Blocked);
+        }
+    }
+
+    private static bool IsActiveAlternateNeighborForMapTravel(Node neighborRoot)
+    {
+        switch (neighborRoot.CurrentState)
+        {
+            case NodeMapState.Visible:
+            case NodeMapState.Deselected:
+            case NodeMapState.Appearing:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private IEnumerator CoMapSelectionTravel(MinimapEdgeRegistry registry, Node fromRoot, Node toRoot, MinimapEdge edge)
     {
         _mapSelectionTravelInProgress = true;
         _suppressMapTravelSelectionClear = true;
         try
         {
+            BlockAlternateOutgoingPathsForMapTravel(registry, fromRoot, edge);
             fromRoot.SetState(NodeMapState.Deselected);
             float ring = fromRoot.SelectionRingDisappearDuration;
             if (ring > 0f)
