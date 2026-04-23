@@ -17,6 +17,7 @@ public partial class Node
     [SerializeField] private GameObject mapVisualRoot;
 
     [Header("State: Appearing (placeholder)")]
+    [Tooltip("Задержка перед переходом в Visible. 0 — считается как 1 с (заглушка).")]
     [SerializeField, Min(0f)] private float appearingToVisibleDelay = 0.35f;
 
     [Header("State: Deselected (placeholder)")]
@@ -205,11 +206,14 @@ public partial class Node
                 SetMapVisualAndCollidersActive(true);
                 ApplyMainSpriteForState(state);
                 ApplySelectionRingForState(state);
-                _stateDelayedTween = DOVirtual.DelayedCall(appearingToVisibleDelay, () =>
                 {
-                    if (this != null && CurrentState == NodeMapState.Appearing)
-                        TransitionToState(NodeMapState.Visible, force: true);
-                });
+                    float delay = appearingToVisibleDelay <= 0f ? 1f : appearingToVisibleDelay;
+                    _stateDelayedTween = DOVirtual.DelayedCall(delay, () =>
+                    {
+                        if (this != null && CurrentState == NodeMapState.Appearing)
+                            TransitionToState(NodeMapState.Visible, force: true);
+                    });
+                }
                 break;
 
             case NodeMapState.Visible:

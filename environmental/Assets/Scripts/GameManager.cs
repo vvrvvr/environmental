@@ -161,6 +161,21 @@ public class GameManager : MonoBehaviour
                 }
             }
 
+            // Исходящие от текущей выбранной: следующий слой (вторая волна и дальше) не сбрасывается в Inactive при пересчёте.
+            if (CurrentSelectedMapNode != null && registry != null)
+            {
+                var fromSelected = registry.GetEdgesFrom(CurrentSelectedMapNode);
+                for (var i = 0; i < fromSelected.Count; i++)
+                {
+                    var e = fromSelected[i];
+                    if (e == null || e.ToNode == null)
+                        continue;
+                    var toOwner = e.ToNode.SelectionOwner;
+                    if (toOwner != null)
+                        _scratchNodesB.Add(toOwner);
+                }
+            }
+
             for (var i = 0; i < mapRoots.Count; i++)
             {
                 var root = mapRoots[i];
@@ -168,12 +183,20 @@ public class GameManager : MonoBehaviour
                     continue;
                 if (ShouldSkipStateOverrideBecauseSelected(root))
                     continue;
-                var state = _scratchNodesB.Contains(root) ? NodeMapState.Visible : NodeMapState.Inactive;
-                root.ForceMapState(state);
+
+                if (_scratchNodesB.Contains(root))
+                {
+                    if (root.CurrentState == NodeMapState.Appearing ||
+                        root.CurrentState == NodeMapState.Blocked)
+                        continue;
+                    root.ForceMapState(NodeMapState.Visible);
+                }
+                else
+                    root.ForceMapState(NodeMapState.Inactive);
             }
 
             if (logMinimapDiscovery)
-                Debug.Log($"[GameManager] Minimap discovery: стартов {startCount}, корней Visible (старт + 1 шаг по исходящим) {_scratchNodesB.Count} из {mapRoots.Count}.", this);
+                Debug.Log($"[GameManager] Minimap discovery: стартов {startCount}, корней в облаке видимости {_scratchNodesB.Count} из {mapRoots.Count}.", this);
 
             ResetAllMinimapEdgesIdle();
             RefreshMinimapEdgeRegistryLines();
@@ -365,6 +388,41 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// После прибытия по ребру: исходящие от новой выбранной ноды рёбра в <see cref="MinimapEdgeState.Disabled"/> или <see cref="MinimapEdgeState.Idle"/>
+    /// (после <see cref="MinimapEdgeRegistry.SetAllEdgesVisualStateIdle"/>) с дальним <see cref="NodeMapState.Inactive"/> — ребро Appearing → Idle;
+    /// дальний корень — Appearing → Visible (таймер на ноде).
+    /// </summary>
+    private static void RevealOutgoingDisabledFrontierAfterMapTravel(MinimapEdgeRegistry registry, Node selectedRoot)
+    {
+        if (registry == null || selectedRoot == null)
+            return;
+
+        var outgoing = registry.GetEdgesFrom(selectedRoot);
+        for (var i = 0; i < outgoing.Count; i++)
+        {
+            MinimapEdge e = outgoing[i];
+            if (e == null)
+                continue;
+
+            if (e.ToNode == null)
+                continue;
+
+            Node farRoot = e.ToNode.SelectionOwner;
+            if (farRoot == null || farRoot == selectedRoot)
+                continue;
+
+            if (farRoot.CurrentState != NodeMapState.Inactive)
+                continue;
+
+            var es = e.CurrentEdgeState;
+            if (es == MinimapEdgeState.Disabled || es == MinimapEdgeState.Idle)
+                e.SetEdgeState(MinimapEdgeState.Appearing, forceLog: false);
+
+            farRoot.ForceMapState(NodeMapState.Appearing);
+        }
+    }
+
     private IEnumerator CoMapSelectionTravel(MinimapEdgeRegistry registry, Node fromRoot, Node toRoot, MinimapEdge edge)
     {
         _mapSelectionTravelInProgress = true;
@@ -383,6 +441,7 @@ public class GameManager : MonoBehaviour
             _suppressMapTravelSelectionClear = false;
             toRoot.SetState(NodeMapState.Selected);
             RefreshMinimapEdgeRegistryLines();
+            RevealOutgoingDisabledFrontierAfterMapTravel(registry, toRoot);
         }
         finally
         {
