@@ -313,6 +313,33 @@ public class MinimapEdgeRegistry : MonoBehaviour
     }
 
     /// <summary>
+    /// Ориентированное ребро fromRoot → toRoot: «from» по <see cref="ResolveMapKey"/> с owner, конец по <see cref="Node.SelectionOwner"/> у <see cref="MinimapEdge.ToNode"/>.
+    /// </summary>
+    public MinimapEdge TryFindDirectedEdgeBetweenMapRoots(Node fromRoot, Node toRoot, bool fromUseSelectionOwner = true)
+    {
+        if (fromRoot == null || toRoot == null || edges == null)
+            return null;
+
+        Node fromKey = ResolveMapKey(fromRoot, fromUseSelectionOwner);
+        if (fromKey == null)
+            return null;
+
+        if (!_outgoingByFromNode.TryGetValue(fromKey, out var list))
+            return null;
+
+        for (var i = 0; i < list.Count; i++)
+        {
+            var e = list[i];
+            if (e == null || e.ToNode == null)
+                continue;
+            if (e.ToNode.SelectionOwner == toRoot)
+                return e;
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Уникальные ноды-концы исходящих рёбер (поле <see cref="MinimapEdge.ToNode"/>), порядок по имени.
     /// Ключ «from» через <see cref="Node.SelectionOwner"/> при <paramref name="useSelectionOwner"/>.
     /// </summary>

@@ -38,7 +38,7 @@ public partial class Node : MonoBehaviour
     [Tooltip("Как быстро кольцо масштабируется от 0 до исходного размера при выборе.")]
     [SerializeField, Min(0f)] private float selectionRingAppearDuration = 0.1f;
     [SerializeField] private Ease selectionRingAppearEase = Ease.OutQuad;
-    [Tooltip("Как быстро кольцо сжимается к 0 при снятии выбора (состояние Deselected).")]
+    [Tooltip("Как быстро кольцо сжимается к 0 при снятии выбора (состояние Deselected). Используется оркестратором перехода по карте до Blocked.")]
     [SerializeField, Min(0f)] private float selectionRingDisappearDuration = 0.12f;
     [SerializeField] private Ease selectionRingDisappearEase = Ease.InQuad;
 
@@ -52,6 +52,9 @@ public partial class Node : MonoBehaviour
 
     /// <summary>Стартовая точка обхода мини-карты (флаг в инспекторе).</summary>
     public bool IsMinimapStartNode => isMinimapStartNode;
+
+    /// <summary>Длительность сжатия кольца при <see cref="NodeMapState.Deselected"/>; оркестратор перехода по карте ждёт её перед <see cref="NodeMapState.Blocked"/>.</summary>
+    public float SelectionRingDisappearDuration => selectionRingDisappearDuration;
 
     /// <summary>Клип мини-карты; для группы задаётся на родительской ноде (логический выбор — SelectionOwner).</summary>
     public VideoClip MinimapVideoClip => minimapVideoClip;
