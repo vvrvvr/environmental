@@ -207,15 +207,18 @@ public class MinimapEdge : MonoBehaviour
     }
 
     /// <summary>
-    /// Карта вне Play всегда «разрешает» линию для вёрстки; в Play — по <see cref="_mapOutgoingLineVisible"/>.
-    /// Состояние <see cref="MinimapEdgeState.Disabled"/> выключает линию всегда.
+    /// Карта вне Play всегда «разрешает» линию для вёрстки.
+    /// В Play: линия по <see cref="_mapOutgoingLineVisible"/> (исходящие от выбранной / стартов без выбора) или всегда при <see cref="MinimapEdgeState.Blocked"/>, чтобы заблокированные маршруты не пропадали, а рисовались цветом <see cref="blockedLineColor"/>.
+    /// <see cref="MinimapEdgeState.Disabled"/> выключает линию всегда.
     /// </summary>
     private void ApplyCombinedVisual()
     {
         if (lineRenderer == null)
             return;
 
-        bool mapAllows = !Application.isPlaying || _mapOutgoingLineVisible;
+        bool mapAllows = !Application.isPlaying ||
+                         _mapOutgoingLineVisible ||
+                         _currentState == MinimapEdgeState.Blocked;
         bool stateShowsLine = _currentState != MinimapEdgeState.Disabled;
         lineRenderer.enabled = mapAllows && stateShowsLine;
 
