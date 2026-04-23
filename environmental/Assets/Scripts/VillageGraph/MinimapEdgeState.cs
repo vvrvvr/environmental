@@ -3,13 +3,13 @@
 /// </summary>
 public enum MinimapEdgeState
 {
-    /// <summary>Линия выключена.</summary>
+    /// <summary>Линия выключена (игнорирует слой видимости по карте).</summary>
     Disabled = 0,
 
-    /// <summary>Заглушка: линия включена.</summary>
+    /// <summary>Заглушка: линия включена (если разрешено выбором на карте).</summary>
     Appearing = 1,
 
-    /// <summary>Заглушка: таймер, затем переход в <see cref="Idle"/> (только в Play Mode).</summary>
+    /// <summary>Заглушка: таймер в Play, затем <see cref="Idle"/>.</summary>
     MovingAlongEdge = 2,
 
     /// <summary>Обычный вид линии.</summary>

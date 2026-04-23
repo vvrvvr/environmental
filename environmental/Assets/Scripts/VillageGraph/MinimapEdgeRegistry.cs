@@ -11,24 +11,47 @@ public class MinimapEdgeRegistry : MonoBehaviour
     [Tooltip("Все рёбра мини-карты. В инспекторе есть кнопка «Собрать все рёбра со сцены».")]
     [SerializeField] private List<MinimapEdge> edges = new List<MinimapEdge>();
 
+    [Header("Selection → line visibility")]
+    [Tooltip(
+        "В Play Mode: LineRenderer только у рёбер, у которых FromNode.SelectionOwner совпадает с GameManager.CurrentSelectedMapNode. При снятии выбора — все линии выкл. В редакторе без Play линии всегда вкл.")]
+    [SerializeField]
+    private bool showOutgoingLinesOnlyForSelectedMapNode = true;
+
     [Header("Debug")]
     [Tooltip("Рисовать линии FromNode → ToNode в Scene-вью (для проверки связей).")]
     [SerializeField] private bool debugDrawEdgeGraph;
 
-    [Tooltip("В Play Mode: 1–5 и NumPad — состояние всем рёбрам из списка (MinimapEdgeState: Disabled…Blocked).")]
+    [Tooltip("В Play: клавиши 1–5 и NumPad — задать состояние всем рёбрам из списка (MinimapEdgeState).")]
     [SerializeField] private bool debugDigitKeysSetAllEdgeStates;
 
     private readonly Dictionary<Node, List<MinimapEdge>> _outgoingByFromNode = new Dictionary<Node, List<MinimapEdge>>();
+
+    private bool _subscribedToGameManager;
 
     public IReadOnlyList<MinimapEdge> Edges => edges;
 
     private void Awake() => RebuildEdgeCache();
 
-    private void OnEnable() => RebuildEdgeCache();
+    private void OnEnable()
+    {
+        RebuildEdgeCache();
+        if (Application.isPlaying)
+        {
+            TrySubscribeGameManager();
+            RefreshOutgoingLineVisibilityForMapSelection();
+        }
+    }
 
-#if UNITY_EDITOR
-    private void OnValidate() => RebuildEdgeCache();
-#endif
+    private void OnDisable() => UnsubscribeGameManager();
+
+    private void Start()
+    {
+        if (Application.isPlaying)
+        {
+            TrySubscribeGameManager();
+            RefreshOutgoingLineVisibilityForMapSelection();
+        }
+    }
 
     private void Update()
     {
@@ -63,6 +86,101 @@ public class MinimapEdgeRegistry : MonoBehaviour
 
         Debug.Log($"[MinimapEdgeRegistry] Дебаг: всем рёбрам в списке ({n}) задано состояние {s}", this);
     }
+
+    private void TrySubscribeGameManager()
+    {
+        if (_subscribedToGameManager || !Application.isPlaying)
+            return;
+        var gm = GameManager.Instance;
+        if (gm == null)
+            return;
+        gm.MapNodeStateChanged += OnMapNodeStateChanged;
+        _subscribedToGameManager = true;
+    }
+
+    private void UnsubscribeGameManager()
+    {
+        if (!_subscribedToGameManager)
+            return;
+        var gm = GameManager.Instance;
+        if (gm != null)
+            gm.MapNodeStateChanged -= OnMapNodeStateChanged;
+        _subscribedToGameManager = false;
+    }
+
+    private void OnMapNodeStateChanged(Node node, NodeMapState newState, NodeMapState? previousState)
+    {
+        RefreshOutgoingLineVisibilityForMapSelection();
+    }
+
+    /// <summary>
+    /// В Play Mode выставить видимость линий по <see cref="GameManager.CurrentSelectedMapNode"/> и <see cref="Node.SelectionOwner"/> у <see cref="MinimapEdge.FromNode"/>.
+    /// Вне Play — все линии вкл (для редактирования).
+    /// </summary>
+    public void RefreshOutgoingLineVisibilityForMapSelection()
+    {
+        if (edges == null)
+            return;
+
+        if (!Application.isPlaying)
+        {
+            for (var i = 0; i < edges.Count; i++)
+            {
+                var e = edges[i];
+                if (e != null)
+                    e.SetMapOutgoingLineVisible(true);
+            }
+
+            return;
+        }
+
+        if (!showOutgoingLinesOnlyForSelectedMapNode)
+        {
+            for (var i = 0; i < edges.Count; i++)
+            {
+                var e = edges[i];
+                if (e != null)
+                    e.SetMapOutgoingLineVisible(true);
+            }
+
+            return;
+        }
+
+        var gm = GameManager.Instance;
+        var selected = gm != null ? gm.CurrentSelectedMapNode : null;
+
+        for (var i = 0; i < edges.Count; i++)
+        {
+            var e = edges[i];
+            if (e == null)
+                continue;
+
+            bool show = selected != null &&
+                        e.FromNode != null &&
+                        e.FromNode.SelectionOwner == selected;
+            e.SetMapOutgoingLineVisible(show);
+        }
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        RebuildEdgeCache();
+        if (edges == null)
+            return;
+        if (!Application.isPlaying)
+        {
+            for (var i = 0; i < edges.Count; i++)
+            {
+                var e = edges[i];
+                if (e != null)
+                    e.SetMapOutgoingLineVisible(true);
+            }
+        }
+        else
+            RefreshOutgoingLineVisibilityForMapSelection();
+    }
+#endif
 
     /// <summary>Пересобрать кэш после смены списка рёбер в инспекторе или кода.</summary>
     public void RebuildEdgeCache()

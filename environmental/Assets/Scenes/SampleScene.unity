@@ -327,7 +327,7 @@ Transform:
   m_GameObject: {fileID: 123530230}
   serializedVersion: 2
   m_LocalRotation: {x: -0.0000014644934, y: 0.8704746, z: -0.4922135, w: 0.0000024401284}
-  m_LocalPosition: {x: 7.9819236, y: 31.796986, z: -7.5214605}
+  m_LocalPosition: {x: 5.2319236, y: 31.796986, z: -7.5214605}
   m_LocalScale: {x: 0.71009004, y: 0.71009, z: 0.71009}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3320,6 +3320,7 @@ MonoBehaviour:
   - {fileID: 1664285686}
   - {fileID: 2110931836}
   - {fileID: 1645072887}
+  showOutgoingLinesOnlyForSelectedMapNode: 1
   debugDrawEdgeGraph: 1
   debugDigitKeysSetAllEdgeStates: 1
 --- !u!4 &1017511042
@@ -4794,7 +4795,7 @@ MonoBehaviour:
   logMapNodeStateChanges: 0
   mapVideoPlayer: {fileID: 1173002159}
   debugTargetNode: {fileID: 885760709}
-  enableNodeStateHotkeys: 1
+  enableNodeStateHotkeys: 0
 --- !u!4 &1448228954
 Transform:
   m_ObjectHideFlags: 0
@@ -5613,8 +5614,8 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0.2985047, g: 0.8113208, b: 0.34056675, a: 1}
-      key1: {r: 0.9490196, g: 0.4627451, b: 0.4627451, a: 1}
+      key0: {r: 1, g: 1, b: 1, a: 1}
+      key1: {r: 1, g: 1, b: 1, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -5889,8 +5890,8 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0.2985047, g: 0.8113208, b: 0.34056675, a: 1}
-      key1: {r: 0.9490196, g: 0.4627451, b: 0.4627451, a: 1}
+      key0: {r: 1, g: 1, b: 1, a: 1}
+      key1: {r: 1, g: 1, b: 1, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -7426,8 +7427,8 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0.2985047, g: 0.8113208, b: 0.34056675, a: 1}
-      key1: {r: 0.9490196, g: 0.4627451, b: 0.4627451, a: 1}
+      key0: {r: 1, g: 1, b: 1, a: 1}
+      key1: {r: 1, g: 1, b: 1, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
