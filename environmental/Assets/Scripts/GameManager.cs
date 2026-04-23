@@ -71,12 +71,9 @@ public class GameManager : MonoBehaviour
         mapRoot != null && _minimapStartRootCache.Contains(mapRoot);
 
     /// <summary>
-    /// При отсутствии выбранной ноды: показывать ребро, если оно исходит от любой стартовой ноды (<see cref="Node.IsMinimapStartNode"/> у корня <see cref="Node.SelectionOwner"/> от <see cref="MinimapEdge.FromNode"/>).
+    /// При отсутствии выбранной ноды: исходящие линии скрыты, пока игрок не выберет стартовую ноду (раскрытие — <see cref="RevealOutgoingDisabledFrontierAfterMapTravel"/>).
     /// </summary>
-    public bool ShouldShowMinimapEdgeWhenNothingSelected(MinimapEdge edge) =>
-        edge != null &&
-        edge.FromNode != null &&
-        _minimapStartRootCache.Contains(edge.FromNode.SelectionOwner);
+    public bool ShouldShowMinimapEdgeWhenNothingSelected(MinimapEdge _) => false;
 
     /// <summary>Идёт секвенция перехода выбора по карте (клики гасятся в <see cref="HandleMapNodeClick"/>).</summary>
     public bool IsMapSelectionTravelInProgress => _mapSelectionTravelInProgress;
@@ -143,23 +140,7 @@ public class GameManager : MonoBehaviour
             foreach (var s in _minimapStartRootCache)
                 _scratchNodesB.Add(s);
 
-            if (registry != null && registry.Edges != null)
-            {
-                for (var i = 0; i < registry.Edges.Count; i++)
-                {
-                    var e = registry.Edges[i];
-                    if (e == null || e.FromNode == null)
-                        continue;
-                    var fromOwner = e.FromNode.SelectionOwner;
-                    if (fromOwner == null || !_minimapStartRootCache.Contains(fromOwner))
-                        continue;
-                    if (e.ToNode == null)
-                        continue;
-                    var toOwner = e.ToNode.SelectionOwner;
-                    if (toOwner != null)
-                        _scratchNodesB.Add(toOwner);
-                }
-            }
+            // Первый порядок от стартов не входит в стартовое облако — появляется после выбора старта (см. Notify → Reveal).
 
             // Исходящие от текущей выбранной: следующий слой (вторая волна и дальше) не сбрасывается в Inactive при пересчёте.
             if (CurrentSelectedMapNode != null && registry != null)
@@ -188,6 +169,9 @@ public class GameManager : MonoBehaviour
                 {
                     if (root.CurrentState == NodeMapState.Appearing ||
                         root.CurrentState == NodeMapState.Blocked)
+                        continue;
+                    // Inactive в облаке выбранной: раскрытие через Reveal (Appearing), не форсировать Visible до него.
+                    if (root.CurrentState == NodeMapState.Inactive)
                         continue;
                     root.ForceMapState(NodeMapState.Visible);
                 }
@@ -242,6 +226,11 @@ public class GameManager : MonoBehaviour
         {
             CurrentSelectedMapNode = node;
             PlayMinimapVideoForSelectedNode(node);
+            if (node.GroupParent == null && node.IsMinimapStartNode)
+            {
+                var registry = ResolveMinimapEdgeRegistry();
+                RevealOutgoingDisabledFrontierAfterMapTravel(registry, node);
+            }
         }
         else if (previousState == NodeMapState.Selected && CurrentSelectedMapNode == node)
         {
@@ -784,6 +773,7 @@ public class GameManager : MonoBehaviour
         foreach (var os in otherStarts)
             os.ForceMapState(NodeMapState.Blocked);
 
+        // Рёбра, касающиеся не выбранных стартов: Disabled (линия скрыта), не Blocked — иначе ApplyCombinedVisual всегда показывает Blocked-ребро.
         var registry = ResolveMinimapEdgeRegistry();
         if (registry != null && registry.Edges != null)
         {
@@ -793,7 +783,7 @@ public class GameManager : MonoBehaviour
                 if (e == null)
                     continue;
                 if (MinimapEdgeTouchesAnyRoot(e, otherStarts))
-                    e.SetEdgeState(MinimapEdgeState.Blocked, forceLog: false);
+                    e.SetEdgeState(MinimapEdgeState.Disabled, forceLog: false);
             }
         }
 
