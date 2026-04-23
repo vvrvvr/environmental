@@ -75,6 +75,7 @@ public class MinimapEdge : MonoBehaviour
     public bool MapOutgoingLineVisible => _mapOutgoingLineVisible;
 
     private MinimapEdgeState _currentState = MinimapEdgeState.Idle;
+    private MinimapEdgeState _stateAfterMovingCompletes = MinimapEdgeState.Idle;
     private bool _mapOutgoingLineVisible;
     private Color _defaultStart = Color.white;
     private Color _defaultEnd = Color.white;
@@ -149,7 +150,8 @@ public class MinimapEdge : MonoBehaviour
     }
 
     /// <summary>Смена состояния ребра (в т.ч. дебаг с реестра по цифрам 1–5).</summary>
-    public void SetEdgeState(MinimapEdgeState next, bool forceLog = true)
+    /// <param name="stateAfterMovingCompletes">Только для <see cref="MinimapEdgeState.MovingAlongEdge"/>: во что перейти после таймера (по умолчанию <see cref="MinimapEdgeState.Idle"/>).</param>
+    public void SetEdgeState(MinimapEdgeState next, bool forceLog = true, MinimapEdgeState stateAfterMovingCompletes = MinimapEdgeState.Idle)
     {
         if (!Application.isPlaying)
         {
@@ -171,7 +173,12 @@ public class MinimapEdge : MonoBehaviour
             Debug.Log($"[{name}] MinimapEdge state: {prevPlay} → {next}", this);
 
         if (next == MinimapEdgeState.MovingAlongEdge)
+        {
+            _stateAfterMovingCompletes = stateAfterMovingCompletes;
             _movingCoroutine = StartCoroutine(CoMovingAlongEdge());
+        }
+        else
+            _stateAfterMovingCompletes = MinimapEdgeState.Idle;
 
         ApplyCombinedVisual();
     }
@@ -187,8 +194,10 @@ public class MinimapEdge : MonoBehaviour
         }
 
         _movingCoroutine = null;
-        _currentState = MinimapEdgeState.Idle;
-        Debug.Log($"[{name}] MinimapEdge state: MovingAlongEdge → Idle (timer done)", this);
+        var landed = _stateAfterMovingCompletes;
+        _stateAfterMovingCompletes = MinimapEdgeState.Idle;
+        _currentState = landed;
+        Debug.Log($"[{name}] MinimapEdge state: MovingAlongEdge → {landed} (timer done)", this);
         ApplyCombinedVisual();
     }
 
