@@ -176,7 +176,12 @@ public class GameManager : MonoBehaviour
                     root.ForceMapState(NodeMapState.Visible);
                 }
                 else
+                {
+                    // Не в облаке текущего выбора (например соседняя ветка, заблокированная при переходе) — не гасить Blocked.
+                    if (root.CurrentState == NodeMapState.Blocked)
+                        continue;
                     root.ForceMapState(NodeMapState.Inactive);
+                }
             }
 
             if (logMinimapDiscovery)
