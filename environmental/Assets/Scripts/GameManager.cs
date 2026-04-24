@@ -604,6 +604,28 @@ public class GameManager : MonoBehaviour
         EndGroupPlaylist();
     }
 
+    /// <summary>Одноразовый ролик перехода по ребру на общем <see cref="mapVideoPlayer"/> (без лупа).</summary>
+    public bool TryPlayMinimapEdgeTravelVideo(VideoClip clip)
+    {
+        if (mapVideoPlayer == null || clip == null)
+            return false;
+
+        EndGroupPlaylist();
+        mapVideoPlayer.Stop();
+        mapVideoPlayer.clip = clip;
+        mapVideoPlayer.isLooping = false;
+        mapVideoPlayer.Play();
+        return true;
+    }
+
+    /// <summary>Остановка ролика ребра перед роликом выбранной ноды.</summary>
+    public void StopMinimapEdgeTravelVideo()
+    {
+        if (mapVideoPlayer == null)
+            return;
+        mapVideoPlayer.Stop();
+    }
+
     /// <summary>
     /// Показывать ли на этой ноде оставшееся время до конца текущего клипа (синхронно с <see cref="mapVideoPlayer"/>).
     /// Для дочерней ноды группы — когда играет её ролик; для корня — когда выбрана на карте и играет её ролик.
