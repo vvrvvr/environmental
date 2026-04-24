@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Video;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -35,8 +36,15 @@ public class MinimapEdge : MonoBehaviour
     [SerializeField] private LineRenderer lineRenderer;
 
     [Header("Edge state")]
-    [Tooltip("Длительность «перемещение по ребру» перед автопереходом в Idle (только Play Mode).")]
-    [SerializeField, Min(0.01f)] private float movingAlongEdgeDuration = 2f;
+    [Tooltip("Длительность «перемещение по ребру», если на ребре нет клипа перехода (Play Mode).")]
+    [SerializeField, Min(0.01f)] private float movingAlongEdgeDuration = 1f;
+
+    [Header("Travel along edge (Play)")]
+    [Tooltip("Ролик на время MovingAlongEdge; общий VideoPlayer у GameManager. Пусто — длительность из movingAlongEdgeDuration.")]
+    [SerializeField] private VideoClip edgeTravelVideoClip;
+
+    [Tooltip("Дочерний объект со спрайтом: включается на время MovingAlongEdge, движется от start anchor к end anchor, затем выключается.")]
+    [SerializeField] private GameObject travelMoveVisual;
 
     [Tooltip("Длительность Appearing перед переходом в Idle (Play). 0 — считается как 1 с (заглушка).")]
     [SerializeField, Min(0f)] private float appearingToIdleDuration;
@@ -71,8 +79,8 @@ public class MinimapEdge : MonoBehaviour
 
     public MinimapEdgeState CurrentEdgeState => _currentState;
 
-    /// <summary>Длительность состояния <see cref="MinimapEdgeState.MovingAlongEdge"/> (оркестратор карты ждёт это время).</summary>
-    public float MovingAlongEdgeDuration => movingAlongEdgeDuration;
+    /// <summary>Длительность фазы <see cref="MinimapEdgeState.MovingAlongEdge"/> (длина клипа ребра или fallback в инспекторе).</summary>
+    public float MovingAlongEdgeDuration => ComputeTravelDurationSeconds();
 
     /// <summary>В Play: разрешение по выбору на карте (<see cref="MinimapEdgeRegistry"/>).</summary>
     public bool MapOutgoingLineVisible => _mapOutgoingLineVisible;
@@ -85,6 +93,7 @@ public class MinimapEdge : MonoBehaviour
     private bool _capturedDefaultLineColors;
     private Coroutine _movingCoroutine;
     private Coroutine _appearingCoroutine;
+    private bool _edgeTravelVideoPlaying;
 
     private void Awake()
     {
@@ -191,15 +200,64 @@ public class MinimapEdge : MonoBehaviour
         ApplyCombinedVisual();
     }
 
+    private float ComputeTravelDurationSeconds()
+    {
+        if (edgeTravelVideoClip != null && edgeTravelVideoClip.length > 1e-5)
+            return (float)edgeTravelVideoClip.length;
+        return Mathf.Max(0.01f, movingAlongEdgeDuration);
+    }
+
+    private void BeginMovingAlongPresentation()
+    {
+        EndMovingAlongPresentation();
+
+        if (travelMoveVisual != null && startAnchor != null)
+        {
+            travelMoveVisual.SetActive(true);
+            travelMoveVisual.transform.position = startAnchor.position;
+        }
+
+        _edgeTravelVideoPlaying = edgeTravelVideoClip != null &&
+                                  GameManager.Instance != null &&
+                                  GameManager.Instance.TryPlayMinimapEdgeTravelVideo(edgeTravelVideoClip);
+    }
+
+    private void UpdateTravelMarkerPosition(float t01)
+    {
+        if (travelMoveVisual == null || startAnchor == null || endAnchor == null)
+            return;
+        travelMoveVisual.transform.position = Vector3.Lerp(
+            startAnchor.position,
+            endAnchor.position,
+            Mathf.Clamp01(t01));
+    }
+
+    private void EndMovingAlongPresentation()
+    {
+        if (travelMoveVisual != null)
+            travelMoveVisual.SetActive(false);
+
+        if (_edgeTravelVideoPlaying && GameManager.Instance != null)
+            GameManager.Instance.StopMinimapEdgeTravelVideo();
+        _edgeTravelVideoPlaying = false;
+    }
+
     private IEnumerator CoMovingAlongEdge()
     {
-        Debug.Log($"[{name}] Moving along edge: {movingAlongEdgeDuration:0.##} s…", this);
+        float duration = ComputeTravelDurationSeconds();
+        BeginMovingAlongPresentation();
+
         float t = 0f;
-        while (t < movingAlongEdgeDuration)
+        while (t < duration)
         {
+            float u = duration > 1e-6f ? t / duration : 1f;
+            UpdateTravelMarkerPosition(u);
             t += Time.deltaTime;
             yield return null;
         }
+
+        UpdateTravelMarkerPosition(1f);
+        EndMovingAlongPresentation();
 
         _movingCoroutine = null;
         var landed = _stateAfterMovingCompletes;
@@ -230,6 +288,7 @@ public class MinimapEdge : MonoBehaviour
     {
         if (_movingCoroutine == null)
             return;
+        EndMovingAlongPresentation();
         StopCoroutine(_movingCoroutine);
         _movingCoroutine = null;
     }
