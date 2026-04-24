@@ -6004,7 +6004,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 5
   m_Sprite: {fileID: 21300000, guid: 8a10b302d7bcadd4ea363f33b483dcf1, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -7668,7 +7668,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.70710576, y: -0, z: -0, w: 0.7071079}
   m_LocalPosition: {x: 11.75, y: 0, z: -0.75}
-  m_LocalScale: {x: 0.05337713, y: 0.053377133, z: 0.053377133}
+  m_LocalScale: {x: 0.021939712, y: 0.021939712, z: 0.021939712}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1752220236}
@@ -7714,7 +7714,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 8a10b302d7bcadd4ea363f33b483dcf1, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 46bab1b6c3c7ac644abc576574c75113, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -8750,7 +8750,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 5
   m_Sprite: {fileID: 21300000, guid: 46bab1b6c3c7ac644abc576574c75113, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -11819,22 +11819,22 @@ LineRenderer:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
-        time: 0.0357666
-        value: 0.50175476
-        inSlope: -0.5354462
-        outSlope: -0.5354462
+        time: 0
+        value: 0.05
+        inSlope: 0
+        outSlope: 0
         tangentMode: 0
         weightedMode: 0
         inWeight: 0.33333334
-        outWeight: 0.23106715
+        outWeight: 0.17701767
       - serializedVersion: 3
         time: 1
-        value: 0
-        inSlope: -0.43846932
-        outSlope: -0.43846932
+        value: 0.05
+        inSlope: 0
+        outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 0.19088076
+        inWeight: 0.13521616
         outWeight: 0
       m_PreInfinity: 2
       m_PostInfinity: 2
@@ -11899,7 +11899,8 @@ MonoBehaviour:
   endInset: 0
   lineRenderer: {fileID: 1752220234}
   movingAlongEdgeDuration: 0.5
-  edgeTravelVideoClip: {fileID: 0}
+  edgeTravelVideoClip: {fileID: 32900000, guid: 0ee86963e82ac2d4a94e9397e6d2b5fa,
+    type: 3}
   travelMoveVisual: {fileID: 1196022269}
   appearingToIdleDuration: 0
   blockedLineColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
@@ -12650,7 +12651,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 5
   m_Sprite: {fileID: 21300000, guid: 8a10b302d7bcadd4ea363f33b483dcf1, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -12777,7 +12778,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 68
   m_TargetDisplay: 0
 --- !u!1 &1952794632
 GameObject:
