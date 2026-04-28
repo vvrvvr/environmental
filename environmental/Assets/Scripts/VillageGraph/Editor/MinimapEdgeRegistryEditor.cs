@@ -21,7 +21,34 @@ public class MinimapEdgeRegistryEditor : Editor
                 ConnectAllEdgesInList();
             if (GUILayout.Button("Повесить якоря всех рёбер на ноды (ноль локально)"))
                 ParentAllAnchorsInList();
+            if (GUILayout.Button("Раздать палитру всем рёбрам в списке"))
+                ApplySharedPaletteToEdgesWithUndo();
         }
+    }
+
+    private void ApplySharedPaletteToEdgesWithUndo()
+    {
+        var registry = (MinimapEdgeRegistry)target;
+        serializedObject.Update();
+        var edgesProp = serializedObject.FindProperty("edges");
+        if (edgesProp == null)
+        {
+            EditorUtility.DisplayDialog("Реестр", "Не найдено поле edges.", "OK");
+            return;
+        }
+
+        Undo.IncrementCurrentGroup();
+        for (var i = 0; i < edgesProp.arraySize; i++)
+        {
+            var edge = edgesProp.GetArrayElementAtIndex(i).objectReferenceValue as MinimapEdge;
+            if (edge == null)
+                continue;
+            Undo.RecordObject(edge, "Палитра рёбер (реестр)");
+        }
+
+        registry.ApplySharedLinePaletteToAllEdges();
+        Undo.SetCurrentGroupName("Палитра рёбер (реестр)");
+        EditorUtility.SetDirty(registry);
     }
 
     private void RebuildCacheOnly()
