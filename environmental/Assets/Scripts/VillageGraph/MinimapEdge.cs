@@ -35,6 +35,9 @@ public class MinimapEdge : MonoBehaviour
     [Tooltip("Линия между якорями; positionCount будет 2, useWorldSpace = true. Ширина/материал — как настроишь.")]
     [SerializeField] private LineRenderer lineRenderer;
 
+    [Tooltip("Палитра LineRenderer по стейтам. Обычно задаётся с MinimapEdgeRegistry; реестр перезаписывает при Rebuild. Пусто — blocked + цвета с линии при первом кэше.")]
+    [SerializeField] private MinimapGraphVisualPalette lineColorPalette;
+
     [Header("Edge state")]
     [Tooltip("Длительность «перемещение по ребру», если на ребре нет клипа перехода (Play Mode).")]
     [SerializeField, Min(0.01f)] private float movingAlongEdgeDuration = 1f;
@@ -78,6 +81,20 @@ public class MinimapEdge : MonoBehaviour
     public Node ToNode => toNode;
 
     public MinimapEdgeState CurrentEdgeState => _currentState;
+
+    /// <summary>Текущая палитра (задаётся с <see cref="MinimapEdgeRegistry"/> или вручную).</summary>
+    public MinimapGraphVisualPalette LineColorPalette => lineColorPalette;
+
+    /// <summary>Назначить палитру LineRenderer и перерисовать линию.</summary>
+    public void SetLineColorPalette(MinimapGraphVisualPalette palette)
+    {
+        lineColorPalette = palette;
+        ApplyCombinedVisual();
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+            UnityEditor.EditorUtility.SetDirty(this);
+#endif
+    }
 
     /// <summary>Длительность фазы <see cref="MinimapEdgeState.MovingAlongEdge"/> (длина клипа ребра или fallback в инспекторе).</summary>
     public float MovingAlongEdgeDuration => ComputeTravelDurationSeconds();
@@ -315,7 +332,7 @@ public class MinimapEdge : MonoBehaviour
     /// В Play: линия по <see cref="_mapOutgoingLineVisible"/> (исходящие от выбранной / стартов без выбора) или всегда при <see cref="MinimapEdgeState.Blocked"/>, чтобы заблокированные маршруты не пропадали, а рисовались цветом <see cref="blockedLineColor"/>.
     /// <see cref="MinimapEdgeState.Disabled"/> выключает линию всегда.
     /// </summary>
-    private void ApplyCombinedVisual()
+    public void ApplyCombinedVisual()
     {
         if (lineRenderer == null)
             return;
@@ -329,7 +346,13 @@ public class MinimapEdge : MonoBehaviour
         if (!lineRenderer.enabled)
             return;
 
-        if (_currentState == MinimapEdgeState.Blocked)
+        if (lineColorPalette != null)
+        {
+            lineColorPalette.GetEdgeLineColors(_currentState, out var s, out var e);
+            lineRenderer.startColor = s;
+            lineRenderer.endColor = e;
+        }
+        else if (_currentState == MinimapEdgeState.Blocked)
         {
             lineRenderer.startColor = blockedLineColor;
             lineRenderer.endColor = blockedLineColor;

@@ -24,11 +24,33 @@ public class MinimapEdgeRegistry : MonoBehaviour
     [Tooltip("В Play: клавиши 1–5 и NumPad — задать состояние всем рёбрам из списка (MinimapEdgeState).")]
     [SerializeField] private bool debugDigitKeysSetAllEdgeStates;
 
+    [Header("Visual")]
+    [Tooltip("Общая палитра LineRenderer для всех рёбер из списка. Раздаётся при RebuildEdgeCache и кнопкой в инспекторе реестра.")]
+    [SerializeField] private MinimapGraphVisualPalette sharedLineColorPalette;
+
     private readonly Dictionary<Node, List<MinimapEdge>> _outgoingByFromNode = new Dictionary<Node, List<MinimapEdge>>();
 
     private bool _subscribedToGameManager;
 
     public IReadOnlyList<MinimapEdge> Edges => edges;
+
+    /// <summary>Общая палитра цветов рёбер; копируется на каждый <see cref="MinimapEdge"/> из списка.</summary>
+    public MinimapGraphVisualPalette SharedLineColorPalette => sharedLineColorPalette;
+
+    /// <summary>
+    /// Проставить <see cref="sharedLineColorPalette"/> (или null) всем ненулевым рёбрам из <see cref="edges"/> и обновить линии.
+    /// </summary>
+    public void ApplySharedLinePaletteToAllEdges()
+    {
+        if (edges == null)
+            return;
+        for (var i = 0; i < edges.Count; i++)
+        {
+            var edge = edges[i];
+            if (edge != null)
+                edge.SetLineColorPalette(sharedLineColorPalette);
+        }
+    }
 
     private void Awake() => RebuildEdgeCache();
 
@@ -271,6 +293,8 @@ public class MinimapEdgeRegistry : MonoBehaviour
 
             list.Add(edge);
         }
+
+        ApplySharedLinePaletteToAllEdges();
     }
 
     /// <summary>
