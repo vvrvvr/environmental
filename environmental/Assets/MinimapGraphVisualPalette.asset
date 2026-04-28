@@ -16,7 +16,7 @@ MonoBehaviour:
     startColor: {r: 0.35, g: 0.35, b: 0.35, a: 0.35}
     endColor: {r: 0.35, g: 0.35, b: 0.35, a: 0.35}
   appearing:
-    startColor: {r: 0.4, g: 0.85, b: 1, a: 1}
+    startColor: {r: 0.6509804, g: 0.9490197, b: 1, a: 1}
     endColor: {r: 0.65, g: 0.95, b: 1, a: 1}
   movingAlongEdge:
     startColor: {r: 1, g: 0.92, b: 0.35, a: 1}
@@ -27,3 +27,10 @@ MonoBehaviour:
   blocked:
     startColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
     endColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
+  nodeMainSpriteInactive: {r: 0.5, g: 0.5, b: 0.5, a: 0.6}
+  nodeMainSpriteAppearing: {r: 1, g: 1, b: 1, a: 1}
+  nodeMainSpriteVisible: {r: 1, g: 1, b: 1, a: 1}
+  nodeMainSpriteSelected: {r: 1, g: 1, b: 1, a: 1}
+  nodeMainSpriteDeselected: {r: 1, g: 1, b: 1, a: 1}
+  nodeMainSpriteBlocked: {r: 0.735849, g: 0.12079027, b: 0.6467078, a: 1}
+  nodeSelectionRingColor: {r: 0.4979736, g: 0.89433956, b: 0.27505153, a: 1}

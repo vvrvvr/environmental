@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Реестр рёбер мини-карты. Кэш исходящих рёбер по <see cref="MinimapEdge.FromNode"/>.
@@ -25,8 +26,9 @@ public class MinimapEdgeRegistry : MonoBehaviour
     [SerializeField] private bool debugDigitKeysSetAllEdgeStates;
 
     [Header("Visual")]
-    [Tooltip("Общая палитра LineRenderer для всех рёбер из списка. Раздаётся при RebuildEdgeCache и кнопкой в инспекторе реестра.")]
-    [SerializeField] private MinimapGraphVisualPalette sharedLineColorPalette;
+    [Tooltip("Общая палитра: рёбра в списке + опционально ноды на сцене. Раздаётся при RebuildEdgeCache (рёбра) и кнопками в инспекторе.")]
+    [FormerlySerializedAs("sharedLineColorPalette")]
+    [SerializeField] private MinimapGraphVisualPalette sharedMapVisualPalette;
 
     private readonly Dictionary<Node, List<MinimapEdge>> _outgoingByFromNode = new Dictionary<Node, List<MinimapEdge>>();
 
@@ -34,11 +36,11 @@ public class MinimapEdgeRegistry : MonoBehaviour
 
     public IReadOnlyList<MinimapEdge> Edges => edges;
 
-    /// <summary>Общая палитра цветов рёбер; копируется на каждый <see cref="MinimapEdge"/> из списка.</summary>
-    public MinimapGraphVisualPalette SharedLineColorPalette => sharedLineColorPalette;
+    /// <summary>Общая палитра (рёбра + ноды).</summary>
+    public MinimapGraphVisualPalette SharedMapVisualPalette => sharedMapVisualPalette;
 
     /// <summary>
-    /// Проставить <see cref="sharedLineColorPalette"/> (или null) всем ненулевым рёбрам из <see cref="edges"/> и обновить линии.
+    /// Проставить палитру (или null) всем ненулевым рёбрам из <see cref="edges"/> и обновить линии.
     /// </summary>
     public void ApplySharedLinePaletteToAllEdges()
     {
@@ -48,7 +50,21 @@ public class MinimapEdgeRegistry : MonoBehaviour
         {
             var edge = edges[i];
             if (edge != null)
-                edge.SetLineColorPalette(sharedLineColorPalette);
+                edge.SetLineColorPalette(sharedMapVisualPalette);
+        }
+    }
+
+    /// <summary>
+    /// Проставить ту же палитру всем <see cref="Node"/> на загруженных сценах и перекрасить по текущему стейту.
+    /// </summary>
+    public void ApplySharedMapVisualPaletteToAllNodes()
+    {
+        var nodes = Object.FindObjectsOfType<Node>(true);
+        for (var i = 0; i < nodes.Length; i++)
+        {
+            var n = nodes[i];
+            if (n != null)
+                n.SetMapVisualPalette(sharedMapVisualPalette);
         }
     }
 

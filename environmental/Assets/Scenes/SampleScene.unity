@@ -271,6 +271,7 @@ MonoBehaviour:
   startInset: 0
   endInset: 0
   lineRenderer: {fileID: 20320129}
+  lineColorPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   movingAlongEdgeDuration: 2
   edgeTravelVideoClip: {fileID: 0}
   travelMoveVisual: {fileID: 0}
@@ -1395,6 +1396,7 @@ MonoBehaviour:
   selectionRingDisappearEase: 5
   isMinimapStartNode: 0
   minimapVideoClip: {fileID: 32900000, guid: 0ee86963e82ac2d4a94e9397e6d2b5fa, type: 3}
+  mapVisualPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   remainingTimeText: {fileID: 1975889955}
   isGroupParent: 0
   groupParent: {fileID: 1679207555}
@@ -1571,6 +1573,7 @@ MonoBehaviour:
   selectionRingDisappearEase: 5
   isMinimapStartNode: 0
   minimapVideoClip: {fileID: 32900000, guid: 0ee86963e82ac2d4a94e9397e6d2b5fa, type: 3}
+  mapVisualPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   remainingTimeText: {fileID: 613988693}
   isGroupParent: 0
   groupParent: {fileID: 0}
@@ -2955,6 +2958,7 @@ MonoBehaviour:
   selectionRingDisappearEase: 5
   isMinimapStartNode: 0
   minimapVideoClip: {fileID: 32900000, guid: 0ee86963e82ac2d4a94e9397e6d2b5fa, type: 3}
+  mapVisualPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   remainingTimeText: {fileID: 846279783}
   isGroupParent: 0
   groupParent: {fileID: 0}
@@ -4584,6 +4588,7 @@ MonoBehaviour:
   selectionRingDisappearEase: 5
   isMinimapStartNode: 0
   minimapVideoClip: {fileID: 32900000, guid: 0ee86963e82ac2d4a94e9397e6d2b5fa, type: 3}
+  mapVisualPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   remainingTimeText: {fileID: 2075069110}
   isGroupParent: 0
   groupParent: {fileID: 0}
@@ -5475,6 +5480,7 @@ MonoBehaviour:
   selectionRingDisappearEase: 5
   isMinimapStartNode: 0
   minimapVideoClip: {fileID: 32900000, guid: 0ee86963e82ac2d4a94e9397e6d2b5fa, type: 3}
+  mapVisualPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   remainingTimeText: {fileID: 1620655938}
   isGroupParent: 0
   groupParent: {fileID: 0}
@@ -5770,6 +5776,7 @@ MonoBehaviour:
   selectionRingDisappearEase: 5
   isMinimapStartNode: 1
   minimapVideoClip: {fileID: 32900000, guid: 0f130d1d3fac0a249a8328964d1987bd, type: 3}
+  mapVisualPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   remainingTimeText: {fileID: 540442237}
   isGroupParent: 0
   groupParent: {fileID: 0}
@@ -5830,6 +5837,7 @@ MonoBehaviour:
   selectionRingDisappearEase: 5
   isMinimapStartNode: 0
   minimapVideoClip: {fileID: 32900000, guid: 9290193577788624bb9f6b9d4e7eba98, type: 3}
+  mapVisualPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   remainingTimeText: {fileID: 1089346496}
   isGroupParent: 0
   groupParent: {fileID: 0}
@@ -6324,6 +6332,7 @@ MonoBehaviour:
   startInset: 0
   endInset: 0
   lineRenderer: {fileID: 972230154}
+  lineColorPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   movingAlongEdgeDuration: 2
   edgeTravelVideoClip: {fileID: 0}
   travelMoveVisual: {fileID: 0}
@@ -6472,6 +6481,8 @@ MonoBehaviour:
   showOutgoingLinesOnlyForSelectedMapNode: 1
   debugDrawEdgeGraph: 1
   debugDigitKeysSetAllEdgeStates: 1
+  sharedMapVisualPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe,
+    type: 2}
 --- !u!4 &1017511042
 Transform:
   m_ObjectHideFlags: 0
@@ -8474,6 +8485,7 @@ MonoBehaviour:
   selectionRingDisappearEase: 5
   isMinimapStartNode: 1
   minimapVideoClip: {fileID: 32900000, guid: fb878619af96018409e0e020c0095817, type: 3}
+  mapVisualPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   remainingTimeText: {fileID: 1062545562}
   isGroupParent: 0
   groupParent: {fileID: 0}
@@ -9390,7 +9402,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mapCamera: {fileID: 1377712549}
-  minimapEdgeRegistry: {fileID: 0}
+  minimapEdgeRegistry: {fileID: 1017511041}
   logMapNodeStateChanges: 0
   debugRevealFullMinimap: 0
   logMinimapDiscovery: 1
@@ -10149,6 +10161,7 @@ MonoBehaviour:
   selectionRingDisappearEase: 5
   isMinimapStartNode: 0
   minimapVideoClip: {fileID: 32900000, guid: fb878619af96018409e0e020c0095817, type: 3}
+  mapVisualPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   remainingTimeText: {fileID: 2126706731}
   isGroupParent: 0
   groupParent: {fileID: 0}
@@ -10660,6 +10673,7 @@ MonoBehaviour:
   startInset: 0
   endInset: 0
   lineRenderer: {fileID: 1645072886}
+  lineColorPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   movingAlongEdgeDuration: 2
   edgeTravelVideoClip: {fileID: 0}
   travelMoveVisual: {fileID: 0}
@@ -10832,6 +10846,7 @@ MonoBehaviour:
   startInset: 0
   endInset: 0
   lineRenderer: {fileID: 1646089267}
+  lineColorPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   movingAlongEdgeDuration: 2
   edgeTravelVideoClip: {fileID: 0}
   travelMoveVisual: {fileID: 0}
@@ -11243,6 +11258,7 @@ MonoBehaviour:
   startInset: 1.54
   endInset: 1.15
   lineRenderer: {fileID: 1664285685}
+  lineColorPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   movingAlongEdgeDuration: 2
   edgeTravelVideoClip: {fileID: 0}
   travelMoveVisual: {fileID: 0}
@@ -11317,6 +11333,7 @@ MonoBehaviour:
   selectionRingDisappearEase: 5
   isMinimapStartNode: 0
   minimapVideoClip: {fileID: 32900000, guid: dff6323286722e142884427de85e15ba, type: 3}
+  mapVisualPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   remainingTimeText: {fileID: 782986002}
   isGroupParent: 1
   groupParent: {fileID: 0}
@@ -11495,6 +11512,7 @@ MonoBehaviour:
   selectionRingDisappearEase: 5
   isMinimapStartNode: 0
   minimapVideoClip: {fileID: 32900000, guid: fb878619af96018409e0e020c0095817, type: 3}
+  mapVisualPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   remainingTimeText: {fileID: 165023436}
   isGroupParent: 0
   groupParent: {fileID: 1679207555}
@@ -11903,6 +11921,7 @@ MonoBehaviour:
   startInset: 0
   endInset: 0
   lineRenderer: {fileID: 1752220234}
+  lineColorPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   movingAlongEdgeDuration: 0.5
   edgeTravelVideoClip: {fileID: 32900000, guid: 0ee86963e82ac2d4a94e9397e6d2b5fa,
     type: 3}
@@ -12266,6 +12285,7 @@ MonoBehaviour:
   startInset: 0
   endInset: 0
   lineRenderer: {fileID: 1815324198}
+  lineColorPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   movingAlongEdgeDuration: 2
   edgeTravelVideoClip: {fileID: 0}
   travelMoveVisual: {fileID: 0}
@@ -13897,6 +13917,7 @@ MonoBehaviour:
   selectionRingDisappearEase: 5
   isMinimapStartNode: 0
   minimapVideoClip: {fileID: 32900000, guid: 0ee86963e82ac2d4a94e9397e6d2b5fa, type: 3}
+  mapVisualPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   remainingTimeText: {fileID: 1648510499}
   isGroupParent: 0
   groupParent: {fileID: 0}
@@ -14172,11 +14193,12 @@ MonoBehaviour:
   startInset: 0
   endInset: 0
   lineRenderer: {fileID: 2110931835}
+  lineColorPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   movingAlongEdgeDuration: 2
   edgeTravelVideoClip: {fileID: 0}
   travelMoveVisual: {fileID: 0}
   appearingToIdleDuration: 0
-  blockedLineColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
+  blockedLineColor: {r: 1, g: 0.118867874, b: 0.7950569, a: 1}
   fromNode: {fileID: 885760709}
   toNode: {fileID: 887139304}
 --- !u!4 &2110931837

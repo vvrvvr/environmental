@@ -23,6 +23,8 @@ public class MinimapEdgeRegistryEditor : Editor
                 ParentAllAnchorsInList();
             if (GUILayout.Button("Раздать палитру всем рёбрам в списке"))
                 ApplySharedPaletteToEdgesWithUndo();
+            if (GUILayout.Button("Раздать палитру всем нодам на сцене"))
+                ApplySharedPaletteToAllNodesWithUndo();
         }
     }
 
@@ -170,5 +172,24 @@ public class MinimapEdgeRegistryEditor : Editor
                 "OK");
         else
             EditorUtility.DisplayDialog("Якоря на ноды", $"Обработано рёбер: {ok}.", "OK");
+    }
+
+    private void ApplySharedPaletteToAllNodesWithUndo()
+    {
+        var registry = (MinimapEdgeRegistry)target;
+        Undo.IncrementCurrentGroup();
+
+        var nodes = Object.FindObjectsOfType<Node>(true);
+        for (var i = 0; i < nodes.Length; i++)
+        {
+            var node = nodes[i];
+            if (node == null)
+                continue;
+            Undo.RecordObject(node, "Палитра нод (реестр)");
+        }
+
+        registry.ApplySharedMapVisualPaletteToAllNodes();
+        Undo.SetCurrentGroupName("Палитра нод (реестр)");
+        EditorUtility.SetDirty(registry);
     }
 }
