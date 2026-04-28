@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -15,6 +16,11 @@ public class MinimapEdgeRegistryEditor : Editor
                 CollectAllEdgesFromScene();
             if (GUILayout.Button("Пересобрать кэш рёбер"))
                 RebuildCacheOnly();
+            EditorGUILayout.Space();
+            if (GUILayout.Button("Связать все рёбра (якоря → ноды по коллайдерам)"))
+                ConnectAllEdgesInList();
+            if (GUILayout.Button("Повесить якоря всех рёбер на ноды (ноль локально)"))
+                ParentAllAnchorsInList();
         }
     }
 
@@ -57,5 +63,85 @@ public class MinimapEdgeRegistryEditor : Editor
         if (Application.isPlaying)
             registry.RefreshOutgoingLineVisibilityForMapSelection();
         EditorUtility.SetDirty(registry);
+    }
+
+    private void ConnectAllEdgesInList()
+    {
+        serializedObject.Update();
+        var edgesProp = serializedObject.FindProperty("edges");
+        if (edgesProp == null)
+        {
+            EditorUtility.DisplayDialog("Реестр", "Не найдено поле edges.", "OK");
+            return;
+        }
+
+        Undo.IncrementCurrentGroup();
+
+        var failed = new StringBuilder();
+        var ok = 0;
+        for (var i = 0; i < edgesProp.arraySize; i++)
+        {
+            var edge = edgesProp.GetArrayElementAtIndex(i).objectReferenceValue as MinimapEdge;
+            if (edge == null)
+                continue;
+
+            if (MinimapEdgeLinkEditorUtility.ConnectAnchorsToNodesByCollider(edge, out var err))
+            {
+                ok++;
+                edge.RefreshLinePositions();
+            }
+            else
+                failed.AppendLine($"• {edge.name}: {err}");
+        }
+
+        Undo.SetCurrentGroupName("Связать все рёбра (реестр)");
+
+        if (failed.Length > 0)
+            EditorUtility.DisplayDialog(
+                "Связать все рёбра",
+                $"Успешно: {ok}.\n\nОшибки:\n{failed}",
+                "OK");
+        else
+            EditorUtility.DisplayDialog("Связать все рёбра", $"Связано рёбер: {ok}.", "OK");
+    }
+
+    private void ParentAllAnchorsInList()
+    {
+        serializedObject.Update();
+        var edgesProp = serializedObject.FindProperty("edges");
+        if (edgesProp == null)
+        {
+            EditorUtility.DisplayDialog("Реестр", "Не найдено поле edges.", "OK");
+            return;
+        }
+
+        Undo.IncrementCurrentGroup();
+
+        var failed = new StringBuilder();
+        var ok = 0;
+        for (var i = 0; i < edgesProp.arraySize; i++)
+        {
+            var edge = edgesProp.GetArrayElementAtIndex(i).objectReferenceValue as MinimapEdge;
+            if (edge == null)
+                continue;
+
+            if (MinimapEdgeLinkEditorUtility.ParentAnchorsUnderLinkedNodes(edge, out var err))
+            {
+                ok++;
+                edge.RefreshLinePositions();
+            }
+            else
+                failed.AppendLine($"• {edge.name}: {err}");
+        }
+
+        Undo.SetCurrentGroupName("Якоря на ноды (реестр)");
+
+        if (failed.Length > 0)
+            EditorUtility.DisplayDialog(
+                "Якоря на ноды",
+                $"Успешно: {ok}.\n\nПропуски / ошибки:\n{failed}",
+                "OK");
+        else
+            EditorUtility.DisplayDialog("Якоря на ноды", $"Обработано рёбер: {ok}.", "OK");
     }
 }
