@@ -50,6 +50,9 @@ public partial class Node : MonoBehaviour
     [Tooltip("Ролик мини-карты для этой ноды (уникальный). Воспроизведение ведёт GameManager.")]
     [SerializeField] private VideoClip minimapVideoClip;
 
+    [Tooltip("Палитра цветов mainSprite и selection ring по стейтам карты (тот же ассет, что на MinimapEdgeRegistry).")]
+    [SerializeField] private MinimapGraphVisualPalette mapVisualPalette;
+
     /// <summary>Стартовая точка обхода мини-карты (флаг в инспекторе).</summary>
     public bool IsMinimapStartNode => isMinimapStartNode;
 
@@ -58,6 +61,28 @@ public partial class Node : MonoBehaviour
 
     /// <summary>Клип мини-карты; для группы задаётся на родительской ноде (логический выбор — SelectionOwner).</summary>
     public VideoClip MinimapVideoClip => minimapVideoClip;
+
+    /// <summary>Палитра визуала карты для этой ноды.</summary>
+    public MinimapGraphVisualPalette MapVisualPalette => mapVisualPalette;
+
+    /// <summary>Назначить палитру и перекрасить по текущему стейту карты (если стейт уже инициализирован).</summary>
+    public void SetMapVisualPalette(MinimapGraphVisualPalette palette)
+    {
+        mapVisualPalette = palette;
+        if (_stateInitialized)
+            ApplyMapVisualPaletteColors(CurrentState);
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+            UnityEditor.EditorUtility.SetDirty(this);
+#endif
+    }
+
+    /// <summary>Перекрасить по текущему стейту (после правки палитры в инспекторе).</summary>
+    public void RefreshMapVisualPaletteFromCurrentState()
+    {
+        if (_stateInitialized)
+            ApplyMapVisualPaletteColors(CurrentState);
+    }
 
     [Header("UI")]
     [Tooltip("Оставшееся время до конца ролика (сек, один знак). Пусто, пока нода не выбрана на карте или не играет её клип.")]

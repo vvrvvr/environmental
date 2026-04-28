@@ -257,6 +257,18 @@ public partial class Node
             default:
                 throw new ArgumentOutOfRangeException(nameof(state), state, null);
         }
+
+        ApplyMapVisualPaletteColors(state);
+    }
+
+    private void ApplyMapVisualPaletteColors(NodeMapState state)
+    {
+        if (mapVisualPalette == null)
+            return;
+        if (mainSprite != null)
+            mainSprite.color = mapVisualPalette.GetNodeMainSpriteColor(state);
+        if (selectionRing != null)
+            selectionRing.color = mapVisualPalette.NodeSelectionRingColor;
     }
 
     private void ExitMapState(NodeMapState state, NodeMapState next)
