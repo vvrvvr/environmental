@@ -17,23 +17,44 @@ public class MinimapGraphVisualPaletteEditor : Editor
     private void PushColorsToReferencingEdges()
     {
         var palette = (MinimapGraphVisualPalette)target;
-        var edges = Object.FindObjectsOfType<MinimapEdge>(true);
-        var n = 0;
+        palette.GetEdgeGradientColors(out var ca, out var cb, out var cc);
+
+        var edges = Object.FindObjectsByType<MinimapEdge>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var drivers = new System.Collections.Generic.List<LineRendererGradientPropertyDriver>();
+        var edgeCount = 0;
         for (var i = 0; i < edges.Length; i++)
         {
             var e = edges[i];
             if (e == null || e.LineColorPalette != palette)
                 continue;
-            e.ApplyCombinedVisual();
-            n++;
+            edgeCount++;
+            var driver = e.GetComponent<LineRendererGradientPropertyDriver>();
+            if (driver != null)
+                drivers.Add(driver);
         }
 
-        EditorUtility.DisplayDialog(
-            "Палитра",
-            n > 0
-                ? $"Обновлено рёбер: {n} (в т.ч. в Play Mode)."
-                : "Ни одно MinimapEdge на загруженных сценах не ссылается на эту палитру. Назначь её в инспекторе ребра.",
-            "OK");
+        if (drivers.Count > 0)
+        {
+            Undo.RecordObjects(drivers.ToArray(), "Градиент рёбер (палитра A/B/C)");
+            for (var i = 0; i < drivers.Count; i++)
+            {
+                drivers[i].SetColorsABC(ca, cb, cc);
+                EditorUtility.SetDirty(drivers[i]);
+            }
+        }
+
+        var missing = edgeCount - drivers.Count;
+        string msg;
+        if (edgeCount == 0)
+            msg = "Ни одно MinimapEdge на загруженных сценах не ссылается на эту палитру. Назначь её в инспекторе ребра.";
+        else if (drivers.Count == 0)
+            msg = $"Найдено рёбер с палитрой: {edgeCount}, но ни на одном нет LineRendererGradientPropertyDriver — добавь компонент на объект ребра.";
+        else
+            msg =
+                $"Записано в LineRendererGradientPropertyDriver: {drivers.Count} из {edgeCount} рёбер (цвета A/B/C из палитры)." +
+                (missing > 0 ? $"\n\nБез драйвера: {missing}." : "");
+
+        EditorUtility.DisplayDialog("Палитра", msg, "OK");
     }
 
     private void PushColorsToReferencingNodes()

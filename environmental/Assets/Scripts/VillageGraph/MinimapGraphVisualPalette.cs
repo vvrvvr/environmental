@@ -1,39 +1,27 @@
 using UnityEngine;
 
 /// <summary>
-/// Общая палитра визуала графа карты: рёбра (LineRenderer) и ноды (mainSprite / selection ring).
+/// Общая палитра визуала графа карты: общие цвета градиента рёбер (A/B/C) и ноды (mainSprite / selection ring).
+/// Цвета рёбер на сцене задаются через <see cref="LineRendererGradientPropertyDriver"/>; кнопка в инспекторе палитры
+/// копирует A/B/C из ассета в драйверы всех рёбер, ссылающихся на эту палитру.
 /// </summary>
 [CreateAssetMenu(fileName = "MinimapGraphVisualPalette", menuName = "Environmental/Minimap Graph Visual Palette", order = 10)]
 public class MinimapGraphVisualPalette : ScriptableObject
 {
-    [System.Serializable]
-    public struct EdgeLineColorPair
-    {
-        public Color startColor;
-        public Color endColor;
-    }
+    [Header("Рёбра — градиент (Color A / B / C для шейдера)")]
+    [SerializeField] private Color edgeGradientColorA = Color.white;
+    [SerializeField] private Color edgeGradientColorB = new Color(1f, 0.25f, 0.25f, 1f);
+    [SerializeField] private Color edgeGradientColorC = new Color(0.25f, 0.45f, 1f, 1f);
 
-    [Header("Рёбра — LineRenderer по MinimapEdgeState")]
-    [SerializeField] private EdgeLineColorPair disabled;
-    [SerializeField] private EdgeLineColorPair appearing;
-    [SerializeField] private EdgeLineColorPair movingAlongEdge;
-    [SerializeField] private EdgeLineColorPair idle;
-    [SerializeField] private EdgeLineColorPair blocked;
+    public Color EdgeGradientColorA => edgeGradientColorA;
+    public Color EdgeGradientColorB => edgeGradientColorB;
+    public Color EdgeGradientColorC => edgeGradientColorC;
 
-    /// <summary>Цвета линии для состояния ребра; всегда успешно (поля заданы в ассете).</summary>
-    public void GetEdgeLineColors(MinimapEdgeState state, out Color startColor, out Color endColor)
+    public void GetEdgeGradientColors(out Color colorA, out Color colorB, out Color colorC)
     {
-        EdgeLineColorPair p = state switch
-        {
-            MinimapEdgeState.Disabled => disabled,
-            MinimapEdgeState.Appearing => appearing,
-            MinimapEdgeState.MovingAlongEdge => movingAlongEdge,
-            MinimapEdgeState.Idle => idle,
-            MinimapEdgeState.Blocked => blocked,
-            _ => idle
-        };
-        startColor = p.startColor;
-        endColor = p.endColor;
+        colorA = edgeGradientColorA;
+        colorB = edgeGradientColorB;
+        colorC = edgeGradientColorC;
     }
 
     [Header("Ноды — цвет mainSprite по NodeMapState")]
@@ -65,31 +53,9 @@ public class MinimapGraphVisualPalette : ScriptableObject
 
     private void Reset()
     {
-        disabled = new EdgeLineColorPair
-        {
-            startColor = new Color(0.35f, 0.35f, 0.35f, 0.35f),
-            endColor = new Color(0.35f, 0.35f, 0.35f, 0.35f)
-        };
-        appearing = new EdgeLineColorPair
-        {
-            startColor = new Color(0.4f, 0.85f, 1f, 1f),
-            endColor = new Color(0.65f, 0.95f, 1f, 1f)
-        };
-        movingAlongEdge = new EdgeLineColorPair
-        {
-            startColor = new Color(1f, 0.92f, 0.35f, 1f),
-            endColor = new Color(1f, 0.75f, 0.2f, 1f)
-        };
-        idle = new EdgeLineColorPair
-        {
-            startColor = Color.white,
-            endColor = Color.white
-        };
-        blocked = new EdgeLineColorPair
-        {
-            startColor = new Color(0.55f, 0.2f, 0.2f, 1f),
-            endColor = new Color(0.55f, 0.2f, 0.2f, 1f)
-        };
+        edgeGradientColorA = Color.white;
+        edgeGradientColorB = new Color(1f, 0.25f, 0.25f, 1f);
+        edgeGradientColorC = new Color(0.25f, 0.45f, 1f, 1f);
 
         nodeMainSpriteInactive = new Color(0.5f, 0.5f, 0.5f, 0.6f);
         nodeMainSpriteAppearing = Color.white;

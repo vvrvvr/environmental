@@ -12,21 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5017b902307f0ec45a48abd568988757, type: 3}
   m_Name: MinimapGraphVisualPalette
   m_EditorClassIdentifier: 
-  disabled:
-    startColor: {r: 0.35, g: 0.35, b: 0.35, a: 0.35}
-    endColor: {r: 0.35, g: 0.35, b: 0.35, a: 0.35}
-  appearing:
-    startColor: {r: 0.6509804, g: 0.9490197, b: 1, a: 1}
-    endColor: {r: 0.65, g: 0.95, b: 1, a: 1}
-  movingAlongEdge:
-    startColor: {r: 1, g: 0.92, b: 0.35, a: 1}
-    endColor: {r: 1, g: 0.75, b: 0.2, a: 1}
-  idle:
-    startColor: {r: 1, g: 1, b: 1, a: 1}
-    endColor: {r: 1, g: 1, b: 1, a: 1}
-  blocked:
-    startColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
-    endColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
+  edgeGradientColorA: {r: 1, g: 1, b: 1, a: 1}
+  edgeGradientColorB: {r: 0.4, g: 0.85, b: 1, a: 1}
+  edgeGradientColorC: {r: 1, g: 0.92, b: 0.35, a: 1}
   nodeMainSpriteInactive: {r: 0.5, g: 0.5, b: 0.5, a: 0.6}
   nodeMainSpriteAppearing: {r: 1, g: 1, b: 1, a: 1}
   nodeMainSpriteVisible: {r: 1, g: 1, b: 1, a: 1}

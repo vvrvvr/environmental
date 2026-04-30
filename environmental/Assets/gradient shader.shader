@@ -11,6 +11,9 @@ Shader "Custom/URP/UnlitGradientTwoSliders"
 
         _SliderAB ("Slider A->B (0-100)", Range(0, 100)) = 0
         _SliderAC ("Slider ->C (0-100)", Range(0, 100)) = 0
+
+        [Header(Texture)]
+        _MainTex ("Texture", 2D) = "white" {}
     }
 
     SubShader
@@ -37,30 +40,36 @@ Shader "Custom/URP/UnlitGradientTwoSliders"
             struct Varyings
             {
                 float4 positionHCS : SV_POSITION;
-                float2 uv          : TEXCOORD0;
+                float  gradX       : TEXCOORD0;
+                float2 uvTex       : TEXCOORD1;
             };
 
-            float4 _ColorA;
-            float4 _ColorB;
-            float4 _ColorC;
+            TEXTURE2D(_MainTex);
+            SAMPLER(sampler_MainTex);
 
-            float _BlendAB;
-            float _BlendAC;
-
-            float _SliderAB;
-            float _SliderAC;
+            CBUFFER_START(UnityPerMaterial)
+                float4 _ColorA;
+                float4 _ColorB;
+                float4 _ColorC;
+                float4 _MainTex_ST;
+                float _BlendAB;
+                float _BlendAC;
+                float _SliderAB;
+                float _SliderAC;
+            CBUFFER_END
 
             Varyings vert (Attributes IN)
             {
                 Varyings OUT;
                 OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
-                OUT.uv = IN.uv;
+                OUT.gradX = IN.uv.x;
+                OUT.uvTex = IN.uv * _MainTex_ST.xy + _MainTex_ST.zw;
                 return OUT;
             }
 
             half4 frag (Varyings IN) : SV_Target
             {
-                float x = IN.uv.x;
+                float x = IN.gradX;
 
                 // нормализация
                 float tAB = saturate(_SliderAB / 100.0);
@@ -77,6 +86,8 @@ Shader "Custom/URP/UnlitGradientTwoSliders"
                 float blendAC = smoothstep(tAC - wAC, tAC + wAC, x);
                 float4 finalCol = lerp(colAB, _ColorC, blendAC);
 
+                half4 tex = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uvTex);
+                finalCol *= tex;
                 return finalCol;
             }
 

@@ -26,7 +26,7 @@ public class MinimapEdgeRegistry : MonoBehaviour
     [SerializeField] private bool debugDigitKeysSetAllEdgeStates;
 
     [Header("Visual")]
-    [Tooltip("Общая палитра: рёбра в списке + опционально ноды на сцене. Раздаётся при RebuildEdgeCache (рёбра) и кнопками в инспекторе.")]
+    [Tooltip("Общая палитра: ссылка на рёбрах для кнопки A/B/C в ассете палитры + ноды на сцене. Раздаётся при RebuildEdgeCache (рёбра) и кнопками в инспекторе.")]
     [FormerlySerializedAs("sharedLineColorPalette")]
     [SerializeField] private MinimapGraphVisualPalette sharedMapVisualPalette;
 
