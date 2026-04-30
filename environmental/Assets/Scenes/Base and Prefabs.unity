@@ -1122,17 +1122,17 @@ PrefabInstance:
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.b
-      value: 0.81886786
+      value: 0.20060506
       objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.g
-      value: 0.81886786
+      value: 0.9245283
       objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.r
-      value: 0.81886786
+      value: 0.5018545
       objectReference: {fileID: 0}
     - target: {fileID: 6082926137204214183, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
@@ -1569,17 +1569,17 @@ PrefabInstance:
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.b
-      value: 0.81886786
+      value: 0.20060506
       objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.g
-      value: 0.81886786
+      value: 0.9245283
       objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.r
-      value: 0.81886786
+      value: 0.5018545
       objectReference: {fileID: 0}
     - target: {fileID: 6082926137204214183, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
@@ -2039,17 +2039,17 @@ PrefabInstance:
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.b
-      value: 0.81886786
+      value: 0.20060506
       objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.g
-      value: 0.81886786
+      value: 0.9245283
       objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.r
-      value: 0.81886786
+      value: 0.5018545
       objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
@@ -2414,17 +2414,17 @@ PrefabInstance:
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.b
-      value: 0.81886786
+      value: 0.20060506
       objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.g
-      value: 0.81886786
+      value: 0.9245283
       objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.r
-      value: 0.81886786
+      value: 0.5018545
       objectReference: {fileID: 0}
     - target: {fileID: 6082926137204214183, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
@@ -3553,27 +3553,27 @@ PrefabInstance:
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.b
-      value: 0.81886786
+      value: 0.20060506
       objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.g
-      value: 0.81886786
+      value: 0.9245283
       objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorC.r
-      value: 0.81886786
+      value: 0.5018545
       objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: sliderAB
-      value: 0
+      value: 0.12
       objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: sliderAC
-      value: 0
+      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: 6082926137204214183, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}

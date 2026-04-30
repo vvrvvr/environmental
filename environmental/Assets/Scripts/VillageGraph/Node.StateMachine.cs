@@ -220,6 +220,7 @@ public partial class Node
                 enabled = true;
                 SetMapVisualAndCollidersActive(true);
                 ApplySelectionRingForState(state);
+                BeginSelectedMapSliderAcRampIfMapRoot();
                 break;
 
             case NodeMapState.Deselected:
@@ -261,6 +262,11 @@ public partial class Node
             case NodeMapState.Inactive:
                 if (next != NodeMapState.Inactive)
                     enabled = true;
+                break;
+
+            case NodeMapState.Selected:
+                if (next != NodeMapState.Selected)
+                    StopSelectedMapSliderAcRamp(resetAcToZero: true);
                 break;
         }
     }

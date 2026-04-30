@@ -61,6 +61,26 @@ public class SpriteRendererGradientPropertyDriver : MonoBehaviour
         PushPropertyBlock();
     }
 
+    /// <summary>Текущее значение слайдера A–B в шейдере (0–100).</summary>
+    public float GetSliderAB() => sliderAB;
+
+    /// <summary>Задать <see cref="IdSliderAB"/> (0–100) и обновить MPB.</summary>
+    public void SetSliderAB(float value)
+    {
+        sliderAB = Mathf.Clamp(value, 0f, 100f);
+        PushPropertyBlock();
+    }
+
+    /// <summary>Текущее значение слайдера A–C в шейдере (0–100).</summary>
+    public float GetSliderAC() => sliderAC;
+
+    /// <summary>Задать <see cref="IdSliderAC"/> (0–100) и обновить MPB.</summary>
+    public void SetSliderAC(float value)
+    {
+        sliderAC = Mathf.Clamp(value, 0f, 100f);
+        PushPropertyBlock();
+    }
+
     /// <summary>Применить текущие поля к MPB (можно вызвать из кода после смены значений).</summary>
     public void PushPropertyBlock()
     {
