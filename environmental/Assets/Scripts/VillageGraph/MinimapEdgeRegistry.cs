@@ -264,7 +264,7 @@ public class MinimapEdgeRegistry : MonoBehaviour
 
     /// <summary>
     /// Сбросить визуальное состояние рёбер в <see cref="MinimapEdgeState.Idle"/> (без логов).
-    /// Пропускает рёбра в анимации / заблокированные, чтобы не рвать оркестратор карты.
+    /// Пропускает рёбра в анимации / заблокированные и с <see cref="MinimapEdge.PendingOutgoingAppearStagger"/> (задержка перед Appearing у стартовой ноды).
     /// </summary>
     public void SetAllEdgesVisualStateIdle()
     {
@@ -279,6 +279,8 @@ public class MinimapEdgeRegistry : MonoBehaviour
             if (s == MinimapEdgeState.Appearing ||
                 s == MinimapEdgeState.MovingAlongEdge ||
                 s == MinimapEdgeState.Blocked)
+                continue;
+            if (e.PendingOutgoingAppearStagger)
                 continue;
             e.SetEdgeState(MinimapEdgeState.Idle, forceLog: false);
         }

@@ -16,5 +16,5 @@ MonoBehaviour:
   edgeGradientColorB: {r: 0.8490566, g: 0.23549305, b: 0.7510972, a: 1}
   edgeGradientColorC: {r: 1, g: 0.92, b: 0.35, a: 1}
   nodeGradientColorA: {r: 1, g: 1, b: 1, a: 1}
-  nodeGradientColorB: {r: 0.8490566, g: 0.23549305, b: 0.7510972, a: 1}
+  nodeGradientColorB: {r: 0.049020927, g: 0.31587264, b: 0.9622642, a: 1}
   nodeGradientColorC: {r: 0.4979736, g: 0.89433956, b: 0.27505153, a: 1}
