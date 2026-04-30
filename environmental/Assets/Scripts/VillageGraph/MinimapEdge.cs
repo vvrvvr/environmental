@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Video;
@@ -117,6 +118,20 @@ public class MinimapEdge : MonoBehaviour
     /// <summary>В Play при <see cref="MinimapEdgeState.Appearing"/>: 0 — линия у старта, 1 — полный отрезок. Вне Appearing всегда 1.</summary>
     private float _appearLineT = 1f;
 
+    /// <summary>Вызывается один раз в Play после завершения роста линии и перехода ребра Appearing → Idle (если задан в <see cref="SetEdgeState"/>).</summary>
+    private Action _onAppearingIdleComplete;
+
+    /// <summary>
+    /// GameManager: ребро ждёт случайную задержку перед Appearing — <see cref="MinimapEdgeRegistry.SetAllEdgesVisualStateIdle"/> не должен переводить его в Idle
+    /// (иначе после выбора стартовой ноды <see cref="GameManager.ApplyMinimapRulesAfterMapNotify"/> снова покажет полную линию).
+    /// </summary>
+    private bool _pendingOutgoingAppearStagger;
+
+    /// <summary>Ожидается stagger перед раскрытием к Inactive-соседу (см. GameManager).</summary>
+    public bool PendingOutgoingAppearStagger => _pendingOutgoingAppearStagger;
+
+    public void SetPendingOutgoingAppearStagger(bool value) => _pendingOutgoingAppearStagger = value;
+
     private void Start()
     {
         if (!Application.isPlaying)
@@ -140,6 +155,7 @@ public class MinimapEdge : MonoBehaviour
         EditorApplication.update -= EditorPoll;
 #endif
         StopEdgePlayCoroutines();
+        _pendingOutgoingAppearStagger = false;
     }
 
 #if UNITY_EDITOR
@@ -190,7 +206,12 @@ public class MinimapEdge : MonoBehaviour
 
     /// <summary>Смена состояния ребра (в т.ч. дебаг с реестра по цифрам 1–5).</summary>
     /// <param name="stateAfterMovingCompletes">Только для <see cref="MinimapEdgeState.MovingAlongEdge"/>: во что перейти после таймера (по умолчанию <see cref="MinimapEdgeState.Idle"/>).</param>
-    public void SetEdgeState(MinimapEdgeState next, bool forceLog = true, MinimapEdgeState stateAfterMovingCompletes = MinimapEdgeState.Idle)
+    /// <param name="onAppearingIdleComplete">Только для <see cref="MinimapEdgeState.Appearing"/> в Play: вызов после анимации роста и перехода в Idle.</param>
+    public void SetEdgeState(
+        MinimapEdgeState next,
+        bool forceLog = true,
+        MinimapEdgeState stateAfterMovingCompletes = MinimapEdgeState.Idle,
+        Action onAppearingIdleComplete = null)
     {
         if (!Application.isPlaying)
         {
@@ -201,6 +222,8 @@ public class MinimapEdge : MonoBehaviour
             if (forceLog && prev != next)
                 Debug.Log($"[{name}] MinimapEdge state: {prev} → {next} (не Play — таймер Moving не запускается)", this);
             ApplyCombinedVisual();
+            if (next == MinimapEdgeState.Appearing)
+                onAppearingIdleComplete?.Invoke();
             return;
         }
 
@@ -226,7 +249,12 @@ public class MinimapEdge : MonoBehaviour
             if (next == MinimapEdgeState.Appearing)
             {
                 _appearLineT = 0f;
+                _onAppearingIdleComplete = onAppearingIdleComplete;
                 _appearingCoroutine = StartCoroutine(CoAppearingThenIdle());
+            }
+            else
+            {
+                _onAppearingIdleComplete = null;
             }
         }
 
@@ -323,6 +351,9 @@ public class MinimapEdge : MonoBehaviour
             yield break;
         _currentState = MinimapEdgeState.Idle;
         ApplyCombinedVisual();
+        var done = _onAppearingIdleComplete;
+        _onAppearingIdleComplete = null;
+        done?.Invoke();
     }
 
     private void StopEdgePlayCoroutines()
@@ -346,6 +377,7 @@ public class MinimapEdge : MonoBehaviour
             return;
         StopCoroutine(_appearingCoroutine);
         _appearingCoroutine = null;
+        _onAppearingIdleComplete = null;
     }
 
     /// <summary>

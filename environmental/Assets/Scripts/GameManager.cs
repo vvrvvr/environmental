@@ -30,6 +30,16 @@ public class GameManager : MonoBehaviour
     [Tooltip("Лог разметки стартовых нод / блокировки других стартов.")]
     [SerializeField] private bool logMinimapDiscovery;
 
+    [Header("Minimap outgoing edge stagger")]
+    [Tooltip(
+        "Нижняя граница (сек): для каждого подходящего исходящего ребра отдельно берётся случайное значение между Min и Max. Если Min > Max в инспекторе, диапазон сортируется.")]
+    [SerializeField, Min(0f)]
+    private float outgoingEdgeAppearStaggerMin;
+
+    [Tooltip("Верхняя граница (сек), включительно для Random.Range; у каждого ребра своё независимое случайное значение в [Min, Max].")]
+    [SerializeField, Min(0f)]
+    private float outgoingEdgeAppearStaggerMax = 0.35f;
+
     [Header("Minimap video")]
     [Tooltip("Единый VideoPlayer для ролика выбранной ноды (выход на RawImage / Camera и т.д. настраивается на нём).")]
     [SerializeField] private VideoPlayer mapVideoPlayer;
@@ -384,22 +394,24 @@ public class GameManager : MonoBehaviour
 
     /// <summary>
     /// После прибытия по ребру: исходящие от новой выбранной ноды рёбра в <see cref="MinimapEdgeState.Disabled"/> или <see cref="MinimapEdgeState.Idle"/>
-    /// (после <see cref="MinimapEdgeRegistry.SetAllEdgesVisualStateIdle"/>) с дальним <see cref="NodeMapState.Inactive"/> — ребро Appearing → Idle;
-    /// дальний корень — Appearing → Visible (таймер на ноде).
+    /// с дальним <see cref="NodeMapState.Inactive"/> — ребро в <see cref="MinimapEdgeState.Appearing"/> (рост линии); дальний корень переходит в
+    /// <see cref="NodeMapState.Appearing"/> только после завершения анимации ребра (Appearing → Idle).
+    /// Если ребро не уходит в Appearing, дальняя нода сразу получает <see cref="NodeMapState.Appearing"/>.
+    /// Старт каждого такого раскрытия смещается на своё независимое случайное время в [ <see cref="outgoingEdgeAppearStaggerMin"/>, <see cref="outgoingEdgeAppearStaggerMax"/> ] от одного момента.
     /// </summary>
-    private static void RevealOutgoingDisabledFrontierAfterMapTravel(MinimapEdgeRegistry registry, Node selectedRoot)
+    private void RevealOutgoingDisabledFrontierAfterMapTravel(MinimapEdgeRegistry registry, Node selectedRoot)
     {
         if (registry == null || selectedRoot == null)
             return;
+
+        float minD = Mathf.Min(outgoingEdgeAppearStaggerMin, outgoingEdgeAppearStaggerMax);
+        float maxD = Mathf.Max(outgoingEdgeAppearStaggerMin, outgoingEdgeAppearStaggerMax);
 
         var outgoing = registry.GetEdgesFrom(selectedRoot);
         for (var i = 0; i < outgoing.Count; i++)
         {
             MinimapEdge e = outgoing[i];
-            if (e == null)
-                continue;
-
-            if (e.ToNode == null)
+            if (e == null || e.ToNode == null)
                 continue;
 
             Node farRoot = e.ToNode.SelectionOwner;
@@ -409,10 +421,65 @@ public class GameManager : MonoBehaviour
             if (farRoot.CurrentState != NodeMapState.Inactive)
                 continue;
 
-            var es = e.CurrentEdgeState;
-            if (es == MinimapEdgeState.Disabled || es == MinimapEdgeState.Idle)
-                e.SetEdgeState(MinimapEdgeState.Appearing, forceLog: false);
+            // Отдельное случайное значение для каждого ребра (не один раз на весь набор).
+            float delay = maxD > minD ? UnityEngine.Random.Range(minD, maxD) : minD;
+            e.SetPendingOutgoingAppearStagger(true);
+            StartCoroutine(CoRevealOneOutgoingAfterStaggerDelay(e, farRoot, delay));
+        }
+    }
 
+    private IEnumerator CoRevealOneOutgoingAfterStaggerDelay(MinimapEdge edge, Node farRoot, float delaySeconds)
+    {
+        if (edge == null || farRoot == null)
+        {
+            if (edge != null)
+                edge.SetPendingOutgoingAppearStagger(false);
+            yield break;
+        }
+
+        if (farRoot.CurrentState != NodeMapState.Inactive)
+        {
+            edge.SetPendingOutgoingAppearStagger(false);
+            yield break;
+        }
+
+        // Idle рисует полную линию до старта Appearing: на время задержки прячем ребро, иначе видна полная линия → резкий сброс в 0 при Appearing.
+        if (edge.CurrentEdgeState == MinimapEdgeState.Idle)
+            edge.SetEdgeState(MinimapEdgeState.Disabled, forceLog: false);
+
+        if (delaySeconds > 1e-5f)
+            yield return new WaitForSeconds(delaySeconds);
+
+        if (edge == null || farRoot == null)
+        {
+            if (edge != null)
+                edge.SetPendingOutgoingAppearStagger(false);
+            yield break;
+        }
+
+        if (farRoot.CurrentState != NodeMapState.Inactive)
+        {
+            edge.SetPendingOutgoingAppearStagger(false);
+            yield break;
+        }
+
+        var es = edge.CurrentEdgeState;
+        if (es == MinimapEdgeState.Disabled || es == MinimapEdgeState.Idle)
+        {
+            edge.SetPendingOutgoingAppearStagger(false);
+            edge.SetEdgeState(
+                MinimapEdgeState.Appearing,
+                forceLog: false,
+                MinimapEdgeState.Idle,
+                () =>
+                {
+                    if (farRoot != null)
+                        farRoot.ForceMapState(NodeMapState.Appearing);
+                });
+        }
+        else
+        {
+            edge.SetPendingOutgoingAppearStagger(false);
             farRoot.ForceMapState(NodeMapState.Appearing);
         }
     }
