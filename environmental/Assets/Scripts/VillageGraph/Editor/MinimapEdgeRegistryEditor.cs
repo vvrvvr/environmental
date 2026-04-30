@@ -20,7 +20,7 @@ public class MinimapEdgeRegistryEditor : Editor
             if (GUILayout.Button("Связать все рёбра (якоря → ноды по коллайдерам)"))
                 ConnectAllEdgesInList();
             if (GUILayout.Button("Повесить якоря всех рёбер на ноды (ноль локально)"))
-                ParentAllAnchorsInList();
+                BindAllAnchorsFollowNodesInList();
             if (GUILayout.Button("Раздать палитру всем рёбрам в списке"))
                 ApplySharedPaletteToEdgesWithUndo();
             if (GUILayout.Button("Раздать палитру всем нодам на сцене"))
@@ -134,7 +134,7 @@ public class MinimapEdgeRegistryEditor : Editor
             EditorUtility.DisplayDialog("Связать все рёбра", $"Связано рёбер: {ok}.", "OK");
     }
 
-    private void ParentAllAnchorsInList()
+    private void BindAllAnchorsFollowNodesInList()
     {
         serializedObject.Update();
         var edgesProp = serializedObject.FindProperty("edges");
@@ -154,16 +154,13 @@ public class MinimapEdgeRegistryEditor : Editor
             if (edge == null)
                 continue;
 
-            if (MinimapEdgeLinkEditorUtility.ParentAnchorsUnderLinkedNodes(edge, out var err))
-            {
+            if (MinimapEdgeLinkEditorUtility.BindAnchorsToFollowLinkedNodes(edge, out var err))
                 ok++;
-                edge.RefreshLinePositions();
-            }
             else
                 failed.AppendLine($"• {edge.name}: {err}");
         }
 
-        Undo.SetCurrentGroupName("Якоря на ноды (реестр)");
+        Undo.SetCurrentGroupName("Якоря: следование за нодами (реестр)");
 
         if (failed.Length > 0)
             EditorUtility.DisplayDialog(

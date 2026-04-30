@@ -58,6 +58,12 @@ public class MinimapEdge : MonoBehaviour
 
     [SerializeField] private Node toNode;
 
+    [Header("Anchors ↔ nodes")]
+    [Tooltip(
+        "Если включено: Start/End якоря остаются детьми объекта ребра, но каждый кадр совпадают с pivot From/To ноды (позиция и вращение, localScale = 1), как дочерний с локальным нулём у ноды.")]
+    [SerializeField]
+    private bool anchorsFollowLinkedNodes;
+
     public Transform StartAnchor => startAnchor;
     public Transform EndAnchor => endAnchor;
     public Transform MiddlePoint => middlePoint;
@@ -76,6 +82,9 @@ public class MinimapEdge : MonoBehaviour
     public LineRenderer Line => lineRenderer;
     public Node FromNode => fromNode;
     public Node ToNode => toNode;
+
+    /// <summary>Якоря синхронизируются с pivot связанных нод (см. кнопку привязки в реестре / инспекторе ребра).</summary>
+    public bool AnchorsFollowLinkedNodes => anchorsFollowLinkedNodes;
 
     public MinimapEdgeState CurrentEdgeState => _currentState;
 
@@ -166,6 +175,17 @@ public class MinimapEdge : MonoBehaviour
     {
         _mapOutgoingLineVisible = visible;
         ApplyCombinedVisual();
+    }
+
+    /// <summary>Включить или выключить следование якорей за From/To. При выключении якоря остаются там, где были.</summary>
+    public void SetAnchorsFollowLinkedNodes(bool value)
+    {
+        anchorsFollowLinkedNodes = value;
+        RefreshLinePositions();
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+            EditorUtility.SetDirty(this);
+#endif
     }
 
     /// <summary>Смена состояния ребра (в т.ч. дебаг с реестра по цифрам 1–5).</summary>
@@ -348,6 +368,8 @@ public class MinimapEdge : MonoBehaviour
     [ContextMenu("Refresh line")]
     public void RefreshLinePositions()
     {
+        ApplyAnchorsFollowIfNeeded();
+
         if (lineRenderer == null || startAnchor == null || endAnchor == null)
             return;
 
@@ -397,5 +419,20 @@ public class MinimapEdge : MonoBehaviour
         if (middlePoint == null)
             return;
         middlePoint.position = worldMid;
+    }
+
+    private void ApplyAnchorsFollowIfNeeded()
+    {
+        if (!anchorsFollowLinkedNodes)
+            return;
+        if (fromNode == null || toNode == null || startAnchor == null || endAnchor == null)
+            return;
+
+        Transform ft = fromNode.transform;
+        Transform tt = toNode.transform;
+        startAnchor.SetPositionAndRotation(ft.position, ft.rotation);
+        endAnchor.SetPositionAndRotation(tt.position, tt.rotation);
+        startAnchor.localScale = Vector3.one;
+        endAnchor.localScale = Vector3.one;
     }
 }
