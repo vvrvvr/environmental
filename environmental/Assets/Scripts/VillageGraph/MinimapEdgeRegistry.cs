@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -33,6 +34,7 @@ public class MinimapEdgeRegistry : MonoBehaviour
     private readonly Dictionary<Node, List<MinimapEdge>> _outgoingByFromNode = new Dictionary<Node, List<MinimapEdge>>();
 
     private bool _subscribedToGameManager;
+    private Coroutine _blockedAlternateBatchSecondPhaseCoroutine;
 
     public IReadOnlyList<MinimapEdge> Edges => edges;
 
@@ -80,7 +82,11 @@ public class MinimapEdgeRegistry : MonoBehaviour
         }
     }
 
-    private void OnDisable() => UnsubscribeGameManager();
+    private void OnDisable()
+    {
+        StopBlockedAlternateBatchSecondPhaseCoroutine();
+        UnsubscribeGameManager();
+    }
 
     private void Start()
     {
@@ -117,13 +123,31 @@ public class MinimapEdgeRegistry : MonoBehaviour
 
         var s = hotkeyState.Value;
         var n = 0;
-        for (var i = 0; i < edges.Count; i++)
+        if (s == MinimapEdgeState.Blocked)
         {
-            var e = edges[i];
-            if (e == null)
-                continue;
-            e.SetEdgeState(s, forceLog: true);
-            n++;
+            var batch = new List<MinimapEdge>();
+            for (var i = 0; i < edges.Count; i++)
+            {
+                var e = edges[i];
+                if (e == null)
+                    continue;
+                e.SetEdgeState(s, forceLog: true, suppressBlockedSlidersRampOnEnter: true);
+                batch.Add(e);
+                n++;
+            }
+
+            ScheduleBlockedSlidersSecondPhaseAfterRampDuration(batch);
+        }
+        else
+        {
+            for (var i = 0; i < edges.Count; i++)
+            {
+                var e = edges[i];
+                if (e == null)
+                    continue;
+                e.SetEdgeState(s, forceLog: true);
+                n++;
+            }
         }
 
         Debug.Log($"[MinimapEdgeRegistry] Дебаг: всем рёбрам в списке ({n}) задано состояние {s}", this);
@@ -315,7 +339,8 @@ public class MinimapEdgeRegistry : MonoBehaviour
     /// Все рёбра, у которых <see cref="MinimapEdge.ToNode"/> даёт тот же корень карты, что и <paramref name="endMapRoot"/> (<see cref="Node.SelectionOwner"/>),
     /// перевести в <see cref="MinimapEdgeState.Blocked"/>. Ноду <paramref name="endMapRoot"/> к этому моменту уже должны перевести в Blocked на карте.
     /// </summary>
-    public void SetAllEdgesEndingAtMapRootToBlocked(Node endMapRoot)
+    /// <param name="suppressBlockedSlidersRampOnEnter">Не запускать ramp на каждом ребре; ожидается <see cref="ScheduleBlockedSlidersSecondPhaseAfterRampDuration"/> для пакета.</param>
+    public void SetAllEdgesEndingAtMapRootToBlocked(Node endMapRoot, bool suppressBlockedSlidersRampOnEnter = false)
     {
         if (edges == null || endMapRoot == null)
             return;
@@ -327,7 +352,81 @@ public class MinimapEdgeRegistry : MonoBehaviour
                 continue;
             if (e.ToNode.SelectionOwner != endMapRoot)
                 continue;
-            e.SetEdgeState(MinimapEdgeState.Blocked, forceLog: false);
+            e.SetEdgeState(
+                MinimapEdgeState.Blocked,
+                forceLog: false,
+                suppressBlockedSlidersRampOnEnter: suppressBlockedSlidersRampOnEnter);
+        }
+    }
+
+    /// <summary>Все рёбра с концом на <paramref name="endMapRoot"/> (по <see cref="Node.SelectionOwner"/> у <see cref="MinimapEdge.ToNode"/>).</summary>
+    public void CollectEdgesEndingAtMapRoot(Node endMapRoot, HashSet<MinimapEdge> into)
+    {
+        if (edges == null || endMapRoot == null || into == null)
+            return;
+
+        for (var i = 0; i < edges.Count; i++)
+        {
+            var e = edges[i];
+            if (e == null || e.ToNode == null)
+                continue;
+            if (e.ToNode.SelectionOwner != endMapRoot)
+                continue;
+            into.Add(e);
+        }
+    }
+
+    /// <summary>
+    /// Одна задержка <c>max(ребро.BlockedSlidersRampDurationSeconds)</c>, затем одновременный ramp второй фазы для всех рёбер в пакете (альтернативы при travel / дебаг).
+    /// </summary>
+    public void ScheduleBlockedSlidersSecondPhaseAfterRampDuration(IReadOnlyList<MinimapEdge> edges)
+    {
+        if (!Application.isPlaying || edges == null || edges.Count == 0)
+            return;
+
+        StopBlockedAlternateBatchSecondPhaseCoroutine();
+
+        float wait = 0.01f;
+        for (var i = 0; i < edges.Count; i++)
+        {
+            var e = edges[i];
+            if (e == null)
+                continue;
+            wait = Mathf.Max(wait, e.BlockedSlidersRampDurationSeconds);
+        }
+
+        var snapshot = new List<MinimapEdge>(edges.Count);
+        for (var i = 0; i < edges.Count; i++)
+        {
+            var e = edges[i];
+            if (e != null)
+                snapshot.Add(e);
+        }
+
+        if (snapshot.Count == 0)
+            return;
+
+        _blockedAlternateBatchSecondPhaseCoroutine = StartCoroutine(CoBlockedAlternateBatchSecondPhaseAfterWait(snapshot, wait));
+    }
+
+    private void StopBlockedAlternateBatchSecondPhaseCoroutine()
+    {
+        if (_blockedAlternateBatchSecondPhaseCoroutine == null)
+            return;
+        StopCoroutine(_blockedAlternateBatchSecondPhaseCoroutine);
+        _blockedAlternateBatchSecondPhaseCoroutine = null;
+    }
+
+    private IEnumerator CoBlockedAlternateBatchSecondPhaseAfterWait(List<MinimapEdge> snapshot, float waitSeconds)
+    {
+        yield return new WaitForSeconds(waitSeconds);
+        _blockedAlternateBatchSecondPhaseCoroutine = null;
+        for (var i = 0; i < snapshot.Count; i++)
+        {
+            var e = snapshot[i];
+            if (e == null || e.CurrentEdgeState != MinimapEdgeState.Blocked)
+                continue;
+            e.TryBeginBlockedSlidersRampSecondPhase();
         }
     }
 

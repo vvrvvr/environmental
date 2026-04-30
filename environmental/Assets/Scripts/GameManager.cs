@@ -355,8 +355,8 @@ public class GameManager : MonoBehaviour
 
     /// <summary>
     /// Исходящие от <paramref name="fromRoot"/> рёбра, кроме <paramref name="chosenEdge"/>: <see cref="MinimapEdgeState.Blocked"/>.
-    /// Если корень конца — «доступный сосед», сначала <see cref="NodeMapState.Blocked"/> у ноды, затем <see cref="MinimapEdgeRegistry.SetAllEdgesEndingAtMapRootToBlocked"/>:
-    /// все рёбра с этим концом (в т.ч. не только от <paramref name="fromRoot"/>), чтобы ramp слайдеров и линия совпадали с блокировкой ноды.
+    /// Если корень конца — «доступный сосед», сначала <see cref="NodeMapState.Blocked"/> у ноды, затем <see cref="MinimapEdgeRegistry.SetAllEdgesEndingAtMapRootToBlocked"/> (без ramp на каждом ребре)
+    /// и одна общая задержка + ramp для всего пакета альтернатив через <see cref="MinimapEdgeRegistry.ScheduleBlockedSlidersSecondPhaseAfterRampDuration"/>.
     /// Иначе только исходящее от <paramref name="fromRoot"/> — Blocked, ноду конца не трогаем.
     /// </summary>
     private static void BlockAlternateOutgoingPathsForMapTravel(MinimapEdgeRegistry registry, Node fromRoot, MinimapEdge chosenEdge)
@@ -364,6 +364,7 @@ public class GameManager : MonoBehaviour
         if (registry == null || fromRoot == null || chosenEdge == null)
             return;
 
+        var delayedSecondPhase = new HashSet<MinimapEdge>();
         var outgoing = registry.GetEdgesFrom(fromRoot);
         for (var i = 0; i < outgoing.Count; i++)
         {
@@ -373,7 +374,8 @@ public class GameManager : MonoBehaviour
 
             if (e.ToNode == null)
             {
-                e.SetEdgeState(MinimapEdgeState.Blocked, forceLog: false);
+                e.SetEdgeState(MinimapEdgeState.Blocked, forceLog: false, suppressBlockedSlidersRampOnEnter: true);
+                delayedSecondPhase.Add(e);
                 continue;
             }
 
@@ -381,13 +383,18 @@ public class GameManager : MonoBehaviour
             if (neighborRoot != null && IsActiveAlternateNeighborForMapTravel(neighborRoot))
             {
                 neighborRoot.ForceMapState(NodeMapState.Blocked);
-                registry.SetAllEdgesEndingAtMapRootToBlocked(neighborRoot);
+                registry.SetAllEdgesEndingAtMapRootToBlocked(neighborRoot, suppressBlockedSlidersRampOnEnter: true);
+                registry.CollectEdgesEndingAtMapRoot(neighborRoot, delayedSecondPhase);
             }
             else
             {
-                e.SetEdgeState(MinimapEdgeState.Blocked, forceLog: false);
+                e.SetEdgeState(MinimapEdgeState.Blocked, forceLog: false, suppressBlockedSlidersRampOnEnter: true);
+                delayedSecondPhase.Add(e);
             }
         }
+
+        if (delayedSecondPhase.Count > 0)
+            registry.ScheduleBlockedSlidersSecondPhaseAfterRampDuration(new List<MinimapEdge>(delayedSecondPhase));
     }
 
     private static bool IsActiveAlternateNeighborForMapTravel(Node neighborRoot)

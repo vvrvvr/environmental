@@ -577,6 +577,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
+      propertyPath: blockedSlidersRampDuration
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
       propertyPath: travelAlongEdgeSliderAcTargetPercent
       value: 100
       objectReference: {fileID: 0}
@@ -639,6 +644,11 @@ PrefabInstance:
         type: 3}
       propertyPath: colorB.r
       value: 0.9547169
+      objectReference: {fileID: 0}
+    - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: sliderAB
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -2216,6 +2226,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
+      propertyPath: blockedSlidersRampDuration
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
       propertyPath: travelAlongEdgeSliderAcTargetPercent
       value: 100
       objectReference: {fileID: 0}
@@ -2263,6 +2278,11 @@ PrefabInstance:
         type: 3}
       propertyPath: colorB.r
       value: 0.9547169
+      objectReference: {fileID: 0}
+    - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: sliderAB
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -2594,6 +2614,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
+      propertyPath: sliderAB
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
       propertyPath: sliderAC
       value: 23.6
       objectReference: {fileID: 0}
@@ -2751,12 +2776,16 @@ PrefabInstance:
         type: 3}
       propertyPath: edgeTravelVideoClip
       value: 
-      objectReference: {fileID: 32900000, guid: 0ee86963e82ac2d4a94e9397e6d2b5fa,
-        type: 3}
+      objectReference: {fileID: 0}
     - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
       propertyPath: anchorsFollowLinkedNodes
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: blockedSlidersRampDuration
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -2841,7 +2870,7 @@ PrefabInstance:
     - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
       propertyPath: sliderAB
-      value: 0
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -3074,6 +3103,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
+      propertyPath: blockedSlidersRampDuration
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
       propertyPath: travelAlongEdgeSliderAcTargetPercent
       value: 100
       objectReference: {fileID: 0}
@@ -3126,6 +3160,11 @@ PrefabInstance:
         type: 3}
       propertyPath: colorB.r
       value: 0.9547169
+      objectReference: {fileID: 0}
+    - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: sliderAB
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -3306,6 +3345,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
+      propertyPath: blockedSlidersRampDuration
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
       propertyPath: travelAlongEdgeSliderAcTargetPercent
       value: 100
       objectReference: {fileID: 0}
@@ -3353,6 +3397,11 @@ PrefabInstance:
         type: 3}
       propertyPath: colorB.r
       value: 0.9547169
+      objectReference: {fileID: 0}
+    - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: sliderAB
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
