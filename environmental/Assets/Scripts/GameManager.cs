@@ -54,6 +54,9 @@ public class GameManager : MonoBehaviour
     private Node _mapTravelTargetRoot;
     private Coroutine _mapTravelCoroutine;
 
+    /// <summary>Ребро последнего прибытия по карте: в Blocked переводится при следующем travel с его конечной ноды, а не сразу после MovingAlong.</summary>
+    private MinimapEdge _pendingArrivalEdgeToBlockWhenLeavingEndNode;
+
     [Header("Debug")]
     [Tooltip("Запасная нода для горячих клавиш, пока ни одна нода не вызвала NotifyNodeMapStateChanged (иначе используется Last Map State Source Node).")]
     public Node debugTargetNode;
@@ -351,8 +354,10 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Исходящие от <paramref name="fromRoot"/> рёбра, кроме <paramref name="chosenEdge"/>: ребро <see cref="MinimapEdgeState.Blocked"/>;
-    /// корень конца (<see cref="Node.SelectionOwner"/>) — <see cref="NodeMapState.Blocked"/>, если нода сейчас «как доступный сосед» (Visible / Deselected / Appearing).
+    /// Исходящие от <paramref name="fromRoot"/> рёбра, кроме <paramref name="chosenEdge"/>: <see cref="MinimapEdgeState.Blocked"/>.
+    /// Если корень конца — «доступный сосед», сначала <see cref="NodeMapState.Blocked"/> у ноды, затем <see cref="MinimapEdgeRegistry.SetAllEdgesEndingAtMapRootToBlocked"/>:
+    /// все рёбра с этим концом (в т.ч. не только от <paramref name="fromRoot"/>), чтобы ramp слайдеров и линия совпадали с блокировкой ноды.
+    /// Иначе только исходящее от <paramref name="fromRoot"/> — Blocked, ноду конца не трогаем.
     /// </summary>
     private static void BlockAlternateOutgoingPathsForMapTravel(MinimapEdgeRegistry registry, Node fromRoot, MinimapEdge chosenEdge)
     {
@@ -366,16 +371,22 @@ public class GameManager : MonoBehaviour
             if (e == null || ReferenceEquals(e, chosenEdge))
                 continue;
 
-            e.SetEdgeState(MinimapEdgeState.Blocked, forceLog: false);
-
             if (e.ToNode == null)
+            {
+                e.SetEdgeState(MinimapEdgeState.Blocked, forceLog: false);
                 continue;
+            }
 
             Node neighborRoot = e.ToNode.SelectionOwner;
-            if (neighborRoot == null || !IsActiveAlternateNeighborForMapTravel(neighborRoot))
-                continue;
-
-            neighborRoot.ForceMapState(NodeMapState.Blocked);
+            if (neighborRoot != null && IsActiveAlternateNeighborForMapTravel(neighborRoot))
+            {
+                neighborRoot.ForceMapState(NodeMapState.Blocked);
+                registry.SetAllEdgesEndingAtMapRootToBlocked(neighborRoot);
+            }
+            else
+            {
+                e.SetEdgeState(MinimapEdgeState.Blocked, forceLog: false);
+            }
         }
     }
 
@@ -393,9 +404,27 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// После прибытия по ребру: исходящие от новой выбранной ноды рёбра в <see cref="MinimapEdgeState.Disabled"/> или <see cref="MinimapEdgeState.Idle"/>
+    /// В начале нового travel с <paramref name="fromRoot"/>: ребро, по которому приехали на эту ноду в прошлый раз, переводится в Blocked (и ramp слайдеров), если ещё не уходили с неё.
+    /// </summary>
+    private void TryBlockPendingArrivalEdgeWhenLeavingEndNode(MinimapEdgeRegistry registry, Node fromRoot)
+    {
+        if (_pendingArrivalEdgeToBlockWhenLeavingEndNode == null || fromRoot == null)
+            return;
+
+        var arrival = _pendingArrivalEdgeToBlockWhenLeavingEndNode;
+        _pendingArrivalEdgeToBlockWhenLeavingEndNode = null;
+
+        if (arrival == null || arrival.ToNode == null || arrival.ToNode.SelectionOwner != fromRoot)
+            return;
+
+        arrival.SetEdgeState(MinimapEdgeState.Blocked, forceLog: false);
+        arrival.PlayBlockedSlidersRampAfterMapRouteTravel();
+    }
+
+    /// <summary>
+    /// После прибытия по ребру: исходящие от новой выбранной ноды рёбра в <see cref="MinimapEdgeState.Disabled"/> или «полная линия» (<see cref="MinimapEdgeState.Idle"/> / <see cref="MinimapEdgeState.IdleRevealed"/> / <see cref="MinimapEdgeState.Selected"/>)
     /// с дальним <see cref="NodeMapState.Inactive"/> — ребро в <see cref="MinimapEdgeState.Appearing"/> (рост линии); дальний корень переходит в
-    /// <see cref="NodeMapState.Appearing"/> только после завершения анимации ребра (Appearing → Idle).
+    /// <see cref="NodeMapState.Appearing"/> только после завершения анимации ребра (Appearing → <see cref="MinimapEdgeState.IdleRevealed"/>).
     /// Если ребро не уходит в Appearing, дальняя нода сразу получает <see cref="NodeMapState.Appearing"/>.
     /// Старт каждого такого раскрытия смещается на своё независимое случайное время в [ <see cref="outgoingEdgeAppearStaggerMin"/>, <see cref="outgoingEdgeAppearStaggerMax"/> ] от одного момента.
     /// </summary>
@@ -443,8 +472,8 @@ public class GameManager : MonoBehaviour
             yield break;
         }
 
-        // Idle рисует полную линию до старта Appearing: на время задержки прячем ребро, иначе видна полная линия → резкий сброс в 0 при Appearing.
-        if (edge.CurrentEdgeState == MinimapEdgeState.Idle)
+        // Idle / уже показанное / «конец выбран» рисуют полную линию до старта Appearing: на время задержки прячем ребро.
+        if (MinimapEdgeStateUtil.IsFullLineIdleLike(edge.CurrentEdgeState))
             edge.SetEdgeState(MinimapEdgeState.Disabled, forceLog: false);
 
         if (delaySeconds > 1e-5f)
@@ -464,7 +493,7 @@ public class GameManager : MonoBehaviour
         }
 
         var es = edge.CurrentEdgeState;
-        if (es == MinimapEdgeState.Disabled || es == MinimapEdgeState.Idle)
+        if (es == MinimapEdgeState.Disabled || MinimapEdgeStateUtil.IsFullLineIdleLike(es))
         {
             edge.SetPendingOutgoingAppearStagger(false);
             edge.SetEdgeState(
@@ -490,19 +519,21 @@ public class GameManager : MonoBehaviour
         _suppressMapTravelSelectionClear = true;
         try
         {
+            TryBlockPendingArrivalEdgeWhenLeavingEndNode(registry, fromRoot);
             BlockAlternateOutgoingPathsForMapTravel(registry, fromRoot, edge);
             fromRoot.SetState(NodeMapState.Deselected);
             float ring = fromRoot.SelectionRingDisappearDuration;
             if (ring > 0f)
                 yield return new WaitForSeconds(ring);
             fromRoot.ForceMapState(NodeMapState.Blocked);
-            edge.SetEdgeState(MinimapEdgeState.MovingAlongEdge, forceLog: false, MinimapEdgeState.Blocked);
+            edge.SetEdgeState(MinimapEdgeState.MovingAlongEdge, forceLog: false, MinimapEdgeState.IdleRevealed);
             while (edge.CurrentEdgeState == MinimapEdgeState.MovingAlongEdge)
                 yield return null;
             _suppressMapTravelSelectionClear = false;
             toRoot.SetState(NodeMapState.Selected);
             RefreshMinimapEdgeRegistryLines();
             RevealOutgoingDisabledFrontierAfterMapTravel(registry, toRoot);
+            _pendingArrivalEdgeToBlockWhenLeavingEndNode = edge;
         }
         finally
         {
