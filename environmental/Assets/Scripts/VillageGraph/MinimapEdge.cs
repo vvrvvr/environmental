@@ -49,7 +49,7 @@ public class MinimapEdge : MonoBehaviour
     [Tooltip("Дочерний объект со спрайтом: включается на время MovingAlongEdge, движется от start anchor к end anchor, затем выключается.")]
     [SerializeField] private GameObject travelMoveVisual;
 
-    [Tooltip("Длительность Appearing перед переходом в Idle (Play). 0 — считается как 1 с (заглушка).")]
+    [Tooltip("Длительность Appearing: линия «растёт» от старта к концу, затем переход в Idle (Play). 0 — длительность 1 с (как раньше).")]
     [SerializeField, Min(0f)] private float appearingToIdleDuration;
 
     [Tooltip("Цвет линии в состоянии Blocked (start/end).")]
@@ -111,6 +111,8 @@ public class MinimapEdge : MonoBehaviour
     private Coroutine _movingCoroutine;
     private Coroutine _appearingCoroutine;
     private bool _edgeTravelVideoPlaying;
+    /// <summary>В Play при <see cref="MinimapEdgeState.Appearing"/>: 0 — линия у старта, 1 — полный отрезок. Вне Appearing всегда 1.</summary>
+    private float _appearLineT = 1f;
 
     private void Awake()
     {
@@ -187,6 +189,8 @@ public class MinimapEdge : MonoBehaviour
         {
             var prev = _currentState;
             _currentState = next;
+            if (next != MinimapEdgeState.Appearing)
+                _appearLineT = 1f;
             if (forceLog && prev != next)
                 Debug.Log($"[{name}] MinimapEdge state: {prev} → {next} (не Play — таймер Moving не запускается)", this);
             ApplyCombinedVisual();
@@ -199,6 +203,8 @@ public class MinimapEdge : MonoBehaviour
         StopEdgePlayCoroutines();
         var prevPlay = _currentState;
         _currentState = next;
+        if (next != MinimapEdgeState.Appearing)
+            _appearLineT = 1f;
         if (forceLog)
             Debug.Log($"[{name}] MinimapEdge state: {prevPlay} → {next}", this);
 
@@ -211,7 +217,10 @@ public class MinimapEdge : MonoBehaviour
         {
             _stateAfterMovingCompletes = MinimapEdgeState.Idle;
             if (next == MinimapEdgeState.Appearing)
+            {
+                _appearLineT = 0f;
                 _appearingCoroutine = StartCoroutine(CoAppearingThenIdle());
+            }
         }
 
         ApplyCombinedVisual();
@@ -287,7 +296,21 @@ public class MinimapEdge : MonoBehaviour
     private IEnumerator CoAppearingThenIdle()
     {
         float d = appearingToIdleDuration <= 0f ? 1f : appearingToIdleDuration;
-        yield return new WaitForSeconds(d);
+        float elapsed = 0f;
+        _appearLineT = 0f;
+        RefreshLinePositions();
+
+        while (elapsed < d)
+        {
+            _appearLineT = d > 1e-6f ? Mathf.Clamp01(elapsed / d) : 1f;
+            RefreshLinePositions();
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        _appearLineT = 1f;
+        RefreshLinePositions();
+
         _appearingCoroutine = null;
         if (_currentState != MinimapEdgeState.Appearing)
             yield break;
@@ -402,9 +425,13 @@ public class MinimapEdge : MonoBehaviour
 
         Vector3 p0 = a + dir * along0;
         Vector3 p1 = a + dir * along1;
+
+        float growT = (!Application.isPlaying || _currentState != MinimapEdgeState.Appearing) ? 1f : Mathf.Clamp01(_appearLineT);
+        Vector3 p1Draw = Vector3.Lerp(p0, p1, growT);
+
         lineRenderer.SetPosition(0, p0);
-        lineRenderer.SetPosition(1, p1);
-        ApplyMiddle((p0 + p1) * 0.5f);
+        lineRenderer.SetPosition(1, p1Draw);
+        ApplyMiddle((p0 + p1Draw) * 0.5f);
     }
 
     private void ApplyMiddle(Vector3 worldMid)

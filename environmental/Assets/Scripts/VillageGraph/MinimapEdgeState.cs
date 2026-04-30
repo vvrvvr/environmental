@@ -6,7 +6,7 @@ public enum MinimapEdgeState
     /// <summary>Линия выключена (игнорирует слой видимости по карте).</summary>
     Disabled = 0,
 
-    /// <summary>Заглушка: линия включена (если разрешено выбором на карте).</summary>
+    /// <summary>В Play: линия «растёт» от старта к концу (см. <see cref="MinimapEdge"/>), затем <see cref="Idle"/>.</summary>
     Appearing = 1,
 
     /// <summary>Заглушка: таймер в Play, затем <see cref="Idle"/>.</summary>

@@ -3985,8 +3985,8 @@ LineRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Positions:
-  - {x: 6.7480726, y: 0, z: -3.9562454}
-  - {x: 4.7247963, y: 0, z: -1.7643623}
+  - {x: 7.395995, y: -0.29094672, z: -2.2722049}
+  - {x: 4.9131784, y: -0.06133184, z: -1.4654818}
   m_Parameters:
     serializedVersion: 3
     widthMultiplier: 1
@@ -4007,19 +4007,19 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0.2985047, g: 0.8113208, b: 0.34056675, a: 1}
-      key1: {r: 0.94716984, g: 0.46286222, b: 0.46286222, a: 1}
-      key2: {r: 0, g: 0, b: 0, a: 0}
-      key3: {r: 0, g: 0, b: 0, a: 0}
-      key4: {r: 0, g: 0, b: 0, a: 0}
+      key0: {r: 0.97735846, g: 0.438385, b: 0.35959402, a: 1}
+      key1: {r: 1, g: 0.88475746, b: 0.42075467, a: 1}
+      key2: {r: 0.96734583, g: 0.78165257, b: 0.24444045, a: 0}
+      key3: {r: 0.3676497, g: 0.9924528, b: 0.19287285, a: 0}
+      key4: {r: 0.5907595, g: 1, b: 0.20188677, a: 0}
       key5: {r: 0, g: 0, b: 0, a: 0}
       key6: {r: 0, g: 0, b: 0, a: 0}
       key7: {r: 0, g: 0, b: 0, a: 0}
-      ctime0: 0
-      ctime1: 65535
-      ctime2: 0
-      ctime3: 0
-      ctime4: 0
+      ctime0: 19506
+      ctime1: 23053
+      ctime2: 44024
+      ctime3: 48033
+      ctime4: 65535
       ctime5: 0
       ctime6: 0
       ctime7: 0
@@ -4033,7 +4033,7 @@ LineRenderer:
       atime7: 0
       m_Mode: 0
       m_ColorSpace: 0
-      m_NumColorKeys: 2
+      m_NumColorKeys: 5
       m_NumAlphaKeys: 2
     numCornerVertices: 0
     numCapVertices: 0
@@ -4055,7 +4055,7 @@ Transform:
   m_GameObject: {fileID: 740530903}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.25, y: 0, z: -4.5}
+  m_LocalPosition: {x: 9.809671, y: -0.35578322, z: -9.817819}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -5637,7 +5637,7 @@ Transform:
   m_GameObject: {fileID: 885760703}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -3.25, y: 0, z: -4.25}
+  m_LocalPosition: {x: -3.75, y: 0, z: -3.5}
   m_LocalScale: {x: 1.2, y: 1.2, z: 1.2}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -9264,7 +9264,7 @@ Transform:
   m_GameObject: {fileID: 1398070743}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 7.5, y: 0, z: -0.00000023841858}
+  m_LocalPosition: {x: -1.7126017, y: 0, z: 7.3178186}
   m_LocalScale: {x: 1.2, y: 1.2, z: 1.2}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9735,7 +9735,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Sprite: {fileID: 21300000, guid: 46bab1b6c3c7ac644abc576574c75113, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.98490566, g: 0.6823523, b: 0.48873615, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -10315,7 +10315,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1594890771}
   m_LocalRotation: {x: 0.70710576, y: -0, z: -0, w: 0.70710784}
-  m_LocalPosition: {x: 0, y: 0, z: 2.5}
+  m_LocalPosition: {x: 0, y: 0, z: 2.875}
   m_LocalScale: {x: 0.0014333396, y: 0.0014333396, z: 0.0014333396}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -10324,7 +10324,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 10, y: 0}
+  m_AnchoredPosition: {x: 9.75, y: 0}
   m_SizeDelta: {x: 1920, y: 1080}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1594890773
@@ -11120,6 +11120,7 @@ GameObject:
   - component: {fileID: 1664285687}
   - component: {fileID: 1664285686}
   - component: {fileID: 1664285685}
+  - component: {fileID: 1664285688}
   m_Layer: 6
   m_Name: Edge
   m_TagString: Untagged
@@ -11148,7 +11149,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 788272f51c28c6144a1bd7cac6aadc85, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -11170,8 +11171,8 @@ LineRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Positions:
-  - {x: -2.6611784, y: 0, z: -2.827014}
-  - {x: -0.68970466, y: 0, z: 1.9373808}
+  - {x: -3.75, y: 0, z: -3.5}
+  - {x: -0.25, y: 0, z: 3}
   m_Parameters:
     serializedVersion: 3
     widthMultiplier: 1
@@ -11179,7 +11180,16 @@ LineRenderer:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
-        time: 0.0357666
+        time: 0
+        value: 0.48907575
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
         value: 0.50175476
         inSlope: -0.5354462
         outSlope: -0.5354462
@@ -11187,15 +11197,6 @@ LineRenderer:
         weightedMode: 0
         inWeight: 0.33333334
         outWeight: 0.23106715
-      - serializedVersion: 3
-        time: 1
-        value: 0
-        inSlope: -0.43846932
-        outSlope: -0.43846932
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0.19088076
-        outWeight: 0
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
@@ -11203,23 +11204,23 @@ LineRenderer:
       serializedVersion: 2
       key0: {r: 1, g: 1, b: 1, a: 1}
       key1: {r: 1, g: 1, b: 1, a: 1}
-      key2: {r: 0, g: 0, b: 0, a: 0}
-      key3: {r: 0, g: 0, b: 0, a: 0}
-      key4: {r: 0, g: 0, b: 0, a: 0}
-      key5: {r: 0, g: 0, b: 0, a: 0}
+      key2: {r: 1, g: 0.88475746, b: 0.42075467, a: 1}
+      key3: {r: 0.96734583, g: 0.78165257, b: 0.24444045, a: 0}
+      key4: {r: 0.3676497, g: 0.9924528, b: 0.19287285, a: 0}
+      key5: {r: 0.5907595, g: 1, b: 0.20188677, a: 0}
       key6: {r: 0, g: 0, b: 0, a: 0}
       key7: {r: 0, g: 0, b: 0, a: 0}
       ctime0: 0
       ctime1: 65535
-      ctime2: 0
-      ctime3: 0
-      ctime4: 0
-      ctime5: 0
+      ctime2: 23053
+      ctime3: 44024
+      ctime4: 48033
+      ctime5: 65535
       ctime6: 0
       ctime7: 0
       atime0: 0
       atime1: 65535
-      atime2: 0
+      atime2: 65535
       atime3: 0
       atime4: 0
       atime5: 0
@@ -11230,7 +11231,7 @@ LineRenderer:
       m_NumColorKeys: 2
       m_NumAlphaKeys: 2
     numCornerVertices: 0
-    numCapVertices: 0
+    numCapVertices: 16
     alignment: 0
     textureMode: 0
     textureScale: {x: 1, y: 1}
@@ -11255,8 +11256,8 @@ MonoBehaviour:
   startAnchor: {fileID: 1151962425}
   endAnchor: {fileID: 100592468}
   middlePoint: {fileID: 2081060796}
-  startInset: 1.54
-  endInset: 1.15
+  startInset: 0
+  endInset: 0
   lineRenderer: {fileID: 1664285685}
   lineColorPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
   movingAlongEdgeDuration: 2
@@ -11282,6 +11283,25 @@ Transform:
   - {fileID: 2081060796}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1664285688
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1664285684}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ada0b63710770ec4caced751dad8b3e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  colorA: {r: 1, g: 1, b: 1, a: 1}
+  colorB: {r: 1, g: 0, b: 0, a: 1}
+  colorC: {r: 0, g: 0, b: 1, a: 1}
+  blendAB: 0.1
+  blendAC: 0.1
+  sliderAB: 0
+  sliderAC: 0
 --- !u!1 &1679207554
 GameObject:
   m_ObjectHideFlags: 0
@@ -13618,7 +13638,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2081060792}
   m_LocalRotation: {x: 0.70710576, y: -0, z: -0, w: 0.70710784}
-  m_LocalPosition: {x: 0, y: 0, z: 2.8051834}
+  m_LocalPosition: {x: 0, y: 0, z: 3}
   m_LocalScale: {x: 0.0014333396, y: 0.0014333396, z: 0.0014333396}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -13627,7 +13647,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 5.3245583, y: 0}
+  m_AnchoredPosition: {x: 5, y: 0}
   m_SizeDelta: {x: 1920, y: 1080}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &2083982310
@@ -14083,7 +14103,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 788272f51c28c6144a1bd7cac6aadc85, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -14105,7 +14125,7 @@ LineRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Positions:
-  - {x: -3.25, y: 0, z: -4.25}
+  - {x: -3.75, y: 0, z: -3.5}
   - {x: -4.75, y: 0, z: 0.75}
   m_Parameters:
     serializedVersion: 3
