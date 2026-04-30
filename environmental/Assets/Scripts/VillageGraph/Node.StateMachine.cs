@@ -243,6 +243,8 @@ public partial class Node
                 enabled = true;
                 SetMapVisualAndCollidersActive(true);
                 ApplySelectionRingForState(state);
+                if (groupParent == null && Application.isPlaying && previous != NodeMapState.Blocked)
+                    MapResetIncomingBlockedEdgeRampTallyOnEnterBlocked();
                 break;
 
             default:
@@ -266,7 +268,12 @@ public partial class Node
 
             case NodeMapState.Selected:
                 if (next != NodeMapState.Selected)
-                    StopSelectedMapSliderAcRamp(resetAcToZero: true);
+                    StopSelectedMapSliderAcRamp();
+                break;
+
+            case NodeMapState.Blocked:
+                if (next != NodeMapState.Blocked)
+                    StopMapNodeBlockedSlidersSequence(resetSlidersToZero: true);
                 break;
         }
     }
