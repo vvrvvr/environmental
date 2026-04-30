@@ -68,9 +68,10 @@ public static class MinimapEdgeLinkEditorUtility
     }
 
     /// <summary>
-    /// Start Anchor → дочерний к <see cref="MinimapEdge.FromNode"/>, End Anchor → к <see cref="MinimapEdge.ToNode"/>, локально в нуле.
+    /// Якоря остаются детьми объекта ребра; включается следование за pivot <see cref="MinimapEdge.FromNode"/> / <see cref="MinimapEdge.ToNode"/> (как при локальном нуле у ноды).
+    /// Если якоря раньше были привязаны как дочерние к нодам — переносятся под ребро с сохранением мировой позиции, затем выравниваются по нодам.
     /// </summary>
-    public static bool ParentAnchorsUnderLinkedNodes(MinimapEdge edge, out string errorMessage)
+    public static bool BindAnchorsToFollowLinkedNodes(MinimapEdge edge, out string errorMessage)
     {
         errorMessage = null;
         if (edge == null)
@@ -102,18 +103,18 @@ public static class MinimapEdgeLinkEditorUtility
             return false;
         }
 
-        Undo.RecordObject(start, "Якорь ребра под ноду");
-        Undo.RecordObject(end, "Якорь ребра под ноду");
+        Transform edgeRoot = edge.transform;
 
-        Undo.SetTransformParent(start, from.transform, "Start anchor → FromNode");
-        start.localPosition = Vector3.zero;
-        start.localRotation = Quaternion.identity;
-        start.localScale = Vector3.one;
+        Undo.RecordObject(edge, "Якоря: следование за нодами");
+        Undo.RecordObject(start, "Якоря: следование за нодами");
+        Undo.RecordObject(end, "Якоря: следование за нодами");
 
-        Undo.SetTransformParent(end, to.transform, "End anchor → ToNode");
-        end.localPosition = Vector3.zero;
-        end.localRotation = Quaternion.identity;
-        end.localScale = Vector3.one;
+        if (start.parent != edgeRoot)
+            Undo.SetTransformParent(start, edgeRoot, "Start anchor → ребро");
+        if (end.parent != edgeRoot)
+            Undo.SetTransformParent(end, edgeRoot, "End anchor → ребро");
+
+        edge.SetAnchorsFollowLinkedNodes(true);
 
         EditorUtility.SetDirty(start);
         EditorUtility.SetDirty(end);

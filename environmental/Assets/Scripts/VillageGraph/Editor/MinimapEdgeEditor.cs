@@ -6,13 +6,16 @@ public class MinimapEdgeEditor : Editor
 {
     public override void OnInspectorGUI()
     {
+        serializedObject.Update();
         DrawDefaultInspector();
         EditorGUILayout.Space();
         using (new EditorGUI.DisabledScope(serializedObject.isEditingMultipleObjects))
         {
+            var edge = (MinimapEdge)target;
+            var followProp = serializedObject.FindProperty("anchorsFollowLinkedNodes");
+
             if (GUILayout.Button("Связать"))
             {
-                var edge = (MinimapEdge)target;
                 if (!MinimapEdgeLinkEditorUtility.ConnectAnchorsToNodesByCollider(edge, out var err))
                     EditorUtility.DisplayDialog("Связать", err, "OK");
                 else
@@ -21,12 +24,20 @@ public class MinimapEdgeEditor : Editor
 
             if (GUILayout.Button("Повесить якоря на ноды (ноль локально)"))
             {
-                var edge = (MinimapEdge)target;
-                if (!MinimapEdgeLinkEditorUtility.ParentAnchorsUnderLinkedNodes(edge, out var err))
+                if (!MinimapEdgeLinkEditorUtility.BindAnchorsToFollowLinkedNodes(edge, out var err))
                     EditorUtility.DisplayDialog("Якоря на ноды", err, "OK");
-                else
-                    edge.RefreshLinePositions();
+            }
+
+            using (new EditorGUI.DisabledScope(followProp != null && !followProp.boolValue))
+            {
+                if (GUILayout.Button("Отвязать якоря от следования за нодами"))
+                {
+                    Undo.RecordObject(edge, "Отвязать якоря от нод");
+                    edge.SetAnchorsFollowLinkedNodes(false);
+                }
             }
         }
+
+        serializedObject.ApplyModifiedProperties();
     }
 }

@@ -99,8 +99,8 @@ Material:
     - _Blend: 0
     - _Blend1: 0.259
     - _Blend2: 0.351
-    - _BlendAB: 0.105
-    - _BlendAC: 0.193
+    - _BlendAB: 0.198
+    - _BlendAC: 0.033
     - _BlendModePreserveSpecular: 1
     - _BlendWidth: 0.001
     - _BumpScale: 1
