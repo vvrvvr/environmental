@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using DG.Tweening;
@@ -52,6 +53,12 @@ public partial class Node : MonoBehaviour
 
     [Tooltip("Палитра графа: общие Color A/B/C для кнопки «Применить цвета к нодам» в ассете палитры (SpriteRendererGradientPropertyDriver). Тот же ассет, что на MinimapEdgeRegistry.")]
     [SerializeField] private MinimapGraphVisualPalette mapVisualPalette;
+
+    [Header("Map state: Selected (gradient sliders)")]
+    [Tooltip(
+        "В Play: при входе ноды карты в NodeMapState.Selected у всех SpriteRendererGradientPropertyDriver под этой нодой Slider AC за это время линейно идёт от 0 до 100. Только у корня группы (без groupParent); у дочерних нод группы не запускается.")]
+    [SerializeField, Min(0.01f)]
+    private float selectedMapSliderAcRampDuration = 0.35f;
 
     /// <summary>Стартовая точка обхода мини-карты (флаг в инспекторе).</summary>
     public bool IsMinimapStartNode => isMinimapStartNode;
@@ -111,6 +118,7 @@ public partial class Node : MonoBehaviour
     private Tween hoverTween;
     private Tween clickTween;
     private Tween selectionRingTween;
+    private Coroutine _selectedMapSliderAcRampCoroutine;
     private Camera cachedMapCamera;
     private Transform selectionRingTransform;
     private Vector3 selectionRingBaseScale;
@@ -144,6 +152,7 @@ public partial class Node : MonoBehaviour
         KillClickTween();
         KillSelectionRingTween();
         KillStateDelayedTween();
+        StopSelectedMapSliderAcRamp(resetAcToZero: true);
         ApplyBaseScaleImmediate();
         mouseOver = false;
         ClearRemainingTimeText();
@@ -399,5 +408,70 @@ public partial class Node : MonoBehaviour
         if (selectionRingTween.IsActive())
             selectionRingTween.Kill();
         selectionRingTween = null;
+    }
+
+    /// <summary>
+    /// Корень карты (без родителя группы): в Play при <see cref="NodeMapState.Selected"/> — AC 0→100 за <see cref="selectedMapSliderAcRampDuration"/>.
+    /// </summary>
+    private void BeginSelectedMapSliderAcRampIfMapRoot()
+    {
+        if (!Application.isPlaying || groupParent != null)
+            return;
+
+        StopSelectedMapSliderAcRamp(resetAcToZero: false);
+        _selectedMapSliderAcRampCoroutine = StartCoroutine(CoSelectedMapSliderAcRamp());
+    }
+
+    /// <summary>Остановить ramp и при необходимости выставить Slider AC = 0 на всех драйверах под нодой.</summary>
+    private void StopSelectedMapSliderAcRamp(bool resetAcToZero)
+    {
+        if (_selectedMapSliderAcRampCoroutine != null)
+        {
+            StopCoroutine(_selectedMapSliderAcRampCoroutine);
+            _selectedMapSliderAcRampCoroutine = null;
+        }
+
+        if (!resetAcToZero || groupParent != null)
+            return;
+
+        var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
+        for (var i = 0; i < drivers.Length; i++)
+        {
+            if (drivers[i] != null)
+                drivers[i].SetSliderAC(0f);
+        }
+    }
+
+    private IEnumerator CoSelectedMapSliderAcRamp()
+    {
+        var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
+        for (var i = 0; i < drivers.Length; i++)
+        {
+            if (drivers[i] != null)
+                drivers[i].SetSliderAC(0f);
+        }
+
+        float dur = Mathf.Max(0.01f, selectedMapSliderAcRampDuration);
+        float t = 0f;
+        while (t < dur)
+        {
+            t += Time.deltaTime;
+            float ac = Mathf.Lerp(0f, 100f, dur > 1e-6f ? Mathf.Clamp01(t / dur) : 1f);
+            for (var i = 0; i < drivers.Length; i++)
+            {
+                if (drivers[i] != null)
+                    drivers[i].SetSliderAC(ac);
+            }
+
+            yield return null;
+        }
+
+        for (var i = 0; i < drivers.Length; i++)
+        {
+            if (drivers[i] != null)
+                drivers[i].SetSliderAC(100f);
+        }
+
+        _selectedMapSliderAcRampCoroutine = null;
     }
 }
