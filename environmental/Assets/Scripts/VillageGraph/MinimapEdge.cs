@@ -121,6 +121,9 @@ public class MinimapEdge : MonoBehaviour
     /// <summary>Длительность фазы <see cref="MinimapEdgeState.MovingAlongEdge"/> (длина клипа ребра или fallback в инспекторе).</summary>
     public float MovingAlongEdgeDuration => ComputeTravelDurationSeconds();
 
+    /// <summary>Длительность ramp слайдеров AB/AC при <see cref="MinimapEdgeState.Blocked"/> (секунды, минимум 0.01).</summary>
+    public float BlockedSlidersRampDurationSeconds => Mathf.Max(0.01f, blockedSlidersRampDuration);
+
     /// <summary>В Play: разрешение по выбору на карте (<see cref="MinimapEdgeRegistry"/>).</summary>
     public bool MapOutgoingLineVisible => _mapOutgoingLineVisible;
 
@@ -229,11 +232,15 @@ public class MinimapEdge : MonoBehaviour
     /// <summary>Смена состояния ребра (в т.ч. дебаг с реестра по цифрам 1–5).</summary>
     /// <param name="stateAfterMovingCompletes">Только для <see cref="MinimapEdgeState.MovingAlongEdge"/>: во что перейти после таймера (по умолчанию <see cref="MinimapEdgeState.Idle"/>).</param>
     /// <param name="onAppearingIdleComplete">Только для <see cref="MinimapEdgeState.Appearing"/> в Play: вызов после анимации роста и перехода в <see cref="MinimapEdgeState.IdleRevealed"/>.</param>
+    /// <param name="suppressBlockedSlidersRampOnEnter">
+    /// Только для <see cref="MinimapEdgeState.Blocked"/> в Play: не запускать ramp AB/AC при входе (ожидается общий пакетный вызов с <see cref="MinimapEdgeRegistry"/> после задержки).
+    /// </param>
     public void SetEdgeState(
         MinimapEdgeState next,
         bool forceLog = true,
         MinimapEdgeState stateAfterMovingCompletes = MinimapEdgeState.Idle,
-        Action onAppearingIdleComplete = null)
+        Action onAppearingIdleComplete = null,
+        bool suppressBlockedSlidersRampOnEnter = false)
     {
         if (!Application.isPlaying)
         {
@@ -254,8 +261,9 @@ public class MinimapEdge : MonoBehaviour
         if (_currentState == next && next != MinimapEdgeState.MovingAlongEdge && next != MinimapEdgeState.Appearing)
         {
             // Уже Blocked (например после MovingAlong по маршруту): повторный Blocked из реестра должен запустить ramp, иначе слайдеры не трогаются.
-            if (next == MinimapEdgeState.Blocked && Application.isPlaying)
+            if (next == MinimapEdgeState.Blocked && Application.isPlaying && !suppressBlockedSlidersRampOnEnter)
                 BeginBlockedSlidersRampIfApplicable();
+
             return;
         }
 
@@ -290,7 +298,10 @@ public class MinimapEdge : MonoBehaviour
         }
 
         if (next == MinimapEdgeState.Blocked)
-            BeginBlockedSlidersRampIfApplicable();
+        {
+            if (Application.isPlaying && !suppressBlockedSlidersRampOnEnter)
+                BeginBlockedSlidersRampIfApplicable();
+        }
 
         ApplyCombinedVisual();
     }
@@ -387,6 +398,17 @@ public class MinimapEdge : MonoBehaviour
         if (!Application.isPlaying || _currentState != MinimapEdgeState.Blocked)
             return;
         BeginBlockedSlidersRamp();
+    }
+
+    /// <summary>
+    /// Ramp AB/AC при <see cref="MinimapEdgeState.Blocked"/>, если конец на карте в <see cref="NodeMapState.Blocked"/>.
+    /// Вызывается с реестра после общей задержки для пакета альтернативных рёбер (без рассинхрона по отдельным корутинам на каждом ребре).
+    /// </summary>
+    public void TryBeginBlockedSlidersRampSecondPhase()
+    {
+        if (!Application.isPlaying || _currentState != MinimapEdgeState.Blocked)
+            return;
+        BeginBlockedSlidersRampIfApplicable();
     }
 
     private IEnumerator CoAppearingThenIdle()
