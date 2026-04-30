@@ -133,6 +133,7 @@ GameObject:
   - component: {fileID: 20320131}
   - component: {fileID: 20320130}
   - component: {fileID: 20320129}
+  - component: {fileID: 20320132}
   m_Layer: 6
   m_Name: Edge (5)
   m_TagString: Untagged
@@ -202,7 +203,7 @@ LineRenderer:
         outWeight: 0.23106715
       - serializedVersion: 3
         time: 1
-        value: 0
+        value: 0.43023682
         inSlope: -0.43846932
         outSlope: -0.43846932
         tangentMode: 0
@@ -276,7 +277,6 @@ MonoBehaviour:
   edgeTravelVideoClip: {fileID: 0}
   travelMoveVisual: {fileID: 0}
   appearingToIdleDuration: 0
-  blockedLineColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
   fromNode: {fileID: 804414211}
   toNode: {fileID: 599553893}
 --- !u!4 &20320131
@@ -295,6 +295,25 @@ Transform:
   - {fileID: 1836785397}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &20320132
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 20320128}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ada0b63710770ec4caced751dad8b3e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  colorA: {r: 1, g: 1, b: 1, a: 1}
+  colorB: {r: 0.4, g: 0.85, b: 1, a: 1}
+  colorC: {r: 1, g: 0.92, b: 0.35, a: 1}
+  blendAB: 0.1
+  blendAC: 0.1
+  sliderAB: 0
+  sliderAC: 0
 --- !u!1 &69116389
 GameObject:
   m_ObjectHideFlags: 0
@@ -6194,6 +6213,7 @@ GameObject:
   - component: {fileID: 972230156}
   - component: {fileID: 972230155}
   - component: {fileID: 972230154}
+  - component: {fileID: 972230157}
   m_Layer: 6
   m_Name: Edge (8)
   m_TagString: Untagged
@@ -6222,7 +6242,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 788272f51c28c6144a1bd7cac6aadc85, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -6337,7 +6357,6 @@ MonoBehaviour:
   edgeTravelVideoClip: {fileID: 0}
   travelMoveVisual: {fileID: 0}
   appearingToIdleDuration: 0
-  blockedLineColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
   fromNode: {fileID: 369444847}
   toNode: {fileID: 2097260182}
 --- !u!4 &972230156
@@ -6356,6 +6375,25 @@ Transform:
   - {fileID: 766784081}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &972230157
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 972230153}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ada0b63710770ec4caced751dad8b3e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  colorA: {r: 1, g: 1, b: 1, a: 1}
+  colorB: {r: 0.4, g: 0.85, b: 1, a: 1}
+  colorC: {r: 1, g: 0.92, b: 0.35, a: 1}
+  blendAB: 0.1
+  blendAC: 0.1
+  sliderAB: 0
+  sliderAC: 0
 --- !u!1 &1008667083
 GameObject:
   m_ObjectHideFlags: 0
@@ -10535,6 +10573,7 @@ GameObject:
   - component: {fileID: 1645072888}
   - component: {fileID: 1645072887}
   - component: {fileID: 1645072886}
+  - component: {fileID: 1645072889}
   m_Layer: 6
   m_Name: Edge (3)
   m_TagString: Untagged
@@ -10563,7 +10602,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 788272f51c28c6144a1bd7cac6aadc85, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -10678,7 +10717,6 @@ MonoBehaviour:
   edgeTravelVideoClip: {fileID: 0}
   travelMoveVisual: {fileID: 0}
   appearingToIdleDuration: 0
-  blockedLineColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
   fromNode: {fileID: 887139304}
   toNode: {fileID: 1539766903}
 --- !u!4 &1645072888
@@ -10697,6 +10735,25 @@ Transform:
   - {fileID: 1918432265}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1645072889
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1645072885}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ada0b63710770ec4caced751dad8b3e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  colorA: {r: 1, g: 1, b: 1, a: 1}
+  colorB: {r: 0.4, g: 0.85, b: 1, a: 1}
+  colorC: {r: 1, g: 0.92, b: 0.35, a: 1}
+  blendAB: 0.1
+  blendAC: 0.1
+  sliderAB: 0
+  sliderAC: 0
 --- !u!1 &1646089266
 GameObject:
   m_ObjectHideFlags: 0
@@ -10708,6 +10765,7 @@ GameObject:
   - component: {fileID: 1646089269}
   - component: {fileID: 1646089268}
   - component: {fileID: 1646089267}
+  - component: {fileID: 1646089270}
   m_Layer: 6
   m_Name: Edge (6)
   m_TagString: Untagged
@@ -10736,7 +10794,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 788272f51c28c6144a1bd7cac6aadc85, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -10851,7 +10909,6 @@ MonoBehaviour:
   edgeTravelVideoClip: {fileID: 0}
   travelMoveVisual: {fileID: 0}
   appearingToIdleDuration: 0
-  blockedLineColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
   fromNode: {fileID: 599553893}
   toNode: {fileID: 369444847}
 --- !u!4 &1646089269
@@ -10870,6 +10927,25 @@ Transform:
   - {fileID: 812670621}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1646089270
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1646089266}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ada0b63710770ec4caced751dad8b3e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  colorA: {r: 1, g: 1, b: 1, a: 1}
+  colorB: {r: 0.4, g: 0.85, b: 1, a: 1}
+  colorC: {r: 1, g: 0.92, b: 0.35, a: 1}
+  blendAB: 0.1
+  blendAC: 0.1
+  sliderAB: 0
+  sliderAC: 0
 --- !u!1 &1648510498
 GameObject:
   m_ObjectHideFlags: 0
@@ -11264,7 +11340,6 @@ MonoBehaviour:
   edgeTravelVideoClip: {fileID: 0}
   travelMoveVisual: {fileID: 0}
   appearingToIdleDuration: 0
-  blockedLineColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
   fromNode: {fileID: 885760709}
   toNode: {fileID: 1679207555}
 --- !u!4 &1664285687
@@ -11296,8 +11371,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   colorA: {r: 1, g: 1, b: 1, a: 1}
-  colorB: {r: 1, g: 0, b: 0, a: 1}
-  colorC: {r: 0, g: 0, b: 1, a: 1}
+  colorB: {r: 0.4, g: 0.85, b: 1, a: 1}
+  colorC: {r: 1, g: 0.92, b: 0.35, a: 1}
   blendAB: 0.1
   blendAC: 0.1
   sliderAB: 0
@@ -11803,6 +11878,7 @@ GameObject:
   - component: {fileID: 1752220236}
   - component: {fileID: 1752220235}
   - component: {fileID: 1752220234}
+  - component: {fileID: 1752220237}
   m_Layer: 6
   m_Name: Edge (4)
   m_TagString: Untagged
@@ -11831,7 +11907,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 788272f51c28c6144a1bd7cac6aadc85, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -11947,7 +12023,6 @@ MonoBehaviour:
     type: 3}
   travelMoveVisual: {fileID: 1196022269}
   appearingToIdleDuration: 0
-  blockedLineColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
   fromNode: {fileID: 1307561501}
   toNode: {fileID: 804414211}
 --- !u!4 &1752220236
@@ -11967,6 +12042,25 @@ Transform:
   - {fileID: 1889830317}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1752220237
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1752220233}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ada0b63710770ec4caced751dad8b3e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  colorA: {r: 1, g: 1, b: 1, a: 1}
+  colorB: {r: 0.4, g: 0.85, b: 1, a: 1}
+  colorC: {r: 1, g: 0.92, b: 0.35, a: 1}
+  blendAB: 0.1
+  blendAC: 0.1
+  sliderAB: 0
+  sliderAC: 0
 --- !u!1 &1780657411
 GameObject:
   m_ObjectHideFlags: 0
@@ -12167,6 +12261,7 @@ GameObject:
   - component: {fileID: 1815324200}
   - component: {fileID: 1815324199}
   - component: {fileID: 1815324198}
+  - component: {fileID: 1815324201}
   m_Layer: 6
   m_Name: Edge (7)
   m_TagString: Untagged
@@ -12195,7 +12290,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 788272f51c28c6144a1bd7cac6aadc85, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -12310,7 +12405,6 @@ MonoBehaviour:
   edgeTravelVideoClip: {fileID: 0}
   travelMoveVisual: {fileID: 0}
   appearingToIdleDuration: 0
-  blockedLineColor: {r: 0.55, g: 0.2, b: 0.2, a: 1}
   fromNode: {fileID: 369444847}
   toNode: {fileID: 883140158}
 --- !u!4 &1815324200
@@ -12329,6 +12423,25 @@ Transform:
   - {fileID: 692851965}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1815324201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1815324197}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ada0b63710770ec4caced751dad8b3e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  colorA: {r: 1, g: 1, b: 1, a: 1}
+  colorB: {r: 0.4, g: 0.85, b: 1, a: 1}
+  colorC: {r: 1, g: 0.92, b: 0.35, a: 1}
+  blendAB: 0.1
+  blendAC: 0.1
+  sliderAB: 0
+  sliderAC: 0
 --- !u!1 &1836785396
 GameObject:
   m_ObjectHideFlags: 0
@@ -14075,6 +14188,7 @@ GameObject:
   - component: {fileID: 2110931837}
   - component: {fileID: 2110931836}
   - component: {fileID: 2110931835}
+  - component: {fileID: 2110931838}
   m_Layer: 6
   m_Name: Edge (2)
   m_TagString: Untagged
@@ -14218,7 +14332,6 @@ MonoBehaviour:
   edgeTravelVideoClip: {fileID: 0}
   travelMoveVisual: {fileID: 0}
   appearingToIdleDuration: 0
-  blockedLineColor: {r: 1, g: 0.118867874, b: 0.7950569, a: 1}
   fromNode: {fileID: 885760709}
   toNode: {fileID: 887139304}
 --- !u!4 &2110931837
@@ -14237,6 +14350,25 @@ Transform:
   - {fileID: 1594890772}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2110931838
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2110931834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ada0b63710770ec4caced751dad8b3e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  colorA: {r: 1, g: 1, b: 1, a: 1}
+  colorB: {r: 0.4, g: 0.85, b: 1, a: 1}
+  colorC: {r: 1, g: 0.92, b: 0.35, a: 1}
+  blendAB: 0.1
+  blendAC: 0.1
+  sliderAB: 0
+  sliderAC: 0
 --- !u!1 &2123790779
 GameObject:
   m_ObjectHideFlags: 0

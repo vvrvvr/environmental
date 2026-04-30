@@ -35,7 +35,7 @@ public class MinimapEdge : MonoBehaviour
     [Tooltip("Линия между якорями; positionCount будет 2, useWorldSpace = true. Ширина/материал — как настроишь.")]
     [SerializeField] private LineRenderer lineRenderer;
 
-    [Tooltip("Палитра LineRenderer по стейтам. Обычно задаётся с MinimapEdgeRegistry; реестр перезаписывает при Rebuild. Пусто — blocked + цвета с линии при первом кэше.")]
+    [Tooltip("Палитра графа: общие Color A/B/C для кнопки «Применить цвета к рёбрам» в ассете палитры (LineRendererGradientPropertyDriver). Обычно задаётся с MinimapEdgeRegistry.")]
     [SerializeField] private MinimapGraphVisualPalette lineColorPalette;
 
     [Header("Edge state")]
@@ -51,9 +51,6 @@ public class MinimapEdge : MonoBehaviour
 
     [Tooltip("Длительность Appearing: линия «растёт» от старта к концу, затем переход в Idle (Play). 0 — длительность 1 с (как раньше).")]
     [SerializeField, Min(0f)] private float appearingToIdleDuration;
-
-    [Tooltip("Цвет линии в состоянии Blocked (start/end).")]
-    [SerializeField] private Color blockedLineColor = new Color(0.55f, 0.2f, 0.2f, 1f);
 
     [Header("Nodes")]
     [Tooltip("Начало ориентированного ребра на карте. Для группы — только родительская нода, не дочерняя.")]
@@ -85,7 +82,7 @@ public class MinimapEdge : MonoBehaviour
     /// <summary>Текущая палитра (задаётся с <see cref="MinimapEdgeRegistry"/> или вручную).</summary>
     public MinimapGraphVisualPalette LineColorPalette => lineColorPalette;
 
-    /// <summary>Назначить палитру LineRenderer и перерисовать линию.</summary>
+    /// <summary>Назначить палитру (ссылка для массового применения A/B/C) и обновить видимость линии.</summary>
     public void SetLineColorPalette(MinimapGraphVisualPalette palette)
     {
         lineColorPalette = palette;
@@ -105,19 +102,11 @@ public class MinimapEdge : MonoBehaviour
     private MinimapEdgeState _currentState = MinimapEdgeState.Idle;
     private MinimapEdgeState _stateAfterMovingCompletes = MinimapEdgeState.Idle;
     private bool _mapOutgoingLineVisible;
-    private Color _defaultStart = Color.white;
-    private Color _defaultEnd = Color.white;
-    private bool _capturedDefaultLineColors;
     private Coroutine _movingCoroutine;
     private Coroutine _appearingCoroutine;
     private bool _edgeTravelVideoPlaying;
     /// <summary>В Play при <see cref="MinimapEdgeState.Appearing"/>: 0 — линия у старта, 1 — полный отрезок. Вне Appearing всегда 1.</summary>
     private float _appearLineT = 1f;
-
-    private void Awake()
-    {
-        CacheLineDefaultColorsIfNeeded();
-    }
 
     private void Start()
     {
@@ -129,7 +118,6 @@ public class MinimapEdge : MonoBehaviour
 
     private void OnEnable()
     {
-        CacheLineDefaultColorsIfNeeded();
         RefreshLinePositions();
 #if UNITY_EDITOR
         EditorApplication.update += EditorPoll;
@@ -157,7 +145,6 @@ public class MinimapEdge : MonoBehaviour
         if (fromNode != null && fromNode.GroupParent != null)
             Debug.LogWarning($"{name}: у ребра FromNode — дочерняя нода группы. Рёбра должны исходить только от родителя.", this);
 
-        CacheLineDefaultColorsIfNeeded();
         if (!EditorApplication.isPlayingOrWillChangePlaymode)
             RefreshLinePositions();
 
@@ -341,19 +328,10 @@ public class MinimapEdge : MonoBehaviour
         _appearingCoroutine = null;
     }
 
-    private void CacheLineDefaultColorsIfNeeded()
-    {
-        if (lineRenderer == null || _capturedDefaultLineColors)
-            return;
-        _defaultStart = lineRenderer.startColor;
-        _defaultEnd = lineRenderer.endColor;
-        _capturedDefaultLineColors = true;
-    }
-
     /// <summary>
     /// Карта вне Play всегда «разрешает» линию для вёрстки.
-    /// В Play: линия по <see cref="_mapOutgoingLineVisible"/> (исходящие от выбранной / стартов без выбора) или всегда при <see cref="MinimapEdgeState.Blocked"/>, чтобы заблокированные маршруты не пропадали, а рисовались цветом <see cref="blockedLineColor"/>.
-    /// <see cref="MinimapEdgeState.Disabled"/> выключает линию всегда.
+    /// В Play: линия по <see cref="_mapOutgoingLineVisible"/> (исходящие от выбранной / стартов без выбора) или всегда при <see cref="MinimapEdgeState.Blocked"/>, чтобы заблокированные маршруты не пропадали.
+    /// <see cref="MinimapEdgeState.Disabled"/> выключает линию всегда. Цвет линии — из материала / <see cref="LineRendererGradientPropertyDriver"/>, не из стейта.
     /// </summary>
     public void ApplyCombinedVisual()
     {
@@ -365,26 +343,6 @@ public class MinimapEdge : MonoBehaviour
                          _currentState == MinimapEdgeState.Blocked;
         bool stateShowsLine = _currentState != MinimapEdgeState.Disabled;
         lineRenderer.enabled = mapAllows && stateShowsLine;
-
-        if (!lineRenderer.enabled)
-            return;
-
-        if (lineColorPalette != null)
-        {
-            lineColorPalette.GetEdgeLineColors(_currentState, out var s, out var e);
-            lineRenderer.startColor = s;
-            lineRenderer.endColor = e;
-        }
-        else if (_currentState == MinimapEdgeState.Blocked)
-        {
-            lineRenderer.startColor = blockedLineColor;
-            lineRenderer.endColor = blockedLineColor;
-        }
-        else
-        {
-            lineRenderer.startColor = _defaultStart;
-            lineRenderer.endColor = _defaultEnd;
-        }
     }
 
     [ContextMenu("Refresh line")]

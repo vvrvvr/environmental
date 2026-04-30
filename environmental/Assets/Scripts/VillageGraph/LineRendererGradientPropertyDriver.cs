@@ -63,6 +63,15 @@ public class LineRendererGradientPropertyDriver : MonoBehaviour
             _lineRenderer = GetComponent<LineRenderer>();
     }
 
+    /// <summary>Задать три цвета градиента и обновить MPB (например, с <see cref="MinimapGraphVisualPalette"/>).</summary>
+    public void SetColorsABC(Color a, Color b, Color c)
+    {
+        colorA = a;
+        colorB = b;
+        colorC = c;
+        PushPropertyBlock();
+    }
+
     /// <summary>Применить текущие поля к MPB (можно вызвать из кода после смены значений).</summary>
     public void PushPropertyBlock()
     {
