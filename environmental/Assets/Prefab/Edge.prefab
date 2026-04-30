@@ -408,6 +408,7 @@ MonoBehaviour:
   appearingToIdleDuration: 0
   fromNode: {fileID: 0}
   toNode: {fileID: 0}
+  anchorsFollowLinkedNodes: 0
 --- !u!120 &7787830124443667911
 LineRenderer:
   serializedVersion: 2
@@ -511,7 +512,7 @@ LineRenderer:
       m_NumColorKeys: 2
       m_NumAlphaKeys: 2
     numCornerVertices: 0
-    numCapVertices: 0
+    numCapVertices: 10
     alignment: 0
     textureMode: 0
     textureScale: {x: 1, y: 1}
