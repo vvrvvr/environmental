@@ -186,7 +186,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 464306c0800c5ea48ac3b01915f16cc0, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -316,6 +316,7 @@ GameObject:
   - component: {fileID: 910697928668187648}
   - component: {fileID: 8883096437358055857}
   - component: {fileID: 3593893925033089739}
+  - component: {fileID: 4286243998312935147}
   m_Layer: 6
   m_Name: Node
   m_TagString: Untagged
@@ -478,7 +479,26 @@ MonoBehaviour:
   mapVisualRoot: {fileID: 0}
   appearingToVisibleDelay: 0.35
   deselectedToVisibleDelay: 0.5
-  blockedSprite: {fileID: 21300000, guid: 53a326ea8dc3afd4ea040cdcabaff440, type: 3}
+--- !u!114 &4286243998312935147
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6082926137204214183}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ebbbff4d07609647b3bf584fd969604, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetSpriteRenderer: {fileID: 3326045527658844680}
+  colorA: {r: 1, g: 1, b: 1, a: 1}
+  colorB: {r: 1, g: 0, b: 0, a: 1}
+  colorC: {r: 0, g: 0, b: 1, a: 1}
+  blendAB: 0.1
+  blendAC: 0.1
+  sliderAB: 0
+  sliderAC: 0
 --- !u!1 &7020490393249703836
 GameObject:
   m_ObjectHideFlags: 0
@@ -515,7 +535,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0.009}
   m_SizeDelta: {x: 1920, y: 1080}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &9042793680182964420

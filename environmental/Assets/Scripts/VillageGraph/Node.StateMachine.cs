@@ -23,10 +23,6 @@ public partial class Node
     [Header("State: Deselected (placeholder)")]
     [SerializeField, Min(0f)] private float deselectedToVisibleDelay = 0.12f;
 
-    [Header("State: Blocked")]
-    [Tooltip("Спрайт «заблокирована». Нормальный берётся из mainSprite при Awake.")]
-    [SerializeField] private Sprite blockedSprite;
-
     /// <summary>Текущее состояние на карте.</summary>
     public NodeMapState CurrentState { get; private set; }
 
@@ -196,7 +192,6 @@ public partial class Node
         {
             case NodeMapState.Inactive:
                 SetMapVisualAndCollidersActive(false);
-                ApplyMainSpriteForState(state);
                 ApplySelectionRingForState(state);
                 enabled = false;
                 break;
@@ -204,7 +199,6 @@ public partial class Node
             case NodeMapState.Appearing:
                 enabled = true;
                 SetMapVisualAndCollidersActive(true);
-                ApplyMainSpriteForState(state);
                 ApplySelectionRingForState(state);
                 {
                     float delay = appearingToVisibleDelay <= 0f ? 1f : appearingToVisibleDelay;
@@ -219,21 +213,18 @@ public partial class Node
             case NodeMapState.Visible:
                 enabled = true;
                 SetMapVisualAndCollidersActive(true);
-                ApplyMainSpriteForState(state);
                 ApplySelectionRingForState(state);
                 break;
 
             case NodeMapState.Selected:
                 enabled = true;
                 SetMapVisualAndCollidersActive(true);
-                ApplyMainSpriteForState(state);
                 ApplySelectionRingForState(state);
                 break;
 
             case NodeMapState.Deselected:
                 enabled = true;
                 SetMapVisualAndCollidersActive(true);
-                ApplyMainSpriteForState(state);
                 HideSelectionRingWithShrink(() =>
                 {
                     if (this == null)
@@ -250,25 +241,12 @@ public partial class Node
             case NodeMapState.Blocked:
                 enabled = true;
                 SetMapVisualAndCollidersActive(true);
-                ApplyMainSpriteForState(state);
                 ApplySelectionRingForState(state);
                 break;
 
             default:
                 throw new ArgumentOutOfRangeException(nameof(state), state, null);
         }
-
-        ApplyMapVisualPaletteColors(state);
-    }
-
-    private void ApplyMapVisualPaletteColors(NodeMapState state)
-    {
-        if (mapVisualPalette == null)
-            return;
-        if (mainSprite != null)
-            mainSprite.color = mapVisualPalette.GetNodeMainSpriteColor(state);
-        if (selectionRing != null)
-            selectionRing.color = mapVisualPalette.NodeSelectionRingColor;
     }
 
     private void ExitMapState(NodeMapState state, NodeMapState next)
@@ -297,26 +275,6 @@ public partial class Node
         mouseOver = false;
         KillHoverTween();
         ApplyBaseScaleImmediate();
-    }
-
-    private void ApplyMainSpriteForState(NodeMapState state)
-    {
-        if (mainSprite == null)
-            return;
-
-        switch (state)
-        {
-            case NodeMapState.Blocked:
-                if (blockedSprite != null)
-                    mainSprite.sprite = blockedSprite;
-                else if (_mainSpriteDefaultSprite != null)
-                    mainSprite.sprite = _mainSpriteDefaultSprite;
-                break;
-            default:
-                if (_mainSpriteDefaultSprite != null)
-                    mainSprite.sprite = _mainSpriteDefaultSprite;
-                break;
-        }
     }
 
     private void ApplySelectionRingForState(NodeMapState state)

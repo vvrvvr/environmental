@@ -50,7 +50,7 @@ public partial class Node : MonoBehaviour
     [Tooltip("Ролик мини-карты для этой ноды (уникальный). Воспроизведение ведёт GameManager.")]
     [SerializeField] private VideoClip minimapVideoClip;
 
-    [Tooltip("Палитра цветов mainSprite и selection ring по стейтам карты (тот же ассет, что на MinimapEdgeRegistry).")]
+    [Tooltip("Палитра графа: общие Color A/B/C для кнопки «Применить цвета к нодам» в ассете палитры (SpriteRendererGradientPropertyDriver). Тот же ассет, что на MinimapEdgeRegistry.")]
     [SerializeField] private MinimapGraphVisualPalette mapVisualPalette;
 
     /// <summary>Стартовая точка обхода мини-карты (флаг в инспекторе).</summary>
@@ -65,30 +65,43 @@ public partial class Node : MonoBehaviour
     /// <summary>Палитра визуала карты для этой ноды.</summary>
     public MinimapGraphVisualPalette MapVisualPalette => mapVisualPalette;
 
-    /// <summary>Назначить палитру и перекрасить по текущему стейту карты (если стейт уже инициализирован).</summary>
+    /// <summary>Назначить палитру и применить A/B/C к <see cref="SpriteRendererGradientPropertyDriver"/> на ноде (если палитра не null).</summary>
     public void SetMapVisualPalette(MinimapGraphVisualPalette palette)
     {
         mapVisualPalette = palette;
-        if (_stateInitialized)
-            ApplyMapVisualPaletteColors(CurrentState);
+        ApplyPaletteGradientDriversFromPalette();
 #if UNITY_EDITOR
         if (!Application.isPlaying)
             UnityEditor.EditorUtility.SetDirty(this);
 #endif
     }
 
-    /// <summary>Перекрасить по текущему стейту (после правки палитры в инспекторе).</summary>
+    /// <summary>
+    /// Копирует Color A/B/C из <see cref="mapVisualPalette"/> во все <see cref="SpriteRendererGradientPropertyDriver"/> под этой нодой.
+    /// </summary>
     public void RefreshMapVisualPaletteFromCurrentState()
     {
-        if (_stateInitialized)
-            ApplyMapVisualPaletteColors(CurrentState);
+        ApplyPaletteGradientDriversFromPalette();
+    }
+
+    /// <summary>Копирует A/B/C из <see cref="mapVisualPalette"/> во все <see cref="SpriteRendererGradientPropertyDriver"/> в иерархии ноды.</summary>
+    public void ApplyPaletteGradientDriversFromPalette()
+    {
+        if (mapVisualPalette == null)
+            return;
+        mapVisualPalette.GetNodeGradientColors(out var ca, out var cb, out var cc);
+        var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
+        for (var i = 0; i < drivers.Length; i++)
+        {
+            if (drivers[i] != null)
+                drivers[i].SetColorsABC(ca, cb, cc);
+        }
     }
 
     [Header("UI")]
     [Tooltip("Оставшееся время до конца ролика (сек, один знак). Пусто, пока нода не выбрана на карте или не играет её клип.")]
     [SerializeField] private TMP_Text remainingTimeText;
 
-    private Sprite _mainSpriteDefaultSprite;
     private Collider[] _cachedColliders = System.Array.Empty<Collider>();
 
     private readonly HashSet<Node> overlappingNeighborNodes = new HashSet<Node>();
@@ -108,7 +121,6 @@ public partial class Node : MonoBehaviour
         {
             mainSpriteTransform = mainSprite.transform;
             mainSpriteBaseScale = mainSpriteTransform.localScale;
-            _mainSpriteDefaultSprite = mainSprite.sprite;
         }
 
         _cachedColliders = GetComponentsInChildren<Collider>(true);
