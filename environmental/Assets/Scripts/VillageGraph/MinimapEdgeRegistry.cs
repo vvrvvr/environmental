@@ -22,7 +22,7 @@ public class MinimapEdgeRegistry : MonoBehaviour
     [Tooltip("Рисовать линии FromNode → ToNode в Scene-вью (для проверки связей).")]
     [SerializeField] private bool debugDrawEdgeGraph;
 
-    [Tooltip("В Play: клавиши 1–5 и NumPad — задать состояние всем рёбрам из списка (MinimapEdgeState).")]
+    [Tooltip("В Play: клавиши 1–7 и NumPad — задать состояние всем рёбрам из списка (MinimapEdgeState).")]
     [SerializeField] private bool debugDigitKeysSetAllEdgeStates;
 
     [Header("Visual")]
@@ -107,6 +107,10 @@ public class MinimapEdgeRegistry : MonoBehaviour
             hotkeyState = MinimapEdgeState.Idle;
         else if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5))
             hotkeyState = MinimapEdgeState.Blocked;
+        else if (Input.GetKeyDown(KeyCode.Alpha6) || Input.GetKeyDown(KeyCode.Keypad6))
+            hotkeyState = MinimapEdgeState.IdleRevealed;
+        else if (Input.GetKeyDown(KeyCode.Alpha7) || Input.GetKeyDown(KeyCode.Keypad7))
+            hotkeyState = MinimapEdgeState.Selected;
 
         if (hotkeyState == null)
             return;
@@ -169,6 +173,7 @@ public class MinimapEdgeRegistry : MonoBehaviour
                     e.SetMapOutgoingLineVisible(true);
             }
 
+            RefreshEdgesEndMatchesSelectedMapNode();
             return;
         }
 
@@ -193,6 +198,7 @@ public class MinimapEdgeRegistry : MonoBehaviour
                     e.SetMapOutgoingLineVisible(true);
             }
 
+            RefreshEdgesEndMatchesSelectedMapNode();
             return;
         }
 
@@ -217,6 +223,49 @@ public class MinimapEdgeRegistry : MonoBehaviour
             }
 
             e.SetMapOutgoingLineVisible(show);
+        }
+
+        RefreshEdgesEndMatchesSelectedMapNode();
+    }
+
+    /// <summary>
+    /// В Play: для рёбер, у которых конец — текущая выбранная нода карты, стейт <see cref="MinimapEdgeState.Selected"/>; иначе с <see cref="MinimapEdgeState.Selected"/> — в <see cref="MinimapEdgeState.IdleRevealed"/>.
+    /// Не трогает Appearing / MovingAlongEdge / Blocked / Disabled.
+    /// </summary>
+    public void RefreshEdgesEndMatchesSelectedMapNode()
+    {
+        if (edges == null || !Application.isPlaying)
+            return;
+
+        var gm = GameManager.Instance;
+        var selected = gm != null ? gm.CurrentSelectedMapNode : null;
+
+        for (var i = 0; i < edges.Count; i++)
+        {
+            var e = edges[i];
+            if (e == null)
+                continue;
+
+            var s = e.CurrentEdgeState;
+            if (s == MinimapEdgeState.Appearing ||
+                s == MinimapEdgeState.MovingAlongEdge ||
+                s == MinimapEdgeState.Blocked ||
+                s == MinimapEdgeState.Disabled)
+                continue;
+
+            bool endIsSelected = selected != null &&
+                                 e.ToNode != null &&
+                                 e.ToNode.SelectionOwner == selected;
+
+            if (endIsSelected)
+            {
+                if (s != MinimapEdgeState.Selected)
+                    e.SetEdgeState(MinimapEdgeState.Selected, forceLog: false);
+            }
+            else if (s == MinimapEdgeState.Selected)
+            {
+                e.SetEdgeState(MinimapEdgeState.IdleRevealed, forceLog: false);
+            }
         }
     }
 
@@ -263,8 +312,28 @@ public class MinimapEdgeRegistry : MonoBehaviour
     }
 
     /// <summary>
+    /// Все рёбра, у которых <see cref="MinimapEdge.ToNode"/> даёт тот же корень карты, что и <paramref name="endMapRoot"/> (<see cref="Node.SelectionOwner"/>),
+    /// перевести в <see cref="MinimapEdgeState.Blocked"/>. Ноду <paramref name="endMapRoot"/> к этому моменту уже должны перевести в Blocked на карте.
+    /// </summary>
+    public void SetAllEdgesEndingAtMapRootToBlocked(Node endMapRoot)
+    {
+        if (edges == null || endMapRoot == null)
+            return;
+
+        for (var i = 0; i < edges.Count; i++)
+        {
+            var e = edges[i];
+            if (e == null || e.ToNode == null)
+                continue;
+            if (e.ToNode.SelectionOwner != endMapRoot)
+                continue;
+            e.SetEdgeState(MinimapEdgeState.Blocked, forceLog: false);
+        }
+    }
+
+    /// <summary>
     /// Сбросить визуальное состояние рёбер в <see cref="MinimapEdgeState.Idle"/> (без логов).
-    /// Пропускает рёбра в анимации / заблокированные и с <see cref="MinimapEdge.PendingOutgoingAppearStagger"/> (задержка перед Appearing у стартовой ноды).
+    /// Пропускает рёбра в анимации / заблокированные, <see cref="MinimapEdgeState.IdleRevealed"/> / <see cref="MinimapEdgeState.Selected"/>, и с <see cref="MinimapEdge.PendingOutgoingAppearStagger"/> (задержка перед Appearing у стартовой ноды).
     /// </summary>
     public void SetAllEdgesVisualStateIdle()
     {
@@ -279,6 +348,8 @@ public class MinimapEdgeRegistry : MonoBehaviour
             if (s == MinimapEdgeState.Appearing ||
                 s == MinimapEdgeState.MovingAlongEdge ||
                 s == MinimapEdgeState.Blocked)
+                continue;
+            if (s == MinimapEdgeState.IdleRevealed || s == MinimapEdgeState.Selected)
                 continue;
             if (e.PendingOutgoingAppearStagger)
                 continue;

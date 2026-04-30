@@ -53,6 +53,21 @@ public class MinimapEdge : MonoBehaviour
     [Tooltip("Длительность Appearing: линия «растёт» от старта к концу, затем переход в Idle (Play). 0 — длительность 1 с (как раньше).")]
     [SerializeField, Min(0f)] private float appearingToIdleDuration;
 
+    [Header("MovingAlongEdge (travel) → Slider AC")]
+    [Tooltip("Если не задано: LineRendererGradientPropertyDriver на том же GameObject, что и LineRenderer.")]
+    [SerializeField]
+    private LineRendererGradientPropertyDriver lineGradientDriver;
+
+    [Tooltip("За время перемещения travel move visual Slider AC линейно меняется до этого процента (0–100).")]
+    [SerializeField, Range(0f, 100f)]
+    private float travelAlongEdgeSliderAcTargetPercent = 100f;
+
+    [Header("Blocked → Sliders AB / AC")]
+    [Tooltip(
+        "Только если нода на конце ребра (корень ToNode) в NodeMapState.Blocked: за треть времени Slider AC → 100%, за полное — Slider AB → 100%, дальше оба 100% пока ребро Blocked. Не при Selected на конце. При выходе ребра из Blocked — откат слайдеров.")]
+    [SerializeField, Min(0.01f)]
+    private float blockedSlidersRampDuration = 1f;
+
     [Header("Nodes")]
     [Tooltip("Начало ориентированного ребра на карте. Для группы — только родительская нода, не дочерняя.")]
     [SerializeField] private Node fromNode;
@@ -114,6 +129,12 @@ public class MinimapEdge : MonoBehaviour
     private bool _mapOutgoingLineVisible;
     private Coroutine _movingCoroutine;
     private Coroutine _appearingCoroutine;
+    /// <summary>True между стартом <see cref="CoMovingAlongEdge"/> и нормальным завершением / прерыванием — для отката Slider AC при Stop.</summary>
+    private bool _travelSliderAcTweenActive;
+    private float _sliderAcAtTravelStart;
+    private Coroutine _blockedSlidersCoroutine;
+    private float _sliderAbBeforeBlocked;
+    private float _sliderAcBeforeBlocked;
     private bool _edgeTravelVideoPlaying;
     /// <summary>В Play при <see cref="MinimapEdgeState.Appearing"/>: 0 — линия у старта, 1 — полный отрезок. Вне Appearing всегда 1.</summary>
     private float _appearLineT = 1f;
@@ -155,6 +176,7 @@ public class MinimapEdge : MonoBehaviour
         EditorApplication.update -= EditorPoll;
 #endif
         StopEdgePlayCoroutines();
+        StopBlockedSlidersRamp(restore: true);
         _pendingOutgoingAppearStagger = false;
     }
 
@@ -206,7 +228,7 @@ public class MinimapEdge : MonoBehaviour
 
     /// <summary>Смена состояния ребра (в т.ч. дебаг с реестра по цифрам 1–5).</summary>
     /// <param name="stateAfterMovingCompletes">Только для <see cref="MinimapEdgeState.MovingAlongEdge"/>: во что перейти после таймера (по умолчанию <see cref="MinimapEdgeState.Idle"/>).</param>
-    /// <param name="onAppearingIdleComplete">Только для <see cref="MinimapEdgeState.Appearing"/> в Play: вызов после анимации роста и перехода в Idle.</param>
+    /// <param name="onAppearingIdleComplete">Только для <see cref="MinimapEdgeState.Appearing"/> в Play: вызов после анимации роста и перехода в <see cref="MinimapEdgeState.IdleRevealed"/>.</param>
     public void SetEdgeState(
         MinimapEdgeState next,
         bool forceLog = true,
@@ -221,6 +243,8 @@ public class MinimapEdge : MonoBehaviour
                 _appearLineT = 1f;
             if (forceLog && prev != next)
                 Debug.Log($"[{name}] MinimapEdge state: {prev} → {next} (не Play — таймер Moving не запускается)", this);
+            if (next == MinimapEdgeState.Blocked)
+                ApplyBlockedSlidersInstantEditor();
             ApplyCombinedVisual();
             if (next == MinimapEdgeState.Appearing)
                 onAppearingIdleComplete?.Invoke();
@@ -228,10 +252,17 @@ public class MinimapEdge : MonoBehaviour
         }
 
         if (_currentState == next && next != MinimapEdgeState.MovingAlongEdge && next != MinimapEdgeState.Appearing)
+        {
+            // Уже Blocked (например после MovingAlong по маршруту): повторный Blocked из реестра должен запустить ramp, иначе слайдеры не трогаются.
+            if (next == MinimapEdgeState.Blocked && Application.isPlaying)
+                BeginBlockedSlidersRampIfApplicable();
             return;
+        }
 
         StopEdgePlayCoroutines();
         var prevPlay = _currentState;
+        if (prevPlay == MinimapEdgeState.Blocked && next != MinimapEdgeState.Blocked)
+            StopBlockedSlidersRamp(restore: true);
         _currentState = next;
         if (next != MinimapEdgeState.Appearing)
             _appearLineT = 1f;
@@ -257,6 +288,9 @@ public class MinimapEdge : MonoBehaviour
                 _onAppearingIdleComplete = null;
             }
         }
+
+        if (next == MinimapEdgeState.Blocked)
+            BeginBlockedSlidersRampIfApplicable();
 
         ApplyCombinedVisual();
     }
@@ -306,6 +340,16 @@ public class MinimapEdge : MonoBehaviour
     private IEnumerator CoMovingAlongEdge()
     {
         float duration = ComputeTravelDurationSeconds();
+        var gradientDriver = ResolveLineGradientDriver();
+        float sliderTarget = Mathf.Clamp(travelAlongEdgeSliderAcTargetPercent, 0f, 100f);
+        if (gradientDriver != null)
+        {
+            _sliderAcAtTravelStart = gradientDriver.GetSliderAC();
+            _travelSliderAcTweenActive = true;
+        }
+        else
+            _travelSliderAcTweenActive = false;
+
         BeginMovingAlongPresentation();
 
         float t = 0f;
@@ -313,11 +357,17 @@ public class MinimapEdge : MonoBehaviour
         {
             float u = duration > 1e-6f ? t / duration : 1f;
             UpdateTravelMarkerPosition(u);
+            if (gradientDriver != null)
+                gradientDriver.SetSliderAC(Mathf.Lerp(_sliderAcAtTravelStart, sliderTarget, u));
             t += Time.deltaTime;
             yield return null;
         }
 
         UpdateTravelMarkerPosition(1f);
+        if (gradientDriver != null)
+            gradientDriver.SetSliderAC(sliderTarget);
+        _travelSliderAcTweenActive = false;
+
         EndMovingAlongPresentation();
 
         _movingCoroutine = null;
@@ -326,6 +376,17 @@ public class MinimapEdge : MonoBehaviour
         _currentState = landed;
         Debug.Log($"[{name}] MinimapEdge state: MovingAlongEdge → {landed} (timer done)", this);
         ApplyCombinedVisual();
+    }
+
+    /// <summary>
+    /// Вторая фаза «блокировки» линии (ramp Slider AB/AC за <see cref="blockedSlidersRampDuration"/>), как у альтернативных рёбер в Blocked.
+    /// Для ребра маршрута после MovingAlong конец в <see cref="NodeMapState.Selected"/> — <see cref="BeginBlockedSlidersRampIfApplicable"/> не сработает; вызывать из <see cref="GameManager.CoMapSelectionTravel"/>.
+    /// </summary>
+    public void PlayBlockedSlidersRampAfterMapRouteTravel()
+    {
+        if (!Application.isPlaying || _currentState != MinimapEdgeState.Blocked)
+            return;
+        BeginBlockedSlidersRamp();
     }
 
     private IEnumerator CoAppearingThenIdle()
@@ -349,8 +410,9 @@ public class MinimapEdge : MonoBehaviour
         _appearingCoroutine = null;
         if (_currentState != MinimapEdgeState.Appearing)
             yield break;
-        _currentState = MinimapEdgeState.Idle;
+        _currentState = MinimapEdgeState.IdleRevealed;
         ApplyCombinedVisual();
+        Debug.Log($"[{name}] MinimapEdge state: Appearing → {_currentState} (growth done)", this);
         var done = _onAppearingIdleComplete;
         _onAppearingIdleComplete = null;
         done?.Invoke();
@@ -366,6 +428,14 @@ public class MinimapEdge : MonoBehaviour
     {
         if (_movingCoroutine == null)
             return;
+        if (_travelSliderAcTweenActive)
+        {
+            var d = ResolveLineGradientDriver();
+            if (d != null)
+                d.SetSliderAC(_sliderAcAtTravelStart);
+            _travelSliderAcTweenActive = false;
+        }
+
         EndMovingAlongPresentation();
         StopCoroutine(_movingCoroutine);
         _movingCoroutine = null;
@@ -380,9 +450,108 @@ public class MinimapEdge : MonoBehaviour
         _onAppearingIdleComplete = null;
     }
 
+    private LineRendererGradientPropertyDriver ResolveLineGradientDriver()
+    {
+        if (lineGradientDriver != null)
+            return lineGradientDriver;
+        if (lineRenderer == null)
+            return null;
+        return lineRenderer.GetComponent<LineRendererGradientPropertyDriver>();
+    }
+
+    private void ApplyBlockedSlidersInstantEditor()
+    {
+        var driver = ResolveLineGradientDriver();
+        if (driver == null)
+            return;
+        driver.SetSliderAB(100f);
+        driver.SetSliderAC(100f);
+    }
+
+    /// <summary>
+    /// Ramp слайдеров только когда конец ребра на карте реально <see cref="NodeMapState.Blocked"/> (не при <see cref="NodeMapState.Selected"/> и т.д.).
+    /// Без ToNode — разрешаем (ребро без привязки к ноде конца).
+    /// </summary>
+    private bool IsEndNodeMapRootBlockedForSliders()
+    {
+        if (toNode == null)
+            return true;
+        var endRoot = toNode.SelectionOwner;
+        return endRoot != null && endRoot.CurrentState == NodeMapState.Blocked;
+    }
+
+    private void BeginBlockedSlidersRampIfApplicable()
+    {
+        if (!IsEndNodeMapRootBlockedForSliders())
+            return;
+        BeginBlockedSlidersRamp();
+    }
+
+    private void BeginBlockedSlidersRamp()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        StopBlockedSlidersRamp(restore: false);
+        var driver = ResolveLineGradientDriver();
+        if (driver == null)
+            return;
+
+        _sliderAbBeforeBlocked = driver.GetSliderAB();
+        _sliderAcBeforeBlocked = driver.GetSliderAC();
+        float dur = Mathf.Max(0.01f, blockedSlidersRampDuration);
+        const float target = 100f;
+        _blockedSlidersCoroutine = StartCoroutine(CoBlockedSlidersRamp(driver, dur, target));
+    }
+
+    private void StopBlockedSlidersRamp(bool restore)
+    {
+        if (_blockedSlidersCoroutine != null)
+        {
+            StopCoroutine(_blockedSlidersCoroutine);
+            _blockedSlidersCoroutine = null;
+        }
+
+        if (!restore)
+            return;
+
+        var driver = ResolveLineGradientDriver();
+        if (driver == null)
+            return;
+        driver.SetSliderAB(_sliderAbBeforeBlocked);
+        driver.SetSliderAC(_sliderAcBeforeBlocked);
+    }
+
+    private IEnumerator CoBlockedSlidersRamp(LineRendererGradientPropertyDriver driver, float fullDuration, float target)
+    {
+        float acPhase = Mathf.Max(1e-5f, fullDuration / 3f);
+        float ab0 = _sliderAbBeforeBlocked;
+        float ac0 = _sliderAcBeforeBlocked;
+        float t = 0f;
+
+        while (_currentState == MinimapEdgeState.Blocked && t < fullDuration)
+        {
+            t += Time.deltaTime;
+            float uAc = Mathf.Clamp01(t / acPhase);
+            float uAb = Mathf.Clamp01(t / fullDuration);
+            driver.SetSliderAC(Mathf.Lerp(ac0, target, uAc));
+            driver.SetSliderAB(Mathf.Lerp(ab0, target, uAb));
+            yield return null;
+        }
+
+        if (_currentState == MinimapEdgeState.Blocked)
+        {
+            driver.SetSliderAC(target);
+            driver.SetSliderAB(target);
+        }
+
+        _blockedSlidersCoroutine = null;
+    }
+
     /// <summary>
     /// Карта вне Play всегда «разрешает» линию для вёрстки.
-    /// В Play: линия по <see cref="_mapOutgoingLineVisible"/> (исходящие от выбранной / стартов без выбора) или всегда при <see cref="MinimapEdgeState.Blocked"/>, чтобы заблокированные маршруты не пропадали.
+    /// В Play: линия по <see cref="_mapOutgoingLineVisible"/> (исходящие от выбранной / стартов без выбора), при <see cref="MinimapEdgeState.Blocked"/>,
+    /// при <see cref="MinimapEdgeState.Selected"/> (ребро к текущей выбранной ноде), и кратко при <see cref="MinimapEdgeState.IdleRevealed"/> с тем же концом — чтобы путь прибытия не гас после выбора ноды.
     /// <see cref="MinimapEdgeState.Disabled"/> выключает линию всегда. Цвет линии — из материала / <see cref="LineRendererGradientPropertyDriver"/>, не из стейта.
     /// </summary>
     public void ApplyCombinedVisual()
@@ -392,9 +561,21 @@ public class MinimapEdge : MonoBehaviour
 
         bool mapAllows = !Application.isPlaying ||
                          _mapOutgoingLineVisible ||
-                         _currentState == MinimapEdgeState.Blocked;
+                         _currentState == MinimapEdgeState.Blocked ||
+                         _currentState == MinimapEdgeState.Selected ||
+                         MapSelectionShowsIncomingIdleRevealedEdge();
         bool stateShowsLine = _currentState != MinimapEdgeState.Disabled;
         lineRenderer.enabled = mapAllows && stateShowsLine;
+    }
+
+    /// <summary>В Play: ребро в IdleRevealed с концом на <see cref="GameManager.CurrentSelectedMapNode"/> — показывать линию до смены стейта на Selected в реестре.</summary>
+    private bool MapSelectionShowsIncomingIdleRevealedEdge()
+    {
+        if (!Application.isPlaying || _currentState != MinimapEdgeState.IdleRevealed || toNode == null)
+            return false;
+        var gm = GameManager.Instance;
+        var sel = gm != null ? gm.CurrentSelectedMapNode : null;
+        return sel != null && toNode.SelectionOwner == sel;
     }
 
     [ContextMenu("Refresh line")]
