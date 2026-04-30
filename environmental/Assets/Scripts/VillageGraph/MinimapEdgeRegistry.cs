@@ -55,7 +55,7 @@ public class MinimapEdgeRegistry : MonoBehaviour
     }
 
     /// <summary>
-    /// Проставить ту же палитру всем <see cref="Node"/> на загруженных сценах и перекрасить по текущему стейту.
+    /// Проставить ту же палитру всем <see cref="Node"/> на загруженных сценах и применить A/B/C к их <see cref="SpriteRendererGradientPropertyDriver"/> (если есть).
     /// </summary>
     public void ApplySharedMapVisualPaletteToAllNodes()
     {

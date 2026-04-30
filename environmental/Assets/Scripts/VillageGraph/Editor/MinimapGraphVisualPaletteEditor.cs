@@ -60,22 +60,45 @@ public class MinimapGraphVisualPaletteEditor : Editor
     private void PushColorsToReferencingNodes()
     {
         var palette = (MinimapGraphVisualPalette)target;
-        var nodes = Object.FindObjectsOfType<Node>(true);
-        var n = 0;
+        palette.GetNodeGradientColors(out var ca, out var cb, out var cc);
+
+        var nodes = Object.FindObjectsByType<Node>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var drivers = new System.Collections.Generic.List<SpriteRendererGradientPropertyDriver>();
+        var nodeCount = 0;
         for (var i = 0; i < nodes.Length; i++)
         {
             var node = nodes[i];
             if (node == null || node.MapVisualPalette != palette)
                 continue;
-            node.RefreshMapVisualPaletteFromCurrentState();
-            n++;
+            nodeCount++;
+            var onNode = node.GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
+            for (var j = 0; j < onNode.Length; j++)
+            {
+                if (onNode[j] != null)
+                    drivers.Add(onNode[j]);
+            }
         }
 
-        EditorUtility.DisplayDialog(
-            "Палитра",
-            n > 0
-                ? $"Обновлено нод: {n} (в т.ч. в Play Mode)."
-                : "Ни одна Node на загруженных сценах не ссылается на эту палитру. Назначь её на ноде или через реестр.",
-            "OK");
+        if (drivers.Count > 0)
+        {
+            Undo.RecordObjects(drivers.ToArray(), "Градиент нод (палитра A/B/C)");
+            for (var i = 0; i < drivers.Count; i++)
+            {
+                drivers[i].SetColorsABC(ca, cb, cc);
+                EditorUtility.SetDirty(drivers[i]);
+            }
+        }
+
+        string msg;
+        if (nodeCount == 0)
+            msg = "Ни одна Node на загруженных сценах не ссылается на эту палитру. Назначь её на ноде или через реестр.";
+        else if (drivers.Count == 0)
+            msg =
+                $"Найдено нод с палитрой: {nodeCount}, но ни на одной нет SpriteRendererGradientPropertyDriver в иерархии — добавь компонент и назначь target SpriteRenderer.";
+        else
+            msg =
+                $"Записано в SpriteRendererGradientPropertyDriver: {drivers.Count} (на {nodeCount} нодах с этой палитрой, цвета A/B/C из ассета).";
+
+        EditorUtility.DisplayDialog("Палитра", msg, "OK");
     }
 }
