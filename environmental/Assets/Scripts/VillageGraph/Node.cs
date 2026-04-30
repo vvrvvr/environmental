@@ -56,9 +56,27 @@ public partial class Node : MonoBehaviour
 
     [Header("Map state: Selected (gradient sliders)")]
     [Tooltip(
-        "В Play: при входе ноды карты в NodeMapState.Selected у всех SpriteRendererGradientPropertyDriver под этой нодой Slider AC за это время линейно идёт от 0 до 100. Только у корня группы (без groupParent); у дочерних нод группы не запускается.")]
+        "В Play: при входе ноды карты в NodeMapState.Selected у всех SpriteRendererGradientPropertyDriver под этой нодой Slider AC за это время линейно идёт от текущего значения до 100. При смене выбора на карте AC не сбрасывается. Только у корня группы (без groupParent); у дочерних нод группы не запускается.")]
     [SerializeField, Min(0.01f)]
     private float selectedMapSliderAcRampDuration = 0.35f;
+
+    [Header("Map state: Blocked (gradient sliders)")]
+    [Tooltip(
+        "Длительность полной секвенции блокирования ноды на карте (сек): после того как все входящие рёбра в Blocked завершили свою секвенцию слайдеров на линии, у ноды Slider AC и AB за это время линейно идут от текущих значений до 100%. Только корень группы.")]
+    [SerializeField, Min(0.01f)]
+    private float mapNodeBlockedVisualSequenceDuration = 0.5f;
+
+    [Tooltip(
+        "В Play, нода в Blocked: когда у входящего заблокированного ребра Slider AC на линии доходит до 100%, у ноды (корень группы) Slider AC за это время линейно идёт от 0 до 100 (синхрон с «пожелтением» ветки до конца).")]
+    [SerializeField, Min(0.01f)]
+    private float mapNodeBlockedIncomingEdgeAcFullSyncAcRampDuration = 0.25f;
+
+    /// <summary>Длительность секвенции блокирования ноды (слайдеры AC/AB на спрайтах); минимум 0.01 с.</summary>
+    public float MapNodeBlockedSequenceDuration => Mathf.Max(0.01f, mapNodeBlockedVisualSequenceDuration);
+
+    /// <summary>Длительность AC ноды 0→100 при достижении AC=100 на входящем ребре в Blocked; минимум 0.01 с.</summary>
+    public float MapNodeBlockedIncomingEdgeAcFullSyncAcRampDuration =>
+        Mathf.Max(0.01f, mapNodeBlockedIncomingEdgeAcFullSyncAcRampDuration);
 
     /// <summary>Стартовая точка обхода мини-карты (флаг в инспекторе).</summary>
     public bool IsMinimapStartNode => isMinimapStartNode;
@@ -119,6 +137,9 @@ public partial class Node : MonoBehaviour
     private Tween clickTween;
     private Tween selectionRingTween;
     private Coroutine _selectedMapSliderAcRampCoroutine;
+    private int _incomingBlockedEdgeVisualRampsActive;
+    private Coroutine _mapNodeBlockedSlidersCoroutine;
+    private Coroutine _mapNodeBlockedEdgeAcSyncCoroutine;
     private Camera cachedMapCamera;
     private Transform selectionRingTransform;
     private Vector3 selectionRingBaseScale;
@@ -152,7 +173,8 @@ public partial class Node : MonoBehaviour
         KillClickTween();
         KillSelectionRingTween();
         KillStateDelayedTween();
-        StopSelectedMapSliderAcRamp(resetAcToZero: true);
+        StopSelectedMapSliderAcRamp();
+        StopMapNodeBlockedSlidersSequence(resetSlidersToZero: true);
         ApplyBaseScaleImmediate();
         mouseOver = false;
         ClearRemainingTimeText();
@@ -411,50 +433,214 @@ public partial class Node : MonoBehaviour
     }
 
     /// <summary>
-    /// Корень карты (без родителя группы): в Play при <see cref="NodeMapState.Selected"/> — AC 0→100 за <see cref="selectedMapSliderAcRampDuration"/>.
+    /// Корень карты (без родителя группы): в Play при <see cref="NodeMapState.Selected"/> — Slider AC с текущего до 100 за <see cref="selectedMapSliderAcRampDuration"/>.
     /// </summary>
     private void BeginSelectedMapSliderAcRampIfMapRoot()
     {
         if (!Application.isPlaying || groupParent != null)
             return;
 
-        StopSelectedMapSliderAcRamp(resetAcToZero: false);
+        StopSelectedMapSliderAcRamp();
         _selectedMapSliderAcRampCoroutine = StartCoroutine(CoSelectedMapSliderAcRamp());
     }
 
-    /// <summary>Остановить ramp и при необходимости выставить Slider AC = 0 на всех драйверах под нодой.</summary>
-    private void StopSelectedMapSliderAcRamp(bool resetAcToZero)
+    /// <summary>Остановить ramp выбора без изменения Slider AC (значение не откатывается при смене выбора на карте).</summary>
+    private void StopSelectedMapSliderAcRamp()
     {
-        if (_selectedMapSliderAcRampCoroutine != null)
-        {
-            StopCoroutine(_selectedMapSliderAcRampCoroutine);
-            _selectedMapSliderAcRampCoroutine = null;
-        }
-
-        if (!resetAcToZero || groupParent != null)
+        if (_selectedMapSliderAcRampCoroutine == null)
             return;
-
-        var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
-        for (var i = 0; i < drivers.Length; i++)
-        {
-            if (drivers[i] != null)
-                drivers[i].SetSliderAC(0f);
-        }
+        StopCoroutine(_selectedMapSliderAcRampCoroutine);
+        _selectedMapSliderAcRampCoroutine = null;
     }
 
     private IEnumerator CoSelectedMapSliderAcRamp()
     {
         var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
-        for (var i = 0; i < drivers.Length; i++)
+        var n = drivers.Length;
+        var ac0 = new float[n];
+        for (var i = 0; i < n; i++)
         {
             if (drivers[i] != null)
-                drivers[i].SetSliderAC(0f);
+                ac0[i] = drivers[i].GetSliderAC();
         }
 
         float dur = Mathf.Max(0.01f, selectedMapSliderAcRampDuration);
         float t = 0f;
         while (t < dur)
         {
+            t += Time.deltaTime;
+            float u = dur > 1e-6f ? Mathf.Clamp01(t / dur) : 1f;
+            for (var i = 0; i < n; i++)
+            {
+                if (drivers[i] != null)
+                    drivers[i].SetSliderAC(Mathf.Lerp(ac0[i], 100f, u));
+            }
+
+            yield return null;
+        }
+
+        for (var i = 0; i < n; i++)
+        {
+            if (drivers[i] != null)
+                drivers[i].SetSliderAC(100f);
+        }
+
+        _selectedMapSliderAcRampCoroutine = null;
+    }
+
+    /// <summary>Сброс счётчика входящих ramp Blocked-рёбер при первом входе ноды в Blocked (корень карты).</summary>
+    public void MapResetIncomingBlockedEdgeRampTallyOnEnterBlocked()
+    {
+        if (groupParent != null || !Application.isPlaying)
+            return;
+        _incomingBlockedEdgeVisualRampsActive = 0;
+    }
+
+    /// <summary>Ребро начало секвенцию слайдеров Blocked к этой ноде (корень ToNode).</summary>
+    public void MapNotifyIncomingBlockedEdgeVisualRampBegin()
+    {
+        if (!Application.isPlaying || groupParent != null)
+            return;
+        _incomingBlockedEdgeVisualRampsActive++;
+    }
+
+    /// <summary>Ребро прервало ramp до завершения.</summary>
+    public void MapNotifyIncomingBlockedEdgeVisualRampAborted()
+    {
+        if (groupParent != null)
+            return;
+        if (_incomingBlockedEdgeVisualRampsActive > 0)
+            _incomingBlockedEdgeVisualRampsActive--;
+        StopMapNodeBlockedEdgeAcSyncRamp();
+    }
+
+    /// <summary>
+    /// Во время ramp Blocked на входящем ребре: Slider AC на линии достиг 100% — запуск AC ноды 0→100 за <see cref="MapNodeBlockedIncomingEdgeAcFullSyncAcRampDuration"/>.
+    /// Только корень группы и только при <see cref="NodeMapState.Blocked"/>.
+    /// </summary>
+    public void MapNotifyIncomingBlockedEdgeRampAcReachedOnLine()
+    {
+        if (!Application.isPlaying || groupParent != null || CurrentState != NodeMapState.Blocked)
+            return;
+
+        StopMapNodeBlockedEdgeAcSyncRamp();
+        _mapNodeBlockedEdgeAcSyncCoroutine = StartCoroutine(CoMapNodeBlockedEdgeAcSyncRamp());
+    }
+
+    /// <summary>Ребро завершило полную секвенцию Blocked (AB=100); при нуле активных ramp и ноде в Blocked — старт секвенции слайдеров ноды.</summary>
+    public void MapNotifyIncomingBlockedEdgeVisualRampComplete()
+    {
+        if (groupParent != null)
+            return;
+        if (_incomingBlockedEdgeVisualRampsActive > 0)
+            _incomingBlockedEdgeVisualRampsActive--;
+        if (!Application.isPlaying)
+            return;
+        if (_incomingBlockedEdgeVisualRampsActive == 0 && CurrentState == NodeMapState.Blocked)
+            BeginMapNodeBlockedSlidersSequenceIfMapRoot();
+    }
+
+    private void BeginMapNodeBlockedSlidersSequenceIfMapRoot()
+    {
+        if (!Application.isPlaying || groupParent != null)
+            return;
+        StopMapNodeBlockedSlidersSequence(resetSlidersToZero: false);
+        _mapNodeBlockedSlidersCoroutine = StartCoroutine(CoMapNodeBlockedSlidersRamp());
+    }
+
+    private void StopMapNodeBlockedEdgeAcSyncRamp()
+    {
+        if (_mapNodeBlockedEdgeAcSyncCoroutine == null)
+            return;
+        StopCoroutine(_mapNodeBlockedEdgeAcSyncCoroutine);
+        _mapNodeBlockedEdgeAcSyncCoroutine = null;
+    }
+
+    private void StopMapNodeBlockedSlidersSequence(bool resetSlidersToZero)
+    {
+        StopMapNodeBlockedEdgeAcSyncRamp();
+        if (_mapNodeBlockedSlidersCoroutine != null)
+        {
+            StopCoroutine(_mapNodeBlockedSlidersCoroutine);
+            _mapNodeBlockedSlidersCoroutine = null;
+        }
+
+        if (!resetSlidersToZero || groupParent != null)
+            return;
+
+        var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
+        for (var i = 0; i < drivers.Length; i++)
+        {
+            if (drivers[i] != null)
+            {
+                drivers[i].SetSliderAB(0f);
+                drivers[i].SetSliderAC(0f);
+            }
+        }
+    }
+
+    private IEnumerator CoMapNodeBlockedSlidersRamp()
+    {
+        var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
+        var n = drivers.Length;
+        var ab0 = new float[n];
+        var ac0 = new float[n];
+        for (var i = 0; i < n; i++)
+        {
+            if (drivers[i] == null)
+                continue;
+            ab0[i] = drivers[i].GetSliderAB();
+            ac0[i] = drivers[i].GetSliderAC();
+        }
+
+        float dur = MapNodeBlockedSequenceDuration;
+        float t = 0f;
+        while (t < dur)
+        {
+            t += Time.deltaTime;
+            float u = dur > 1e-6f ? Mathf.Clamp01(t / dur) : 1f;
+            for (var i = 0; i < n; i++)
+            {
+                if (drivers[i] == null)
+                    continue;
+                drivers[i].SetSliderAB(Mathf.Lerp(ab0[i], 100f, u));
+                drivers[i].SetSliderAC(Mathf.Lerp(ac0[i], 100f, u));
+            }
+
+            yield return null;
+        }
+
+        for (var i = 0; i < n; i++)
+        {
+            if (drivers[i] != null)
+            {
+                drivers[i].SetSliderAB(100f);
+                drivers[i].SetSliderAC(100f);
+            }
+        }
+
+        _mapNodeBlockedSlidersCoroutine = null;
+    }
+
+    private IEnumerator CoMapNodeBlockedEdgeAcSyncRamp()
+    {
+        var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
+        for (var i = 0; i < drivers.Length; i++)
+        {
+            if (drivers[i] != null)
+                drivers[i].SetSliderAC(0f);
+        }
+
+        float dur = MapNodeBlockedIncomingEdgeAcFullSyncAcRampDuration;
+        float t = 0f;
+        while (t < dur)
+        {
+            if (CurrentState != NodeMapState.Blocked)
+            {
+                _mapNodeBlockedEdgeAcSyncCoroutine = null;
+                yield break;
+            }
+
             t += Time.deltaTime;
             float ac = Mathf.Lerp(0f, 100f, dur > 1e-6f ? Mathf.Clamp01(t / dur) : 1f);
             for (var i = 0; i < drivers.Length; i++)
@@ -472,6 +658,6 @@ public partial class Node : MonoBehaviour
                 drivers[i].SetSliderAC(100f);
         }
 
-        _selectedMapSliderAcRampCoroutine = null;
+        _mapNodeBlockedEdgeAcSyncCoroutine = null;
     }
 }

@@ -64,9 +64,14 @@ public class MinimapEdge : MonoBehaviour
 
     [Header("Blocked → Sliders AB / AC")]
     [Tooltip(
-        "Только если нода на конце ребра (корень ToNode) в NodeMapState.Blocked: за треть времени Slider AC → 100%, за полное — Slider AB → 100%, дальше оба 100% пока ребро Blocked. Не при Selected на конце. При выходе ребра из Blocked — откат слайдеров.")]
+        "Только если нода на конце ребра (корень ToNode) в NodeMapState.Blocked: за треть этого времени Slider AC → 100%, за всё время — Slider AB → 100% (одновременно, AC быстрее). В Play фактическая длительность может быть короче (см. поле ниже). После завершения ramp на ребре у ноды может стартовать её секвенция (см. Node). Не при Selected на конце. При выходе из Blocked — откат слайдеров.")]
     [SerializeField, Min(0.01f)]
     private float blockedSlidersRampDuration = 1f;
+
+    [Tooltip(
+        "В Play: от базовой длительности ramp выше на каждый старт случайно отнимается доля от 0 до этого максимума (0.3 = до 30%), у каждого ребра своё. 0 — всегда ровно базовое время.")]
+    [SerializeField, Range(0f, 0.3f)]
+    private float blockedSlidersRampDurationPlayRandomSubtractMax = 0.3f;
 
     [Header("Nodes")]
     [Tooltip("Начало ориентированного ребра на карте. Для группы — только родительская нода, не дочерняя.")]
@@ -124,6 +129,9 @@ public class MinimapEdge : MonoBehaviour
     /// <summary>Длительность ramp слайдеров AB/AC при <see cref="MinimapEdgeState.Blocked"/> (секунды, минимум 0.01).</summary>
     public float BlockedSlidersRampDurationSeconds => Mathf.Max(0.01f, blockedSlidersRampDuration);
 
+    /// <summary>Совпадает с <see cref="BlockedSlidersRampDurationSeconds"/> — AC и AB на ребре в Blocked укладываются в этот интервал.</summary>
+    public float BlockedSlidersFullSequenceDurationSeconds() => BlockedSlidersRampDurationSeconds;
+
     /// <summary>В Play: разрешение по выбору на карте (<see cref="MinimapEdgeRegistry"/>).</summary>
     public bool MapOutgoingLineVisible => _mapOutgoingLineVisible;
 
@@ -138,6 +146,9 @@ public class MinimapEdge : MonoBehaviour
     private Coroutine _blockedSlidersCoroutine;
     private float _sliderAbBeforeBlocked;
     private float _sliderAcBeforeBlocked;
+    private Node _blockedRampNotifyEndRoot;
+    private bool _blockedRampNotifyCountedWithEndRoot;
+    private bool _blockedEdgeLineAcFullNotifiedToEndNode;
     private bool _edgeTravelVideoPlaying;
     /// <summary>В Play при <see cref="MinimapEdgeState.Appearing"/>: 0 — линия у старта, 1 — полный отрезок. Вне Appearing всегда 1.</summary>
     private float _appearLineT = 1f;
@@ -521,13 +532,24 @@ public class MinimapEdge : MonoBehaviour
 
         _sliderAbBeforeBlocked = driver.GetSliderAB();
         _sliderAcBeforeBlocked = driver.GetSliderAC();
-        float dur = Mathf.Max(0.01f, blockedSlidersRampDuration);
+        float dur = ComputeBlockedSlidersRampDurationForPlay();
         const float target = 100f;
         _blockedSlidersCoroutine = StartCoroutine(CoBlockedSlidersRamp(driver, dur, target));
     }
 
+    /// <summary>В Play: базовая длительность минус случайная доля до <see cref="blockedSlidersRampDurationPlayRandomSubtractMax"/>; вне Play — базовая.</summary>
+    private float ComputeBlockedSlidersRampDurationForPlay()
+    {
+        float b = Mathf.Max(0.01f, blockedSlidersRampDuration);
+        if (!Application.isPlaying)
+            return b;
+        float subtractFrac = UnityEngine.Random.Range(0f, blockedSlidersRampDurationPlayRandomSubtractMax);
+        return Mathf.Max(0.01f, b * (1f - subtractFrac));
+    }
+
     private void StopBlockedSlidersRamp(bool restore)
     {
+        AbortBlockedRampNotifyIfNeeded();
         if (_blockedSlidersCoroutine != null)
         {
             StopCoroutine(_blockedSlidersCoroutine);
@@ -544,8 +566,34 @@ public class MinimapEdge : MonoBehaviour
         driver.SetSliderAC(_sliderAcBeforeBlocked);
     }
 
+    private void AbortBlockedRampNotifyIfNeeded()
+    {
+        if (!_blockedRampNotifyCountedWithEndRoot)
+            return;
+        _blockedRampNotifyEndRoot?.MapNotifyIncomingBlockedEdgeVisualRampAborted();
+        _blockedRampNotifyCountedWithEndRoot = false;
+        _blockedRampNotifyEndRoot = null;
+    }
+
+    private void CompleteBlockedRampNotifyIfNeeded()
+    {
+        if (!_blockedRampNotifyCountedWithEndRoot)
+            return;
+        _blockedRampNotifyEndRoot?.MapNotifyIncomingBlockedEdgeVisualRampComplete();
+        _blockedRampNotifyCountedWithEndRoot = false;
+        _blockedRampNotifyEndRoot = null;
+    }
+
     private IEnumerator CoBlockedSlidersRamp(LineRendererGradientPropertyDriver driver, float fullDuration, float target)
     {
+        _blockedEdgeLineAcFullNotifiedToEndNode = false;
+        _blockedRampNotifyEndRoot = toNode?.SelectionOwner;
+        if (_blockedRampNotifyEndRoot != null)
+        {
+            _blockedRampNotifyEndRoot.MapNotifyIncomingBlockedEdgeVisualRampBegin();
+            _blockedRampNotifyCountedWithEndRoot = true;
+        }
+
         float acPhase = Mathf.Max(1e-5f, fullDuration / 3f);
         float ab0 = _sliderAbBeforeBlocked;
         float ac0 = _sliderAcBeforeBlocked;
@@ -558,6 +606,14 @@ public class MinimapEdge : MonoBehaviour
             float uAb = Mathf.Clamp01(t / fullDuration);
             driver.SetSliderAC(Mathf.Lerp(ac0, target, uAc));
             driver.SetSliderAB(Mathf.Lerp(ab0, target, uAb));
+            if (!_blockedEdgeLineAcFullNotifiedToEndNode &&
+                _blockedRampNotifyEndRoot != null &&
+                uAc >= 1f - 1e-5f)
+            {
+                _blockedRampNotifyEndRoot.MapNotifyIncomingBlockedEdgeRampAcReachedOnLine();
+                _blockedEdgeLineAcFullNotifiedToEndNode = true;
+            }
+
             yield return null;
         }
 
@@ -565,7 +621,10 @@ public class MinimapEdge : MonoBehaviour
         {
             driver.SetSliderAC(target);
             driver.SetSliderAB(target);
+            CompleteBlockedRampNotifyIfNeeded();
         }
+        else
+            AbortBlockedRampNotifyIfNeeded();
 
         _blockedSlidersCoroutine = null;
     }
