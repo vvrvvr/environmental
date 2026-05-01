@@ -590,6 +590,11 @@ PrefabInstance:
       objectReference: {fileID: 804414211}
     - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
+      propertyPath: edgeTravelVideoClip
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
       propertyPath: anchorsFollowLinkedNodes
       value: 1
       objectReference: {fileID: 0}
@@ -602,6 +607,11 @@ PrefabInstance:
         type: 3}
       propertyPath: travelAlongEdgeSliderAcTargetPercent
       value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: travelLineSliderAbRampAfterFromBlockedDuration
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4549614483355425766, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -800,6 +810,11 @@ PrefabInstance:
         type: 3}
       propertyPath: travelAlongEdgeSliderAcTargetPercent
       value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: travelLineSliderAbRampAfterFromBlockedDuration
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4549614483355425766, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -1606,6 +1621,11 @@ PrefabInstance:
       propertyPath: travelAlongEdgeSliderAcTargetPercent
       value: 100
       objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: travelLineSliderAbRampAfterFromBlockedDuration
+      value: 0.5
+      objectReference: {fileID: 0}
     - target: {fileID: 4549614483355425766, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
       propertyPath: m_Name
@@ -1928,6 +1948,11 @@ PrefabInstance:
         type: 3}
       propertyPath: travelAlongEdgeSliderAcTargetPercent
       value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: travelLineSliderAbRampAfterFromBlockedDuration
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4549614483355425766, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -2779,6 +2804,7 @@ MonoBehaviour:
   logMinimapDiscovery: 0
   outgoingEdgeAppearStaggerMin: 0
   outgoingEdgeAppearStaggerMax: 0.5
+  outgoingBlockedEdgeVisualOffsetSeconds: -0.2
   mapVideoPlayer: {fileID: 1173002159}
   debugTargetNode: {fileID: 0}
   enableNodeStateHotkeys: 0
@@ -3140,9 +3166,19 @@ PrefabInstance:
       objectReference: {fileID: 1850659806}
     - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
+      propertyPath: endInset
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
       propertyPath: fromNode
       value: 
       objectReference: {fileID: 1995847562}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: startInset
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
       propertyPath: edgeTravelVideoClip
@@ -3163,6 +3199,11 @@ PrefabInstance:
         type: 3}
       propertyPath: travelAlongEdgeSliderAcTargetPercent
       value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: travelLineSliderAbRampAfterFromBlockedDuration
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4549614483355425766, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -3217,7 +3258,7 @@ PrefabInstance:
     - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
       propertyPath: sliderAC
-      value: 23.6
+      value: 8.9
       objectReference: {fileID: 0}
     - target: {fileID: 7478623714569110455, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -3514,6 +3555,16 @@ PrefabInstance:
       objectReference: {fileID: 1995847562}
     - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
+      propertyPath: startInset
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: edgeTravelVideoClip
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
       propertyPath: anchorsFollowLinkedNodes
       value: 1
       objectReference: {fileID: 0}
@@ -3526,6 +3577,11 @@ PrefabInstance:
         type: 3}
       propertyPath: travelAlongEdgeSliderAcTargetPercent
       value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: travelLineSliderAbRampAfterFromBlockedDuration
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4549614483355425766, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -3564,8 +3620,13 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
+      propertyPath: blendAB
+      value: 0.111
+      objectReference: {fileID: 0}
+    - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
       propertyPath: sliderAB
-      value: 11.3
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -3616,6 +3677,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Positions.Array.data[0].x
       value: -2.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 7787830124443667911, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: m_Positions.Array.data[0].y
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7787830124443667911, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -3744,7 +3810,7 @@ PrefabInstance:
         type: 3}
       propertyPath: edgeTravelVideoClip
       value: 
-      objectReference: {fileID: 32900000, guid: b830402a5a3d2cf45a6f35e4364b23aa,
+      objectReference: {fileID: 32900000, guid: 0ee86963e82ac2d4a94e9397e6d2b5fa,
         type: 3}
     - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -3760,6 +3826,11 @@ PrefabInstance:
         type: 3}
       propertyPath: travelAlongEdgeSliderAcTargetPercent
       value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: travelLineSliderAbRampAfterFromBlockedDuration
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4549614483355425766, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -4117,6 +4188,11 @@ PrefabInstance:
       objectReference: {fileID: 1995847562}
     - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
+      propertyPath: startInset
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
       propertyPath: edgeTravelVideoClip
       value: 
       objectReference: {fileID: 0}
@@ -4134,6 +4210,11 @@ PrefabInstance:
         type: 3}
       propertyPath: travelAlongEdgeSliderAcTargetPercent
       value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: travelLineSliderAbRampAfterFromBlockedDuration
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4549614483355425766, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -4193,7 +4274,7 @@ PrefabInstance:
     - target: {fileID: 7317969583647972957, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
       propertyPath: sliderAC
-      value: 21.6
+      value: 17.7
       objectReference: {fileID: 0}
     - target: {fileID: 7478623714569110455, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
@@ -4355,8 +4436,7 @@ PrefabInstance:
         type: 3}
       propertyPath: edgeTravelVideoClip
       value: 
-      objectReference: {fileID: 32900000, guid: b830402a5a3d2cf45a6f35e4364b23aa,
-        type: 3}
+      objectReference: {fileID: 0}
     - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
       propertyPath: appearingToIdleDuration
@@ -4376,6 +4456,11 @@ PrefabInstance:
         type: 3}
       propertyPath: travelAlongEdgeSliderAcTargetPercent
       value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
+        type: 3}
+      propertyPath: travelLineSliderAbRampAfterFromBlockedDuration
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4549614483355425766, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
