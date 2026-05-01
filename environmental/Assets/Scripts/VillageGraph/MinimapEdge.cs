@@ -58,9 +58,34 @@ public class MinimapEdge : MonoBehaviour
     [SerializeField]
     private LineRendererGradientPropertyDriver lineGradientDriver;
 
-    [Tooltip("За время перемещения travel move visual Slider AC линейно меняется до этого процента (0–100).")]
+    [Tooltip("За время перемещения Slider AC линейно меняется до этого процента (0–100).")]
     [SerializeField, Range(0f, 100f)]
     private float travelAlongEdgeSliderAcTargetPercent = 100f;
+
+    [Tooltip(
+        "Не во время travel: целевой Slider AB линии этого ребра (LineRenderer), когда нода у начального якоря (From) завершила полную секвенцию блокировки (градиент ноды, AB до 100%). См. GameManager.CoMapSelectionTravel.")]
+    [SerializeField, Range(0f, 100f)]
+    private float travelAlongEdgeSliderAbTargetPercent = 20f;
+
+    [Tooltip("За это время (сек) Slider AB линии линейно дойдёт до значения выше после полной блокировки ноды From.")]
+    [SerializeField, Min(0.01f)]
+    private float travelLineSliderAbRampAfterFromBlockedDuration = 0.25f;
+
+    /// <summary>Slider AB линии (0–100) после полной «коричневой» блокировки ноды From у этого ребра.</summary>
+    public float TravelSliderAbAfterSourceNodeFullyBlockedPercent =>
+        Mathf.Clamp(travelAlongEdgeSliderAbTargetPercent, 0f, 100f);
+
+    /// <summary>
+    /// В Play: плавно довести Slider AB линии до <see cref="TravelSliderAbAfterSourceNodeFullyBlockedPercent"/> за короткое время (поле в инспекторе) — после
+    /// <see cref="Node.MapPostFullyBlockedGradientRampCompleted"/> у корня From.
+    /// </summary>
+    public void ApplyTravelLineSliderAbAfterFromNodeFullyBlocked()
+    {
+        if (!Application.isPlaying)
+            return;
+        StopTravelLineAbAfterBlockedRamp();
+        _travelLineAbAfterBlockedCoroutine = StartCoroutine(CoTravelLineAbRampAfterFromNodeFullyBlocked());
+    }
 
     [Header("Blocked → Sliders AB / AC")]
     [Tooltip(
@@ -140,10 +165,11 @@ public class MinimapEdge : MonoBehaviour
     private bool _mapOutgoingLineVisible;
     private Coroutine _movingCoroutine;
     private Coroutine _appearingCoroutine;
-    /// <summary>True между стартом <see cref="CoMovingAlongEdge"/> и нормальным завершением / прерыванием — для отката Slider AC при Stop.</summary>
+    /// <summary>True между стартом <see cref="CoMovingAlongEdge"/> и нормальным завершением / прерыванием — для отката слайдеров при Stop.</summary>
     private bool _travelSliderAcTweenActive;
     private float _sliderAcAtTravelStart;
     private Coroutine _blockedSlidersCoroutine;
+    private Coroutine _travelLineAbAfterBlockedCoroutine;
     private float _sliderAbBeforeBlocked;
     private float _sliderAcBeforeBlocked;
     private Node _blockedRampNotifyEndRoot;
@@ -363,7 +389,7 @@ public class MinimapEdge : MonoBehaviour
     {
         float duration = ComputeTravelDurationSeconds();
         var gradientDriver = ResolveLineGradientDriver();
-        float sliderTarget = Mathf.Clamp(travelAlongEdgeSliderAcTargetPercent, 0f, 100f);
+        float acTarget = Mathf.Clamp(travelAlongEdgeSliderAcTargetPercent, 0f, 100f);
         if (gradientDriver != null)
         {
             _sliderAcAtTravelStart = gradientDriver.GetSliderAC();
@@ -380,14 +406,14 @@ public class MinimapEdge : MonoBehaviour
             float u = duration > 1e-6f ? t / duration : 1f;
             UpdateTravelMarkerPosition(u);
             if (gradientDriver != null)
-                gradientDriver.SetSliderAC(Mathf.Lerp(_sliderAcAtTravelStart, sliderTarget, u));
+                gradientDriver.SetSliderAC(Mathf.Lerp(_sliderAcAtTravelStart, acTarget, u));
             t += Time.deltaTime;
             yield return null;
         }
 
         UpdateTravelMarkerPosition(1f);
         if (gradientDriver != null)
-            gradientDriver.SetSliderAC(sliderTarget);
+            gradientDriver.SetSliderAC(acTarget);
         _travelSliderAcTweenActive = false;
 
         EndMovingAlongPresentation();
@@ -451,10 +477,44 @@ public class MinimapEdge : MonoBehaviour
         done?.Invoke();
     }
 
+    private void StopTravelLineAbAfterBlockedRamp()
+    {
+        if (_travelLineAbAfterBlockedCoroutine == null)
+            return;
+        StopCoroutine(_travelLineAbAfterBlockedCoroutine);
+        _travelLineAbAfterBlockedCoroutine = null;
+    }
+
+    private IEnumerator CoTravelLineAbRampAfterFromNodeFullyBlocked()
+    {
+        var d = ResolveLineGradientDriver();
+        if (d == null)
+        {
+            _travelLineAbAfterBlockedCoroutine = null;
+            yield break;
+        }
+
+        float ab0 = d.GetSliderAB();
+        float ab1 = TravelSliderAbAfterSourceNodeFullyBlockedPercent;
+        float dur = Mathf.Max(0.01f, travelLineSliderAbRampAfterFromBlockedDuration);
+        float t = 0f;
+        while (t < dur)
+        {
+            t += Time.deltaTime;
+            float u = dur > 1e-6f ? Mathf.Clamp01(t / dur) : 1f;
+            d.SetSliderAB(Mathf.Lerp(ab0, ab1, u));
+            yield return null;
+        }
+
+        d.SetSliderAB(ab1);
+        _travelLineAbAfterBlockedCoroutine = null;
+    }
+
     private void StopEdgePlayCoroutines()
     {
         StopMovingIfAny();
         StopAppearingIfAny();
+        StopTravelLineAbAfterBlockedRamp();
     }
 
     private void StopMovingIfAny()

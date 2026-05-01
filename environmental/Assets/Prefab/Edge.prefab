@@ -408,7 +408,10 @@ MonoBehaviour:
   appearingToIdleDuration: 0
   lineGradientDriver: {fileID: 7317969583647972957}
   travelAlongEdgeSliderAcTargetPercent: 85.2
+  travelAlongEdgeSliderAbTargetPercent: 20
+  travelLineSliderAbRampAfterFromBlockedDuration: 0.25
   blockedSlidersRampDuration: 1
+  blockedSlidersRampDurationPlayRandomSubtractMax: 0.3
   fromNode: {fileID: 0}
   toNode: {fileID: 0}
   anchorsFollowLinkedNodes: 0
