@@ -84,6 +84,12 @@ public partial class Node : MonoBehaviour
     /// </summary>
     public event Action MapPostFullyBlockedGradientRampCompleted;
 
+    /// <summary>
+    /// Корень карты в Play: синхронно в начале основного ramp brown по слайдерам ноды (AB/AC), до первого <c>yield</c> корутины этого ramp.
+    /// Для привязки визуала исходящих рёбер к шкале времени именно ноды — см. <see cref="GameManager"/>.
+    /// </summary>
+    public event Action MapNodeBlockedMainBrownRampStarted;
+
     /// <summary>Стартовая точка обхода мини-карты (флаг в инспекторе).</summary>
     public bool IsMinimapStartNode => isMinimapStartNode;
 
@@ -600,6 +606,9 @@ public partial class Node : MonoBehaviour
 
     private IEnumerator CoMapNodeBlockedSlidersRamp()
     {
+        if (groupParent == null)
+            MapNodeBlockedMainBrownRampStarted?.Invoke();
+
         var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
         var n = drivers.Length;
         var ab0 = new float[n];
