@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// Задаёт свойства градиентного шейдера на указанном <see cref="SpriteRenderer"/> через <see cref="MaterialPropertyBlock"/>,
 /// чтобы один общий материал не менялся глобально — значения только у этого рендерера.
-/// Ожидаются те же имена, что у <c>Custom/URP/UnlitGradientRadialTwoSliders</c> (и линейного варианта): _ColorA, _ColorB, _ColorC, _BlendAB, _BlendAC, _SliderAB, _SliderAC.
+/// Ожидаются те же имена, что у <c>Custom/URP/UnlitGradientRadialTwoSliders</c> (и линейного): _ColorA…_SliderAC. Радиальный шейдер: круглая виньетка _EdgeVignetteStrength, _EdgeVignetteSoftness. Линейный (ребро): плюс _Ends* при необходимости.
 /// </summary>
 [ExecuteAlways]
 [DisallowMultipleComponent]

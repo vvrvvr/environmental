@@ -14,6 +14,10 @@ Shader "Custom/URP/UnlitGradientRadialTwoSliders"
 
         [Header(Texture)]
         _MainTex ("Texture", 2D) = "white" {}
+
+        [Header(Circular UV vignette)]
+        _EdgeVignetteStrength ("Darken toward sprite rim", Range(0, 1)) = 0.35
+        _EdgeVignetteSoftness ("Falloff from center (radial UV)", Range(0.001, 1)) = 0.25
     }
 
     SubShader
@@ -56,6 +60,8 @@ Shader "Custom/URP/UnlitGradientRadialTwoSliders"
                 float _BlendAC;
                 float _SliderAB;
                 float _SliderAC;
+                float _EdgeVignetteStrength;
+                float _EdgeVignetteSoftness;
             CBUFFER_END
 
             Varyings vert (Attributes IN)
@@ -69,10 +75,8 @@ Shader "Custom/URP/UnlitGradientRadialTwoSliders"
 
             half4 frag (Varyings IN) : SV_Target
             {
-                // 0 в центре UV-квадрата, 1 к углам (как у круга вписанного в [-1,1]²)
                 float2 fromCenter = (IN.uvMesh - float2(0.5, 0.5)) * 2.0;
                 float r = length(fromCenter);
-                // max r в углу квадрата [-1,1]² = sqrt(2); нормируем в [0,1]
                 float x = saturate(r * 0.70710678118);
 
                 float tAB = saturate(_SliderAB / 100.0);
@@ -89,6 +93,12 @@ Shader "Custom/URP/UnlitGradientRadialTwoSliders"
 
                 half4 tex = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uvTex);
                 finalCol *= tex;
+
+                // x = radial distance in UV (0 center, 1 at square corners); circular vignette
+                float mBright = saturate(1.0 - x);
+                float vEdge = lerp(1.0 - _EdgeVignetteStrength, 1.0, smoothstep(0.0, _EdgeVignetteSoftness, mBright));
+                finalCol.rgb *= vEdge;
+
                 return finalCol;
             }
 

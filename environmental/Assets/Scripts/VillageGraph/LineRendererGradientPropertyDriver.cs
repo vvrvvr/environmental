@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// Задаёт свойства градиентного шейдера на <see cref="LineRenderer"/> через <see cref="MaterialPropertyBlock"/>,
 /// чтобы один общий материал не менялся глобально — значения только у этого объекта.
-/// Ожидаются имена из <c>Custom/URP/UnlitGradientTwoSliders</c>: _ColorA, _ColorB, _ColorC, _BlendAB, _BlendAC, _SliderAB, _SliderAC.
+/// Ожидаются имена из <c>Custom/URP/UnlitGradientTwoSliders</c>: _ColorA…_SliderAC; виньетка по материалу: _EdgeVignetteStrength, _EdgeVignetteSoftness, _EndsVignetteStrength, _EndsVignetteSoftness.
 /// </summary>
 [ExecuteAlways]
 [DisallowMultipleComponent]
