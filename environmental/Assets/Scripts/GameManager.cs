@@ -1047,7 +1047,11 @@ public class GameManager : MonoBehaviour
             return;
 
         foreach (var os in otherStarts)
+        {
             os.ForceMapState(NodeMapState.Blocked);
+            // Иначе только стейт Blocked без ramp: входящих Blocked-рёбер нет, tally 0 — запускаем ту же brown-секвенцию, что при travel.
+            os.MapTryBeginBlockedNodeSlidersIfNoIncomingEdgeRampPending();
+        }
 
         // Рёбра, касающиеся не выбранных стартов: Disabled (линия скрыта), не Blocked — иначе ApplyCombinedVisual всегда показывает Blocked-ребро.
         var registry = ResolveMinimapEdgeRegistry();
