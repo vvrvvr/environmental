@@ -409,6 +409,25 @@ public class MinimapEdgeRegistry : MonoBehaviour
         _blockedAlternateBatchSecondPhaseCoroutine = StartCoroutine(CoBlockedAlternateBatchSecondPhaseAfterWait(snapshot, wait));
     }
 
+    /// <summary>
+    /// Сразу запускает вторую фазу ramp Blocked для рёбер (без ожидания из <see cref="ScheduleBlockedSlidersSecondPhaseAfterRampDuration"/>).
+    /// Для travel: «первая фаза» по смыслу уже отыграна (brown ноды-источника), затем альтернативы и ноды концов получают ramp в одном пакете.
+    /// </summary>
+    public void RunBlockedSlidersSecondPhaseForEdgesNow(IReadOnlyList<MinimapEdge> edges)
+    {
+        if (!Application.isPlaying || edges == null || edges.Count == 0)
+            return;
+
+        StopBlockedAlternateBatchSecondPhaseCoroutine();
+        for (var i = 0; i < edges.Count; i++)
+        {
+            var e = edges[i];
+            if (e == null || e.CurrentEdgeState != MinimapEdgeState.Blocked)
+                continue;
+            e.TryBeginBlockedSlidersRampSecondPhase();
+        }
+    }
+
     private void StopBlockedAlternateBatchSecondPhaseCoroutine()
     {
         if (_blockedAlternateBatchSecondPhaseCoroutine == null)

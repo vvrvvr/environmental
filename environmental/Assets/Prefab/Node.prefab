@@ -333,7 +333,7 @@ Transform:
   m_GameObject: {fileID: 6082926137204214183}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 4, y: 0, z: -4.25}
+  m_LocalPosition: {x: 4, y: 0, z: 0}
   m_LocalScale: {x: 1.2, y: 1.2, z: 1.2}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -471,6 +471,9 @@ MonoBehaviour:
   isMinimapStartNode: 0
   minimapVideoClip: {fileID: 32900000, guid: 0ee86963e82ac2d4a94e9397e6d2b5fa, type: 3}
   mapVisualPalette: {fileID: 11400000, guid: 72f6c27789d77f64c85bab67631f7efe, type: 2}
+  selectedMapSliderAcRampDuration: 0.35
+  mapNodeBlockedVisualSequenceDuration: 0.5
+  mapNodeBlockedIncomingEdgeAcFullSyncAcRampDuration: 0.25
   remainingTimeText: {fileID: 4393995131992128682}
   isGroupParent: 0
   groupParent: {fileID: 0}
