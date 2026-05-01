@@ -12,7 +12,10 @@ using UnityEngine.Video;
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
-
+    
+    [Tooltip("время, за которое скейлится нода при появлении")]
+    public float NodeAppearDuration = 0.4f;
+    
     [Header("Map")]
     [Tooltip("Камера, с которой строится луч для нод карты и прочего взаимодействия с картой.")]
     [SerializeField] private Camera mapCamera;
@@ -1049,7 +1052,7 @@ public class GameManager : MonoBehaviour
         foreach (var os in otherStarts)
         {
             os.ForceMapState(NodeMapState.Blocked);
-            // Иначе только стейт Blocked без ramp: входящих Blocked-рёбер нет, tally 0 — запускаем ту же brown-секвенцию, что при travel.
+            // Нет входящих Blocked-рёбер с ramp — иначе brown (AB/AC) на ноде не стартует.
             os.MapTryBeginBlockedNodeSlidersIfNoIncomingEdgeRampPending();
         }
 
@@ -1101,7 +1104,10 @@ public class GameManager : MonoBehaviour
                 continue;
             if (root.CurrentState == NodeMapState.Inactive)
                 continue;
+            if (otherStarts.Contains(root))
+                continue;
             root.ForceMapState(NodeMapState.Blocked);
+            root.MapTryBeginBlockedNodeSlidersIfNoIncomingEdgeRampPending();
         }
 
         if (logMinimapDiscovery)

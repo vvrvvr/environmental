@@ -3105,6 +3105,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b07366b6b57e494b89b482bca495579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  NodeAppearDuration: 0.4
   mapCamera: {fileID: 1377712549}
   minimapEdgeRegistry: {fileID: 1017511041}
   logMapNodeStateChanges: 0
