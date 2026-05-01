@@ -29,6 +29,8 @@ public partial class Node
     /// <summary>True, если нода в состоянии <see cref="NodeMapState.Selected"/>.</summary>
     public bool IsSelected => CurrentState == NodeMapState.Selected;
 
+    public Vector3 startScale;
+
     /// <summary>Вызывается из GameManager или UI: сменить состояние.</summary>
     public void SetState(NodeMapState newState)
     {
@@ -79,6 +81,24 @@ public partial class Node
 
     private void Start()
     {
+        if (isMinimapStartNode)
+        {
+            gameObject.transform.localScale = Vector3.zero;
+
+            var targetScale = startScale;
+            float delay = UnityEngine.Random.Range(0f, 1.5f);
+            DOVirtual.DelayedCall(delay, () =>
+            {
+                if (this == null)
+                    return;
+                ScaleNode(targetScale);
+            }).SetLink(gameObject);
+        }
+        else
+        {
+            gameObject.transform.localScale = Vector3.zero;
+        }
+        
         if (groupParent != null)
         {
             StartCoroutine(CoSyncFromParentOnStart());
@@ -199,6 +219,7 @@ public partial class Node
             case NodeMapState.Appearing:
                 enabled = true;
                 SetMapVisualAndCollidersActive(true);
+                ScaleNode(startScale);
                 ApplySelectionRingForState(state);
                 {
                     float delay = appearingToVisibleDelay <= 0f ? 1f : appearingToVisibleDelay;
@@ -250,6 +271,12 @@ public partial class Node
             default:
                 throw new ArgumentOutOfRangeException(nameof(state), state, null);
         }
+    }
+
+    private void ScaleNode(Vector3 scale)
+    {
+        var duration = GameManager.Instance.NodeAppearDuration;
+        gameObject.transform.DOScale(scale, duration);
     }
 
     private void ExitMapState(NodeMapState state, NodeMapState next)

@@ -62,14 +62,9 @@ public partial class Node : MonoBehaviour
 
     [Header("Map state: Blocked (gradient sliders)")]
     [Tooltip(
-        "Полная длительность (сек) основной секвенции блокировки ноды на карте: Slider AB доходит до 100% за всё это время; Slider AC — за долю ниже (как ramp Blocked на линии: AC быстрее). После входящих Blocked-рёбер — см. входящий ramp AC. Только корень группы.")]
+        "Длительность полной секвенции блокирования ноды на карте (сек): после того как все входящие рёбра в Blocked завершили свою секвенцию слайдеров на линии, у ноды Slider AC и AB за это время линейно идут от текущих значений до 100%. Только корень группы.")]
     [SerializeField, Min(0.01f)]
     private float mapNodeBlockedVisualSequenceDuration = 0.5f;
-
-    [Tooltip(
-        "Доля от полной длительности выше: за это время Slider AC доходит до 100%; AB всё равно за полную длительность. 1 = AC и AB синхронно (равномерно за всё время).")]
-    [SerializeField, Range(0.05f, 1f)]
-    private float mapNodeBlockedAcPhasePortionOfDuration = 0.33333334f;
 
     [Tooltip(
         "В Play, нода в Blocked: когда у входящего заблокированного ребра Slider AC на линии доходит до 100%, у ноды (корень группы) Slider AC за это время линейно идёт от 0 до 100 (синхрон с «пожелтением» ветки до конца).")]
@@ -163,6 +158,9 @@ public partial class Node : MonoBehaviour
 
     private void Awake()
     {
+        // До Start (где для нод ставится 0): иначе startScale в StateMachine кешируется уже нулём.
+        startScale = transform.localScale;
+
         if (mainSprite != null)
         {
             mainSpriteTransform = mainSprite.transform;
@@ -627,20 +625,17 @@ public partial class Node : MonoBehaviour
         }
 
         float dur = MapNodeBlockedSequenceDuration;
-        float acPortion = Mathf.Clamp(mapNodeBlockedAcPhasePortionOfDuration, 0.05f, 1f);
-        float acPhase = Mathf.Max(1e-5f, dur * acPortion);
         float t = 0f;
         while (t < dur)
         {
             t += Time.deltaTime;
-            float uAb = dur > 1e-6f ? Mathf.Clamp01(t / dur) : 1f;
-            float uAc = acPhase > 1e-6f ? Mathf.Clamp01(t / acPhase) : 1f;
+            float u = dur > 1e-6f ? Mathf.Clamp01(t / dur) : 1f;
             for (var i = 0; i < n; i++)
             {
                 if (drivers[i] == null)
                     continue;
-                drivers[i].SetSliderAB(Mathf.Lerp(ab0[i], 100f, uAb));
-                drivers[i].SetSliderAC(Mathf.Lerp(ac0[i], 100f, uAc));
+                drivers[i].SetSliderAB(Mathf.Lerp(ab0[i], 100f, u));
+                drivers[i].SetSliderAC(Mathf.Lerp(ac0[i], 100f, u));
             }
 
             yield return null;
