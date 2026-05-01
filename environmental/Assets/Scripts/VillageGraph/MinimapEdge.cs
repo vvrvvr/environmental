@@ -304,7 +304,7 @@ public class MinimapEdge : MonoBehaviour
             return;
         }
 
-        StopEdgePlayCoroutines();
+        StopEdgePlayCoroutines(next == MinimapEdgeState.Selected);
         var prevPlay = _currentState;
         if (prevPlay == MinimapEdgeState.Blocked && next != MinimapEdgeState.Blocked)
             StopBlockedSlidersRamp(restore: true);
@@ -510,11 +510,15 @@ public class MinimapEdge : MonoBehaviour
         _travelLineAbAfterBlockedCoroutine = null;
     }
 
-    private void StopEdgePlayCoroutines()
+    /// <param name="skipTravelLineAbAfterBlockedRampStop">
+    /// Если true: не останавливать ramp «чуть коричневого» начала линии после brown From. Нужно при IdleRevealed→Selected после короткого MovingAlong без видео — иначе Selected обрывает ramp до конца.
+    /// </param>
+    private void StopEdgePlayCoroutines(bool skipTravelLineAbAfterBlockedRampStop = false)
     {
         StopMovingIfAny();
         StopAppearingIfAny();
-        StopTravelLineAbAfterBlockedRamp();
+        if (!skipTravelLineAbAfterBlockedRampStop)
+            StopTravelLineAbAfterBlockedRamp();
     }
 
     private void StopMovingIfAny()
