@@ -40,6 +40,15 @@ public class GameManager : MonoBehaviour
     [SerializeField, Min(0f)]
     private float outgoingEdgeAppearStaggerMax = 0.35f;
 
+    [Header("Minimap travel — outgoing block visuals")]
+    [Tooltip(
+        "Смещение момента визуальной блокировки исходящих от From рёбер (вторая фаза ramp + лёгкий AB линии маршрута) относительно brown ноды From (не ребра). " +
+        "≥ 0: секунды после полного brown ноды — событие MapPostFullyBlockedGradientCompleted (0 — сразу). " +
+        "< 0: относительно старта основной brown-секвенции ноды (MapNodeBlockedMainBrownRampStarted): ждём max(0, MapNodeBlockedSequenceDuration + значение); " +
+        "например −0.1 при длительности 0.5 с — старт рёбер через 0.4 с после начала градиента на ноде (≈0.1 с до его конца).")]
+    [SerializeField]
+    private float outgoingBlockedEdgeVisualOffsetSeconds;
+
     [Header("Minimap video")]
     [Tooltip("Единый VideoPlayer для ролика выбранной ноды (выход на RawImage / Camera и т.д. настраивается на нём).")]
     [SerializeField] private VideoPlayer mapVideoPlayer;
@@ -55,13 +64,12 @@ public class GameManager : MonoBehaviour
     private Coroutine _mapTravelCoroutine;
 
     /// <summary>
-    /// Подписки на <see cref="Node.MapPostFullyBlockedGradientRampCompleted"/> для текущего travel (AB линии маршрута и вторая фаза альтернатив).
-    /// Событие может прийти после окончания <see cref="MinimapEdgeState.MovingAlongEdge"/> (короткий переход без видео на ребре) — не отписывать в <c>finally</c> корутины travel.
+    /// From-нода travel: подписка на конец brown (<see cref="Node.MapPostFullyBlockedGradientRampCompleted"/>, offset ≥ 0) или на старт основной brown (<see cref="Node.MapNodeBlockedMainBrownRampStarted"/>, offset &lt; 0), плюс корутина ожидания/запуска визуалов исходящих рёбер.
     /// </summary>
     private Node _mapTravelPostFullyBlockedListenerRoot;
-    private Action _mapTravelPostFullyBlockedForLineAb;
-    private Action _mapTravelPostFullyBlockedForAlternateSecondPhase;
-    private Coroutine _deferTravelLineAbAfterFromBrownCoroutine;
+    private Action _mapTravelPostFullyBlockedForOutgoingBlockVisuals;
+    private Action _mapTravelOnFromMainBrownRampStarted;
+    private Coroutine _outgoingBlockedEdgeVisualsCoroutine;
 
     /// <summary>Ребро последнего прибытия по карте: в Blocked переводится при следующем travel с его конечной ноды, а не сразу после MovingAlong.</summary>
     private MinimapEdge _pendingArrivalEdgeToBlockWhenLeavingEndNode;
@@ -367,7 +375,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// Исходящие от <paramref name="fromRoot"/> рёбра, кроме <paramref name="chosenEdge"/>: <see cref="MinimapEdgeState.Blocked"/> с подавленным ramp на входе.
     /// Если корень конца — «доступный сосед», сначала <see cref="NodeMapState.Blocked"/> у ноды, затем <see cref="MinimapEdgeRegistry.SetAllEdgesEndingAtMapRootToBlocked"/> (без ramp на каждом ребре).
-    /// Вторую фазу ramp для пакета вызывает <see cref="GameManager.CoMapSelectionTravel"/> после <see cref="Node.MapPostFullyBlockedGradientRampCompleted"/> у <paramref name="fromRoot"/>.
+    /// Вторую фазу ramp для пакета и AB линии маршрута планирует <see cref="GameManager.ScheduleOutgoingBlockedEdgeVisualsAfterFromBrown"/> (см. <see cref="outgoingBlockedEdgeVisualOffsetSeconds"/>).
     /// </summary>
     /// <returns>Список рёбер для <see cref="MinimapEdgeRegistry.RunBlockedSlidersSecondPhaseForEdgesNow"/>; null если пакета нет.</returns>
     private static List<MinimapEdge> BlockAlternateOutgoingPathsForMapTravel(MinimapEdgeRegistry registry, Node fromRoot, MinimapEdge chosenEdge)
@@ -532,71 +540,122 @@ public class GameManager : MonoBehaviour
 
     private void ClearMapTravelFromRootPostFullyBlockedListeners()
     {
-        if (_deferTravelLineAbAfterFromBrownCoroutine != null)
+        if (_outgoingBlockedEdgeVisualsCoroutine != null)
         {
-            StopCoroutine(_deferTravelLineAbAfterFromBrownCoroutine);
-            _deferTravelLineAbAfterFromBrownCoroutine = null;
+            StopCoroutine(_outgoingBlockedEdgeVisualsCoroutine);
+            _outgoingBlockedEdgeVisualsCoroutine = null;
         }
 
         var root = _mapTravelPostFullyBlockedListenerRoot;
-        if (root == null)
-            return;
-
-        if (_mapTravelPostFullyBlockedForLineAb != null)
+        if (root != null)
         {
-            root.MapPostFullyBlockedGradientRampCompleted -= _mapTravelPostFullyBlockedForLineAb;
-            _mapTravelPostFullyBlockedForLineAb = null;
-        }
+            if (_mapTravelPostFullyBlockedForOutgoingBlockVisuals != null)
+            {
+                root.MapPostFullyBlockedGradientRampCompleted -= _mapTravelPostFullyBlockedForOutgoingBlockVisuals;
+                _mapTravelPostFullyBlockedForOutgoingBlockVisuals = null;
+            }
 
-        if (_mapTravelPostFullyBlockedForAlternateSecondPhase != null)
-        {
-            root.MapPostFullyBlockedGradientRampCompleted -= _mapTravelPostFullyBlockedForAlternateSecondPhase;
-            _mapTravelPostFullyBlockedForAlternateSecondPhase = null;
+            if (_mapTravelOnFromMainBrownRampStarted != null)
+            {
+                root.MapNodeBlockedMainBrownRampStarted -= _mapTravelOnFromMainBrownRampStarted;
+                _mapTravelOnFromMainBrownRampStarted = null;
+            }
         }
 
         _mapTravelPostFullyBlockedListenerRoot = null;
     }
 
-    /// <summary>
-    /// AB линии маршрута после brown From: на следующий кадр — иначе повторный/пакетный код в том же кадре может вызвать
-    /// <see cref="MinimapEdge.ApplyTravelLineSliderAbAfterFromNodeFullyBlocked"/> дважды и первый <see cref="MinimapEdge"/>-корутин сразу остановить через StopTravelLineAbAfterBlockedRamp.
-    /// </summary>
-    private IEnumerator CoDeferTravelLineAbAfterFromBrown(MinimapEdge travelEdge)
+    private static void RunOutgoingBlockedEdgeVisuals(MinimapEdgeRegistry registry, List<MinimapEdge> altList, MinimapEdge travelEdge)
     {
-        yield return null;
-        _deferTravelLineAbAfterFromBrownCoroutine = null;
+        if (registry != null && altList != null && altList.Count > 0)
+            registry.RunBlockedSlidersSecondPhaseForEdgesNow(altList);
         if (travelEdge != null)
             travelEdge.ApplyTravelLineSliderAbAfterFromNodeFullyBlocked();
+    }
+
+    private IEnumerator CoWaitThenRunOutgoingBlockedEdgeVisuals(
+        float waitSeconds,
+        MinimapEdgeRegistry registry,
+        List<MinimapEdge> altList,
+        MinimapEdge travelEdge)
+    {
+        if (waitSeconds > 1e-5f)
+            yield return new WaitForSeconds(waitSeconds);
+        RunOutgoingBlockedEdgeVisuals(registry, altList, travelEdge);
+        _outgoingBlockedEdgeVisualsCoroutine = null;
+    }
+
+    /// <summary>
+    /// Планирует вторую фазу блокировки исходящих рёбер и AB линии маршрута; см. <see cref="outgoingBlockedEdgeVisualOffsetSeconds"/>.
+    /// </summary>
+    private void ScheduleOutgoingBlockedEdgeVisualsAfterFromBrown(
+        MinimapEdgeRegistry registry,
+        Node fromRoot,
+        MinimapEdge travelEdge,
+        List<MinimapEdge> delayedAlternateSecondPhase)
+    {
+        if (fromRoot == null || travelEdge == null)
+            return;
+
+        if (_outgoingBlockedEdgeVisualsCoroutine != null)
+        {
+            StopCoroutine(_outgoingBlockedEdgeVisualsCoroutine);
+            _outgoingBlockedEdgeVisualsCoroutine = null;
+        }
+
+        if (outgoingBlockedEdgeVisualOffsetSeconds < 0f)
+        {
+            Action onMainBrownRampStart = null;
+            onMainBrownRampStart = () =>
+            {
+                if (fromRoot != null && onMainBrownRampStart != null)
+                    fromRoot.MapNodeBlockedMainBrownRampStarted -= onMainBrownRampStart;
+                _mapTravelOnFromMainBrownRampStarted = null;
+
+                if (_outgoingBlockedEdgeVisualsCoroutine != null)
+                {
+                    StopCoroutine(_outgoingBlockedEdgeVisualsCoroutine);
+                    _outgoingBlockedEdgeVisualsCoroutine = null;
+                }
+
+                float w = Mathf.Max(0f, fromRoot.MapNodeBlockedSequenceDuration + outgoingBlockedEdgeVisualOffsetSeconds);
+                _outgoingBlockedEdgeVisualsCoroutine = StartCoroutine(
+                    CoWaitThenRunOutgoingBlockedEdgeVisuals(w, registry, delayedAlternateSecondPhase, travelEdge));
+            };
+
+            fromRoot.MapNodeBlockedMainBrownRampStarted += onMainBrownRampStart;
+            _mapTravelPostFullyBlockedListenerRoot = fromRoot;
+            _mapTravelOnFromMainBrownRampStarted = onMainBrownRampStart;
+            return;
+        }
+
+        Action onFromBrownComplete = null;
+        onFromBrownComplete = () =>
+        {
+            if (fromRoot != null && onFromBrownComplete != null)
+                fromRoot.MapPostFullyBlockedGradientRampCompleted -= onFromBrownComplete;
+            _mapTravelPostFullyBlockedForOutgoingBlockVisuals = null;
+
+            if (_outgoingBlockedEdgeVisualsCoroutine != null)
+            {
+                StopCoroutine(_outgoingBlockedEdgeVisualsCoroutine);
+                _outgoingBlockedEdgeVisualsCoroutine = null;
+            }
+
+            float d = Mathf.Max(0f, outgoingBlockedEdgeVisualOffsetSeconds);
+            _outgoingBlockedEdgeVisualsCoroutine = StartCoroutine(
+                CoWaitThenRunOutgoingBlockedEdgeVisuals(d, registry, delayedAlternateSecondPhase, travelEdge));
+        };
+
+        fromRoot.MapPostFullyBlockedGradientRampCompleted += onFromBrownComplete;
+        _mapTravelPostFullyBlockedListenerRoot = fromRoot;
+        _mapTravelPostFullyBlockedForOutgoingBlockVisuals = onFromBrownComplete;
     }
 
     private IEnumerator CoMapSelectionTravel(MinimapEdgeRegistry registry, Node fromRoot, Node toRoot, MinimapEdge edge)
     {
         _mapSelectionTravelInProgress = true;
         _suppressMapTravelSelectionClear = true;
-        Action onFromFullyBlockedGradientDone = null;
-        if (fromRoot != null && edge != null)
-        {
-            onFromFullyBlockedGradientDone = () =>
-            {
-                if (fromRoot != null && onFromFullyBlockedGradientDone != null)
-                    fromRoot.MapPostFullyBlockedGradientRampCompleted -= onFromFullyBlockedGradientDone;
-                _mapTravelPostFullyBlockedForLineAb = null;
-                if (_mapTravelPostFullyBlockedForAlternateSecondPhase == null)
-                    _mapTravelPostFullyBlockedListenerRoot = null;
-
-                if (edge != null)
-                {
-                    if (_deferTravelLineAbAfterFromBrownCoroutine != null)
-                        StopCoroutine(_deferTravelLineAbAfterFromBrownCoroutine);
-                    _deferTravelLineAbAfterFromBrownCoroutine = StartCoroutine(CoDeferTravelLineAbAfterFromBrown(edge));
-                }
-            };
-            fromRoot.MapPostFullyBlockedGradientRampCompleted += onFromFullyBlockedGradientDone;
-            _mapTravelPostFullyBlockedListenerRoot = fromRoot;
-            _mapTravelPostFullyBlockedForLineAb = onFromFullyBlockedGradientDone;
-        }
-
-        Action scheduleAlternateBlockedSecondPhaseAfterFromBrown = null;
 
         try
         {
@@ -606,33 +665,13 @@ public class GameManager : MonoBehaviour
             if (ring > 0f)
                 yield return new WaitForSeconds(ring);
             fromRoot.ForceMapState(NodeMapState.Blocked);
+            // Подписку на brown From (MapPost / MapNodeBlockedMainBrownRampStarted) вешаем до TryBlock/MapTryBegin: иначе при старте со старта
+            // MapTryBegin синхронно запускает ramp и MapNodeBlockedMainBrownRampStarted срабатывает до подписки — альтернативы и AB линии маршрута не запускаются.
+            ScheduleOutgoingBlockedEdgeVisualsAfterFromBrown(registry, fromRoot, edge, delayedAlternateSecondPhase);
             // После входа в Blocked: сброс счётчика входящих ramp. Блокировку «ребра прибытия» делаем здесь же — иначе RampBegin до Blocked,
             // затем Enter Blocked обнуляет счётчик, и сценарий без pending (старт без prior travel) никогда не вызывает Complete → нет brown на ноде.
             TryBlockPendingArrivalEdgeWhenLeavingEndNode(registry, fromRoot);
             fromRoot.MapTryBeginBlockedNodeSlidersIfNoIncomingEdgeRampPending();
-
-            if (delayedAlternateSecondPhase != null &&
-                delayedAlternateSecondPhase.Count > 0 &&
-                fromRoot != null &&
-                registry != null)
-            {
-                var altList = delayedAlternateSecondPhase;
-                var reg = registry;
-                scheduleAlternateBlockedSecondPhaseAfterFromBrown = () =>
-                {
-                    if (fromRoot != null && scheduleAlternateBlockedSecondPhaseAfterFromBrown != null)
-                        fromRoot.MapPostFullyBlockedGradientRampCompleted -= scheduleAlternateBlockedSecondPhaseAfterFromBrown;
-                    if (reg != null && altList != null && altList.Count > 0)
-                        reg.RunBlockedSlidersSecondPhaseForEdgesNow(altList);
-                    _mapTravelPostFullyBlockedForAlternateSecondPhase = null;
-                    if (_mapTravelPostFullyBlockedForLineAb == null)
-                        _mapTravelPostFullyBlockedListenerRoot = null;
-                };
-                fromRoot.MapPostFullyBlockedGradientRampCompleted += scheduleAlternateBlockedSecondPhaseAfterFromBrown;
-                if (_mapTravelPostFullyBlockedListenerRoot == null)
-                    _mapTravelPostFullyBlockedListenerRoot = fromRoot;
-                _mapTravelPostFullyBlockedForAlternateSecondPhase = scheduleAlternateBlockedSecondPhaseAfterFromBrown;
-            }
 
             edge.SetEdgeState(MinimapEdgeState.MovingAlongEdge, forceLog: false, MinimapEdgeState.IdleRevealed);
             while (edge.CurrentEdgeState == MinimapEdgeState.MovingAlongEdge)
