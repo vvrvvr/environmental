@@ -124,7 +124,19 @@ public class VillageGraphPhysicsSetup : MonoBehaviour
             }
 
             var hinge = AddHingeJoint(from.gameObject);
+
+            // Auto Configure Connected Anchor пересчитывает привязку и в ряде случаев искажает axis в инспекторе / при первом шаге физики.
+            hinge.autoConfigureConnectedAnchor = false;
+
+            Transform fromRbT = fromRb.transform;
+            hinge.anchor = fromRbT.InverseTransformPoint(start.position);
+
+            var axisLocal = ResolveHingeAxisLocal(fromRbT, start, end);
+            hinge.axis = axisLocal.sqrMagnitude > 1e-10f ? axisLocal.normalized : Vector3.up;
+
             hinge.connectedBody = toRb;
+            hinge.connectedAnchor = toRb.transform.InverseTransformPoint(start.position);
+
             hinge.enableCollision = hingeEnableCollision;
             hinge.useSpring = hingeUseSpring;
             hinge.spring = new JointSpring
@@ -135,11 +147,6 @@ public class VillageGraphPhysicsSetup : MonoBehaviour
             };
             hinge.useLimits = hingeUseLimits;
             hinge.limits = hingeLimits;
-            hinge.autoConfigureConnectedAnchor = true;
-
-            var fromT = from.transform;
-            hinge.anchor = fromT.InverseTransformPoint(start.position);
-            hinge.axis = ResolveHingeAxisLocal(fromT, start, end);
 
             generatedHinges.Add(hinge);
         }
