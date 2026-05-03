@@ -1,12 +1,15 @@
+// Assign a RenderTexture or Texture2D to _MainTex (Unity uses the same 2D slot for both).
 Shader "Custom/URP/TextureHeightDisplacement"
 {
     Properties
     {
-        _MainTex ("Texture height luminance", 2D) = "gray" {}
+        [NoScaleOffset]
+        _MainTex ("Render texture (Texture2D also works)", 2D) = "black" {}
         _BaseColor ("Tint", Color) = (1,1,1,1)
         _DisplacementStrength ("Displacement strength", Range(0, 10000)) = 0.15
         _HeightCenter ("Height center luminance", Range(0, 1)) = 0.5
         _HeightSmooth ("Height smooth (less spikes within color)", Range(0, 1)) = 0
+        [Toggle] _InvertHeight ("Invert height (bright vs dark relief)", Float) = 0
         _NormalFromHeightScale ("Normal from height", Range(0, 8)) = 2
         _Smoothness ("Smoothness", Range(0, 1)) = 0.3
         _Metallic ("Metallic", Range(0, 1)) = 0
@@ -63,6 +66,7 @@ Shader "Custom/URP/TextureHeightDisplacement"
                 float _DisplacementStrength;
                 float _HeightCenter;
                 float _HeightSmooth;
+                float _InvertHeight;
                 float _NormalFromHeightScale;
                 float _Smoothness;
                 float _Metallic;
@@ -78,19 +82,24 @@ Shader "Custom/URP/TextureHeightDisplacement"
             {
                 float raw = SampleHeightRaw(uv);
                 float g = saturate(_HeightSmooth);
+                float h;
                 if (g <= 1e-5)
-                    return raw;
+                    h = raw;
+                else
+                {
+                    float2 ts = max(_MainTex_TexelSize.xy, float2(1e-6, 1e-6));
+                    float2 r = ts * (1.0 + g * 14.0);
 
-                float2 ts = max(_MainTex_TexelSize.xy, float2(1e-6, 1e-6));
-                float2 r = ts * (1.0 + g * 14.0);
+                    float sum = raw;
+                    sum += SampleHeightRaw(uv + float2(r.x, 0));
+                    sum += SampleHeightRaw(uv - float2(r.x, 0));
+                    sum += SampleHeightRaw(uv + float2(0, r.y));
+                    sum += SampleHeightRaw(uv - float2(0, r.y));
+                    float avg = sum * (1.0 / 5.0);
+                    h = lerp(raw, avg, g);
+                }
 
-                float sum = raw;
-                sum += SampleHeightRaw(uv + float2(r.x, 0));
-                sum += SampleHeightRaw(uv - float2(r.x, 0));
-                sum += SampleHeightRaw(uv + float2(0, r.y));
-                sum += SampleHeightRaw(uv - float2(0, r.y));
-                float avg = sum * (1.0 / 5.0);
-                return lerp(raw, avg, g);
+                return lerp(h, 1.0 - h, saturate(_InvertHeight));
             }
 
             Varyings vert(Attributes input)
@@ -198,6 +207,7 @@ Shader "Custom/URP/TextureHeightDisplacement"
                 float _DisplacementStrength;
                 float _HeightCenter;
                 float _HeightSmooth;
+                float _InvertHeight;
                 float _NormalFromHeightScale;
                 float _Smoothness;
                 float _Metallic;
@@ -213,18 +223,23 @@ Shader "Custom/URP/TextureHeightDisplacement"
             {
                 float raw = ShadowSampleHeightRaw(uv);
                 float g = saturate(_HeightSmooth);
+                float h;
                 if (g <= 1e-5)
-                    return raw;
+                    h = raw;
+                else
+                {
+                    float2 ts = max(_MainTex_TexelSize.xy, float2(1e-6, 1e-6));
+                    float2 r = ts * (1.0 + g * 14.0);
+                    float sum = raw;
+                    sum += ShadowSampleHeightRaw(uv + float2(r.x, 0));
+                    sum += ShadowSampleHeightRaw(uv - float2(r.x, 0));
+                    sum += ShadowSampleHeightRaw(uv + float2(0, r.y));
+                    sum += ShadowSampleHeightRaw(uv - float2(0, r.y));
+                    float avg = sum * (1.0 / 5.0);
+                    h = lerp(raw, avg, g);
+                }
 
-                float2 ts = max(_MainTex_TexelSize.xy, float2(1e-6, 1e-6));
-                float2 r = ts * (1.0 + g * 14.0);
-                float sum = raw;
-                sum += ShadowSampleHeightRaw(uv + float2(r.x, 0));
-                sum += ShadowSampleHeightRaw(uv - float2(r.x, 0));
-                sum += ShadowSampleHeightRaw(uv + float2(0, r.y));
-                sum += ShadowSampleHeightRaw(uv - float2(0, r.y));
-                float avg = sum * (1.0 / 5.0);
-                return lerp(raw, avg, g);
+                return lerp(h, 1.0 - h, saturate(_InvertHeight));
             }
 
             ShadowVaryings ShadowVert(ShadowAttributes input)
