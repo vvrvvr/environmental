@@ -148,6 +148,10 @@ public class MinimapEdge : MonoBehaviour
 #endif
     }
 
+    /// <summary>Длительность фазы <see cref="MinimapEdgeState.Appearing"/> в секундах (как в <c>CoAppearingThenIdle</c>: 0 в инспекторе → 1 с).</summary>
+    public float AppearingPhaseDurationSeconds =>
+        appearingToIdleDuration <= 0f ? 1f : appearingToIdleDuration;
+
     /// <summary>Длительность фазы <see cref="MinimapEdgeState.MovingAlongEdge"/> (длина клипа ребра или fallback в инспекторе).</summary>
     public float MovingAlongEdgeDuration => ComputeTravelDurationSeconds();
 
