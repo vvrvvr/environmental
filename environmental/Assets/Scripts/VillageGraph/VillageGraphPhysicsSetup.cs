@@ -12,7 +12,8 @@ public enum VillageGraphHingeAxisMode
 
 /// <summary>
 /// Первая итерация «физичного графа»: по рёбрам из <see cref="MinimapEdgeRegistry"/> на нодах-источниках
-/// создаются <see cref="HingeJoint"/> (по одному на исходящее ребро со стартовым якорем), <c>connectedBody</c> — Rigidbody ноды на конце ребра.
+/// создаются <see cref="HingeJoint"/> (по одному на исходящее ребро со стартовым якорем), <c>connectedBody</c> — Rigidbody ноды на конце ребра;
+/// при заданном префабе — инстанс коллайдера ребра как дочерний объект <see cref="MinimapEdge.ToNode"/> в середине между якорями.
 /// </summary>
 [DisallowMultipleComponent]
 public class VillageGraphPhysicsSetup : MonoBehaviour
@@ -71,12 +72,31 @@ public class VillageGraphPhysicsSetup : MonoBehaviour
     [SerializeField]
     private JointLimits hingeLimits;
 
+    [Header("Edge collider")]
+    [Tooltip("Префаб коллайдера ребра: дочерний объект ToNode, центр — середина между якорями, локальная +Y вдоль ребра. После спавна scale.y подгоняется под целевую длину (см. отступ).")]
+    [SerializeField]
+    private GameObject edgeColliderPrefab;
+
+    [Tooltip("Отступ вдоль ребра с каждого конца (мир). Целевая длина капсулы = расстояние между якорями − 2×отступ (например ребро 10 и отступ 1 → длина 8). Центр и ориентация — по полному ребру.")]
+    [SerializeField, Min(0f)]
+    private float edgeColliderLengthEndOffset;
+
+    [Tooltip(
+        "Во время фазы Appearing префаб коллайдера ребра дополнительно смещается вдоль ребра к началу (против конечного якоря) на долю длины ребра между якорями, затем за то же время, что и рост scale.y, возвращается к нулевому смещению. " +
+        "0 — без сдвига; 100 — на полную длину ребра. Пример для сдвига на половину длины коллайдера в мире: 100 × (половина длины префаба после сборки / длина ребра между якорями).")]
+    [SerializeField, Range(0f, 100f)]
+    private float edgeColliderAppearShiftBackPercentOfEdgeLength = 50f;
+
     [Tooltip("Созданные в последней сборке шарниры (для кнопки «Удалить»).")]
     [SerializeField]
     private List<HingeJoint> generatedHinges = new List<HingeJoint>();
 
     [SerializeField]
     private List<Rigidbody> generatedRigidbodies = new List<Rigidbody>();
+
+    [Tooltip("Инстансы префаба коллайдера ребра (удаляются вместе с графом).")]
+    [SerializeField]
+    private List<GameObject> generatedEdgeColliderInstances = new List<GameObject>();
 
     public IReadOnlyList<HingeJoint> GeneratedHinges => generatedHinges;
 
@@ -149,14 +169,27 @@ public class VillageGraphPhysicsSetup : MonoBehaviour
             hinge.limits = hingeLimits;
 
             generatedHinges.Add(hinge);
+
+            var colliderGo = InstantiateEdgeColliderUnderTo(edge, to, start.position, end.position);
+            if (colliderGo != null)
+                generatedEdgeColliderInstances.Add(colliderGo);
         }
     }
 
     /// <summary>
-    /// Удалить добавленные шарниры и Rigidbody, созданные этим компонентом при последней сборке.
+    /// Удалить добавленные шарниры, Rigidbody и инстансы коллайдера ребра, созданные этим компонентом при последней сборке.
     /// </summary>
     public void DestroyPhysicalGraph()
     {
+        for (var i = 0; i < generatedEdgeColliderInstances.Count; i++)
+        {
+            var go = generatedEdgeColliderInstances[i];
+            if (go != null)
+                DestroyEdgeColliderInstanceSafe(go);
+        }
+
+        generatedEdgeColliderInstances.Clear();
+
         for (var i = 0; i < generatedHinges.Count; i++)
         {
             var h = generatedHinges[i];
@@ -198,6 +231,113 @@ public class VillageGraphPhysicsSetup : MonoBehaviour
         }
 #endif
         Destroy(rb);
+    }
+
+    private void DestroyEdgeColliderInstanceSafe(GameObject go)
+    {
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            Undo.DestroyObjectImmediate(go);
+            return;
+        }
+#endif
+        Destroy(go);
+    }
+
+    private GameObject InstantiateEdgeColliderUnderTo(MinimapEdge edge, Node to, Vector3 worldStart, Vector3 worldEnd)
+    {
+        if (edgeColliderPrefab == null || to == null || edge == null)
+            return null;
+
+        var anchorDistance = Vector3.Distance(worldStart, worldEnd);
+        anchorDistance = Mathf.Max(anchorDistance, 1e-5f);
+        var targetCapsuleLength = anchorDistance - 2f * edgeColliderLengthEndOffset;
+        targetCapsuleLength = Mathf.Max(targetCapsuleLength, 1e-5f);
+
+        var mid = (worldStart + worldEnd) * 0.5f;
+        var rot = RotationWorldYAlongEdge(worldStart, worldEnd);
+
+        GameObject go;
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            go = (GameObject)PrefabUtility.InstantiatePrefab(edgeColliderPrefab);
+            if (go == null)
+                return null;
+            Undo.RegisterCreatedObjectUndo(go, "Graph edge collider");
+            go.transform.SetPositionAndRotation(mid, rot);
+            go.transform.SetParent(to.transform, true);
+        }
+        else
+#endif
+        {
+            go = Instantiate(edgeColliderPrefab, mid, rot, to.transform);
+        }
+
+        ScaleEdgeColliderRootYToTargetLength(go.transform, targetCapsuleLength);
+
+        var driver = go.GetComponent<VillageGraphEdgeEndColliderDriver>();
+        if (driver == null)
+            driver = go.AddComponent<VillageGraphEdgeEndColliderDriver>();
+        driver.Configure(edge, edgeColliderAppearShiftBackPercentOfEdgeLength);
+
+        return go;
+    }
+
+    /// <summary>
+    /// Инстанс уже повёрнут: <c>root.up</c> вдоль ребра. Меряем коллайдеры вдоль up, затем <c>localScale.y *= targetLength / текущаяДлина</c>.
+    /// </summary>
+    private static void ScaleEdgeColliderRootYToTargetLength(Transform root, float targetLengthAlongEdge)
+    {
+        if (root == null)
+            return;
+
+        var current = MeasureColliderWorldExtentAlongAxis(root, root.up);
+        if (current < 1e-5f)
+            current = 1f;
+
+        var sc = root.localScale;
+        sc.y *= targetLengthAlongEdge / current;
+        root.localScale = sc;
+    }
+
+    private static float MeasureColliderWorldExtentAlongAxis(Transform root, Vector3 axisWorld)
+    {
+        var cols = root.GetComponentsInChildren<Collider>(true);
+        if (cols == null || cols.Length == 0)
+            return 0f;
+
+        var w = cols[0].bounds;
+        for (var i = 1; i < cols.Length; i++)
+            w.Encapsulate(cols[i].bounds);
+
+        var up = axisWorld.normalized;
+        var c = w.center;
+        var e = w.extents;
+        var minP = float.MaxValue;
+        var maxP = float.MinValue;
+        for (var dx = -1; dx <= 1; dx += 2)
+        for (var dy = -1; dy <= 1; dy += 2)
+        for (var dz = -1; dz <= 1; dz += 2)
+        {
+            var corner = c + new Vector3(dx * e.x, dy * e.y, dz * e.z);
+            var p = Vector3.Dot(corner, up);
+            if (p < minP)
+                minP = p;
+            if (p > maxP)
+                maxP = p;
+        }
+
+        return Mathf.Max(0f, maxP - minP);
+    }
+
+    private static Quaternion RotationWorldYAlongEdge(Vector3 worldStart, Vector3 worldEnd)
+    {
+        var dir = worldEnd - worldStart;
+        if (dir.sqrMagnitude < 1e-10f)
+            return Quaternion.identity;
+        return Quaternion.FromToRotation(Vector3.up, dir.normalized);
     }
 
     private static HingeJoint AddHingeJoint(GameObject host)
