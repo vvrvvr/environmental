@@ -285,7 +285,14 @@ public partial class Node : MonoBehaviour
         if (!Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~0, QueryTriggerInteraction.Collide))
             return false;
 
-        return hit.collider != null && hit.collider.GetComponentInParent<Node>() == this;
+        if (hit.collider == null)
+            return false;
+
+        // Коллайдер конца ребра часто под дочерним объектом ноды: первый hit всё равно даёт parent Node == this.
+        if (hit.collider.GetComponentInParent<VillageGraphEdgeEndColliderDriver>() != null)
+            return false;
+
+        return hit.collider.GetComponentInParent<Node>() == this;
     }
 
     private void OnTriggerEnter(Collider other)

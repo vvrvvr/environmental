@@ -31,4 +31,13 @@ public static class MinimapEdgeStateUtil
     /// <summary>Состояния с полной линией как у Idle (до скрытия под Appearing / stagger).</summary>
     public static bool IsFullLineIdleLike(MinimapEdgeState s) =>
         s == MinimapEdgeState.Idle || s == MinimapEdgeState.IdleRevealed || s == MinimapEdgeState.Selected;
+
+    /// <summary>
+    /// В Play: коллайдер конца ребра на карте не должен ловить указатель в фазах без стабильной линии
+    /// (<see cref="MinimapEdgeState.Disabled"/>, <see cref="MinimapEdgeState.Appearing"/>, <see cref="MinimapEdgeState.MovingAlongEdge"/>).
+    /// </summary>
+    public static bool AllowsMapEdgeEndColliderPointer(MinimapEdgeState s) =>
+        s != MinimapEdgeState.Disabled &&
+        s != MinimapEdgeState.Appearing &&
+        s != MinimapEdgeState.MovingAlongEdge;
 }

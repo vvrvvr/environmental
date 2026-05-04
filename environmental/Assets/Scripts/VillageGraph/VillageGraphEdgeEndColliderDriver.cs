@@ -14,6 +14,9 @@ public sealed class VillageGraphEdgeEndColliderDriver : MonoBehaviour
     [SerializeField]
     private MinimapEdge boundMinimapEdge;
 
+    /// <summary>Ребро, к которому привязан этот коллайдер (после <see cref="Configure"/>).</summary>
+    public MinimapEdge BoundMinimapEdge => boundMinimapEdge;
+
     [Header("Debug cache (при первом Appearing)")]
     [SerializeField]
     private float cachedPlannedLocalScaleY;
