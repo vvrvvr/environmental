@@ -282,6 +282,9 @@ public class VillageGraphPhysicsSetup : MonoBehaviour
             driver = go.AddComponent<VillageGraphEdgeEndColliderDriver>();
         driver.Configure(edge, edgeColliderAppearShiftBackPercentOfEdgeLength);
 
+        if (go.GetComponent<VillageGraphEdgeColliderMapPointer>() == null)
+            go.AddComponent<VillageGraphEdgeColliderMapPointer>();
+
         return go;
     }
 
