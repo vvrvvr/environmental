@@ -221,7 +221,7 @@ GameObject:
   - component: {fileID: 3444121213487322065}
   - component: {fileID: 4058547363084488542}
   - component: {fileID: 2903653797941745021}
-  m_Layer: 6
+  m_Layer: 7
   m_Name: line name
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -468,7 +468,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.4
+        value: 0.3
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -477,7 +477,7 @@ LineRenderer:
         outWeight: 0.17701767
       - serializedVersion: 3
         time: 1
-        value: 0.4
+        value: 0.3
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -559,7 +559,7 @@ GameObject:
   - component: {fileID: 4899454520782731355}
   - component: {fileID: 2239831321556732835}
   - component: {fileID: 8628564525010780788}
-  m_Layer: 6
+  m_Layer: 7
   m_Name: Canvas (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
