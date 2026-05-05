@@ -1,53 +1,56 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
-/// Общая палитра визуала графа карты: общие цвета градиента рёбер (A/B/C) и нод (A/B/C).
+/// Общая палитра визуала графа карты: единые цвета градиента A/B/C для рёбер и нод.
 /// На сцене цвета задаются через <see cref="LineRendererGradientPropertyDriver"/> и <see cref="SpriteRendererGradientPropertyDriver"/>;
 /// кнопки в инспекторе ассета копируют A/B/C в драйверы всех рёбер/нод, ссылающихся на эту палитру.
 /// </summary>
 [CreateAssetMenu(fileName = "MinimapGraphVisualPalette", menuName = "Environmental/Minimap Graph Visual Palette", order = 10)]
 public class MinimapGraphVisualPalette : ScriptableObject
 {
-    [Header("Рёбра — градиент (Color A / B / C для шейдера)")]
-    [SerializeField] private Color edgeGradientColorA = Color.white;
-    [SerializeField] private Color edgeGradientColorB = new Color(1f, 0.25f, 0.25f, 1f);
-    [SerializeField] private Color edgeGradientColorC = new Color(0.25f, 0.45f, 1f, 1f);
+    [Header("Градиент (Color A / B / C для шейдера)")]
+    [FormerlySerializedAs("edgeGradientColorA")]
+    [FormerlySerializedAs("nodeGradientColorA")]
+    [SerializeField] private Color gradientColorA = Color.white;
 
-    public Color EdgeGradientColorA => edgeGradientColorA;
-    public Color EdgeGradientColorB => edgeGradientColorB;
-    public Color EdgeGradientColorC => edgeGradientColorC;
+    [FormerlySerializedAs("edgeGradientColorB")]
+    [FormerlySerializedAs("nodeGradientColorB")]
+    [SerializeField] private Color gradientColorB = new Color(1f, 0.25f, 0.25f, 1f);
 
-    public void GetEdgeGradientColors(out Color colorA, out Color colorB, out Color colorC)
+    [FormerlySerializedAs("edgeGradientColorC")]
+    [FormerlySerializedAs("nodeGradientColorC")]
+    [SerializeField] private Color gradientColorC = new Color(0.25f, 0.45f, 1f, 1f);
+
+    public Color GradientColorA => gradientColorA;
+    public Color GradientColorB => gradientColorB;
+    public Color GradientColorC => gradientColorC;
+
+    public void GetGradientColors(out Color colorA, out Color colorB, out Color colorC)
     {
-        colorA = edgeGradientColorA;
-        colorB = edgeGradientColorB;
-        colorC = edgeGradientColorC;
+        colorA = gradientColorA;
+        colorB = gradientColorB;
+        colorC = gradientColorC;
     }
 
-    [Header("Ноды — градиент (Color A / B / C для шейдера)")]
-    [SerializeField] private Color nodeGradientColorA = Color.white;
-    [SerializeField] private Color nodeGradientColorB = new Color(1f, 0.25f, 0.25f, 1f);
-    [SerializeField] private Color nodeGradientColorC = new Color(0.25f, 0.45f, 1f, 1f);
+    // Совместимость со старым API: теперь ноды и рёбра читают один и тот же набор A/B/C.
+    public Color EdgeGradientColorA => gradientColorA;
+    public Color EdgeGradientColorB => gradientColorB;
+    public Color EdgeGradientColorC => gradientColorC;
+    public Color NodeGradientColorA => gradientColorA;
+    public Color NodeGradientColorB => gradientColorB;
+    public Color NodeGradientColorC => gradientColorC;
 
-    public Color NodeGradientColorA => nodeGradientColorA;
-    public Color NodeGradientColorB => nodeGradientColorB;
-    public Color NodeGradientColorC => nodeGradientColorC;
+    public void GetEdgeGradientColors(out Color colorA, out Color colorB, out Color colorC) =>
+        GetGradientColors(out colorA, out colorB, out colorC);
 
-    public void GetNodeGradientColors(out Color colorA, out Color colorB, out Color colorC)
-    {
-        colorA = nodeGradientColorA;
-        colorB = nodeGradientColorB;
-        colorC = nodeGradientColorC;
-    }
+    public void GetNodeGradientColors(out Color colorA, out Color colorB, out Color colorC) =>
+        GetGradientColors(out colorA, out colorB, out colorC);
 
     private void Reset()
     {
-        edgeGradientColorA = Color.white;
-        edgeGradientColorB = new Color(1f, 0.25f, 0.25f, 1f);
-        edgeGradientColorC = new Color(0.25f, 0.45f, 1f, 1f);
-
-        nodeGradientColorA = Color.white;
-        nodeGradientColorB = new Color(1f, 0.25f, 0.25f, 1f);
-        nodeGradientColorC = new Color(0.25f, 0.45f, 1f, 1f);
+        gradientColorA = Color.white;
+        gradientColorB = new Color(1f, 0.25f, 0.25f, 1f);
+        gradientColorC = new Color(0.25f, 0.45f, 1f, 1f);
     }
 }
