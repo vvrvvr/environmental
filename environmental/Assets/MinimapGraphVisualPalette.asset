@@ -12,9 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5017b902307f0ec45a48abd568988757, type: 3}
   m_Name: MinimapGraphVisualPalette
   m_EditorClassIdentifier: 
-  edgeGradientColorA: {r: 0.95294124, g: 0.47450984, b: 0, a: 1}
-  edgeGradientColorB: {r: 0.9490197, g: 0.8313726, b: 0.054901965, a: 1}
-  edgeGradientColorC: {r: 0.6039216, g: 0.97647065, b: 0.24705884, a: 1}
-  nodeGradientColorA: {r: 0.95294124, g: 0.47450984, b: 0, a: 1}
-  nodeGradientColorB: {r: 0.9490197, g: 0.8313726, b: 0.054901965, a: 1}
-  nodeGradientColorC: {r: 0.6039216, g: 0.97647065, b: 0.24705884, a: 1}
+  gradientColorA: {r: 0.7254902, g: 0.58337665, b: 0.28627452, a: 1}
+  gradientColorB: {r: 0.9529412, g: 0.87730885, b: 0.3725491, a: 1}
+  gradientColorC: {r: 0.59101284, g: 0.79622644, b: 0.34102526, a: 1}

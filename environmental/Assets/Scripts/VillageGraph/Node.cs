@@ -101,6 +101,7 @@ public partial class Node : MonoBehaviour
 
     /// <summary>Палитра визуала карты для этой ноды.</summary>
     public MinimapGraphVisualPalette MapVisualPalette => mapVisualPalette;
+    public SpriteRenderer SelectionRingRenderer => selectionRing;
 
     /// <summary>Назначить палитру и применить A/B/C к <see cref="SpriteRendererGradientPropertyDriver"/> на ноде (если палитра не null).</summary>
     public void SetMapVisualPalette(MinimapGraphVisualPalette palette)
@@ -126,13 +127,15 @@ public partial class Node : MonoBehaviour
     {
         if (mapVisualPalette == null)
             return;
-        mapVisualPalette.GetNodeGradientColors(out var ca, out var cb, out var cc);
+        mapVisualPalette.GetGradientColors(out var ca, out var cb, out var cc);
         var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
         for (var i = 0; i < drivers.Length; i++)
         {
             if (drivers[i] != null)
                 drivers[i].SetColorsABC(ca, cb, cc);
         }
+        if (selectionRing != null)
+            selectionRing.color = cb;
     }
 
     [Header("UI")]
