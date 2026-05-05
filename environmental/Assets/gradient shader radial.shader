@@ -94,7 +94,6 @@ Shader "Custom/URP/UnlitGradientRadialTwoSliders"
                 half4 tex = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uvTex);
                 finalCol *= tex;
 
-                // x = radial distance in UV (0 center, 1 at square corners); circular vignette
                 float mBright = saturate(1.0 - x);
                 float vEdge = lerp(1.0 - _EdgeVignetteStrength, 1.0, smoothstep(0.0, _EdgeVignetteSoftness, mBright));
                 finalCol.rgb *= vEdge;

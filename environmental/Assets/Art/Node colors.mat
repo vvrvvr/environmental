@@ -21,7 +21,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Node colors
-  m_Shader: {fileID: 4800000, guid: 3a7c5959be825e24bae1d9a65dc9d37e, type: 3}
+  m_Shader: {fileID: 4800000, guid: 18723c3ece22fe847bf2ec58a29c9823, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -112,16 +112,29 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendAlpha: 0
-    - _EdgeVignetteSoftness: 0.545
-    - _EdgeVignetteStrength: 1
+    - _EdgeVignetteSoftness: 0.513
+    - _EdgeVignetteStrength: 0
+    - _EndsVignetteSoftness: 0.569
+    - _EndsVignetteStrength: 0.315
     - _EnvironmentReflections: 1
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
+    - _GraphSsColorSens: 4.3
+    - _GraphSsDepthSens: 1443
+    - _GraphSsPixelRadius: 7.28
+    - _GraphSsStrength: 0.84
+    - _GraphUnifiedBlend: 0.391
+    - _GraphVisualMode: 0
     - _Metallic: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.005
     - _QueueOffset: 0
+    - _RadialBehindFade: 0.144
+    - _RadialBehindGapMax: 2.37
+    - _RadialBehindMinGap: 0.0351
+    - _RadialJointGapSign: 0.55
+    - _RadialJointRimSuppress: 0.59
     - _ReceiveShadows: 1
     - _Slider: 75.5
     - _SliderAB: 0

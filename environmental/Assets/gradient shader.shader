@@ -48,7 +48,7 @@ Shader "Custom/URP/UnlitGradientTwoSliders"
             struct Varyings
             {
                 float4 positionHCS : SV_POSITION;
-                float2 uvLine      : TEXCOORD0; // x along line (gradient), y across ribbon (edge vignette)
+                float2 uvLine      : TEXCOORD0;
                 float2 uvTex       : TEXCOORD1;
             };
 
@@ -79,7 +79,6 @@ Shader "Custom/URP/UnlitGradientTwoSliders"
                 return OUT;
             }
 
-            // 0 at ribbon side (uv 0 or 1), 1 at center across width
             float EdgeRibbonMask(float y01)
             {
                 return saturate(min(y01, 1.0 - y01) * 2.0);
@@ -89,25 +88,21 @@ Shader "Custom/URP/UnlitGradientTwoSliders"
             {
                 float x = IN.uvLine.x;
 
-                // normalize sliders
                 float tAB = saturate(_SliderAB / 100.0);
                 float tAC = saturate(_SliderAC / 100.0);
 
                 float wAB = _BlendAB * 0.5;
                 float wAC = _BlendAC * 0.5;
 
-                // stage 1: A -> B
                 float blendAB = smoothstep(tAB - wAB, tAB + wAB, x);
                 float4 colAB = lerp(_ColorA, _ColorB, blendAB);
 
-                // stage 2: (A/B) -> C
                 float blendAC = smoothstep(tAC - wAC, tAC + wAC, x);
                 float4 finalCol = lerp(colAB, _ColorC, blendAC);
 
                 half4 tex = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uvTex);
                 finalCol *= tex;
 
-                // vignette along length and across ribbon width
                 float mEdge = EdgeRibbonMask(IN.uvLine.y);
                 float vEdge = lerp(1.0 - _EdgeVignetteStrength, 1.0, smoothstep(0.0, _EdgeVignetteSoftness, mEdge));
                 float mEnds = EdgeRibbonMask(IN.uvLine.x);
