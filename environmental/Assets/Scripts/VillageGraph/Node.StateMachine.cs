@@ -241,6 +241,8 @@ public partial class Node
                 enabled = true;
                 SetMapVisualAndCollidersActive(true);
                 ApplySelectionRingForState(state);
+                if (groupParent == null)
+                    _mapWasEverSelectedOnMinimap = true;
                 BeginSelectedMapSliderAcRampIfMapRoot();
                 break;
 
@@ -300,7 +302,11 @@ public partial class Node
 
             case NodeMapState.Blocked:
                 if (next != NodeMapState.Blocked)
+                {
+                    StopMapNodeUnblockedGradientSequence();
                     StopMapNodeBlockedSlidersSequence(resetSlidersToZero: true);
+                }
+
                 break;
         }
     }

@@ -78,6 +78,9 @@ public partial class Node : MonoBehaviour
     public float MapNodeBlockedIncomingEdgeAcFullSyncAcRampDuration =>
         Mathf.Max(0.01f, mapNodeBlockedIncomingEdgeAcFullSyncAcRampDuration);
 
+    /// <summary>Корень карты хотя бы раз был в <see cref="NodeMapState.Selected"/> на мини-карте (для отличия «заблокирован сосед по другому пути» от стартов/прочего).</summary>
+    public bool MapWasEverSelectedOnMinimap => _mapWasEverSelectedOnMinimap;
+
     /// <summary>
     /// У корня карты: после завершения <see cref="CoMapNodeBlockedSlidersRamp"/> (слайдеры ноды в Blocked дошли до 100%).
     /// Внешние подписчики (например travel по ребру) — см. <see cref="GameManager.CoMapSelectionTravel"/>.
@@ -155,6 +158,8 @@ public partial class Node : MonoBehaviour
     private int _incomingBlockedEdgeVisualRampsActive;
     private Coroutine _mapNodeBlockedSlidersCoroutine;
     private Coroutine _mapNodeBlockedEdgeAcSyncCoroutine;
+    private Coroutine _mapNodeUnblockedGradientCoroutine;
+    private bool _mapWasEverSelectedOnMinimap;
     private Camera cachedMapCamera;
     private Transform selectionRingTransform;
     private Vector3 selectionRingBaseScale;
@@ -193,6 +198,7 @@ public partial class Node : MonoBehaviour
         KillStateDelayedTween();
         StopSelectedMapSliderAcRamp();
         StopMapNodeBlockedSlidersSequence(resetSlidersToZero: true);
+        StopMapNodeUnblockedGradientSequence();
         ApplyBaseScaleImmediate();
         mouseOver = false;
         ClearRemainingTimeText();
@@ -578,6 +584,29 @@ public partial class Node : MonoBehaviour
         BeginMapNodeBlockedSlidersSequenceIfMapRoot();
     }
 
+    /// <summary>
+    /// После роста исходящего ребра к ноде, оставшейся в Blocked без выбора: остановить brown-секвенцию блокировки, вернуть слайдеры AB/AC к 0
+    /// (сначала AB за <see cref="MapNodeBlockedSequenceDuration"/>, старт AC через <see cref="MapNodeBlockedIncomingEdgeAcFullSyncAcRampDuration"/> с начала, затем AC за ту же длительность), затем <see cref="NodeMapState.Visible"/>.
+    /// </summary>
+    public void MapPlayUnblockedGradientSequenceAfterIncomingEdgeGrowthComplete()
+    {
+        if (!Application.isPlaying || groupParent != null || CurrentState != NodeMapState.Blocked)
+            return;
+        if (_mapNodeUnblockedGradientCoroutine != null)
+            return;
+
+        StopMapNodeBlockedSlidersSequence(resetSlidersToZero: false);
+        _mapNodeUnblockedGradientCoroutine = StartCoroutine(CoMapNodeUnblockedGradientReveal());
+    }
+
+    private void StopMapNodeUnblockedGradientSequence()
+    {
+        if (_mapNodeUnblockedGradientCoroutine == null)
+            return;
+        StopCoroutine(_mapNodeUnblockedGradientCoroutine);
+        _mapNodeUnblockedGradientCoroutine = null;
+    }
+
     private void BeginMapNodeBlockedSlidersSequenceIfMapRoot()
     {
         if (!Application.isPlaying || groupParent != null)
@@ -704,5 +733,91 @@ public partial class Node : MonoBehaviour
         }
 
         _mapNodeBlockedEdgeAcSyncCoroutine = null;
+    }
+
+    private IEnumerator CoMapNodeUnblockedGradientReveal()
+    {
+        var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
+        var n = drivers.Length;
+        var ab0 = new float[n];
+        var ac0 = new float[n];
+        for (var i = 0; i < n; i++)
+        {
+            if (drivers[i] == null)
+                continue;
+            ab0[i] = drivers[i].GetSliderAB();
+            ac0[i] = drivers[i].GetSliderAC();
+        }
+
+        float abDur = MapNodeBlockedSequenceDuration;
+        float acDelay = MapNodeBlockedIncomingEdgeAcFullSyncAcRampDuration;
+        float acDur = MapNodeBlockedIncomingEdgeAcFullSyncAcRampDuration;
+        float total = Mathf.Max(abDur, acDelay + acDur);
+
+        var acStartCaptured = new bool[n];
+        var acStartVal = new float[n];
+        float t = 0f;
+
+        while (t < total)
+        {
+            if (CurrentState != NodeMapState.Blocked)
+            {
+                _mapNodeUnblockedGradientCoroutine = null;
+                yield break;
+            }
+
+            if (t < abDur)
+            {
+                float u = abDur > 1e-6f ? Mathf.Clamp01(t / abDur) : 1f;
+                for (var i = 0; i < n; i++)
+                {
+                    if (drivers[i] == null)
+                        continue;
+                    drivers[i].SetSliderAB(Mathf.Lerp(ab0[i], 0f, u));
+                }
+            }
+            else
+            {
+                for (var i = 0; i < n; i++)
+                {
+                    if (drivers[i] == null)
+                        continue;
+                    drivers[i].SetSliderAB(0f);
+                }
+            }
+
+            if (t >= acDelay)
+            {
+                for (var i = 0; i < n; i++)
+                {
+                    if (drivers[i] == null)
+                        continue;
+                    if (!acStartCaptured[i])
+                    {
+                        acStartVal[i] = drivers[i].GetSliderAC();
+                        acStartCaptured[i] = true;
+                    }
+
+                    float acT = t - acDelay;
+                    float uAc = acDur > 1e-6f ? Mathf.Clamp01(acT / acDur) : 1f;
+                    drivers[i].SetSliderAC(Mathf.Lerp(acStartVal[i], 0f, uAc));
+                }
+            }
+
+            t += Time.deltaTime;
+            yield return null;
+        }
+
+        for (var i = 0; i < n; i++)
+        {
+            if (drivers[i] == null)
+                continue;
+            drivers[i].SetSliderAB(0f);
+            drivers[i].SetSliderAC(0f);
+        }
+
+        _mapNodeUnblockedGradientCoroutine = null;
+        if (CurrentState == NodeMapState.Blocked)
+            ForceMapState(NodeMapState.Visible);
     }
 }

@@ -253,7 +253,8 @@ public class MinimapEdgeRegistry : MonoBehaviour
     }
 
     /// <summary>
-    /// В Play: для рёбер, у которых конец — текущая выбранная нода карты, стейт <see cref="MinimapEdgeState.Selected"/>; иначе с <see cref="MinimapEdgeState.Selected"/> — в <see cref="MinimapEdgeState.IdleRevealed"/>.
+    /// В Play: для рёбер, у которых конец — текущая выбранная нода, стейт <see cref="MinimapEdgeState.Selected"/> только если ребро считается «входящим путём прибытия»
+    /// (<see cref="GameManager.IsMinimapIncomingEdgeHighlightedAtSelectedEnd"/>); иначе с <see cref="MinimapEdgeState.Selected"/> — в <see cref="MinimapEdgeState.IdleRevealed"/>.
     /// Не трогает Appearing / MovingAlongEdge / Blocked / Disabled.
     /// </summary>
     public void RefreshEdgesEndMatchesSelectedMapNode()
@@ -281,14 +282,20 @@ public class MinimapEdgeRegistry : MonoBehaviour
                                  e.ToNode != null &&
                                  e.ToNode.SelectionOwner == selected;
 
-            if (endIsSelected)
+            bool incomingHighlight =
+                endIsSelected &&
+                gm != null &&
+                gm.IsMinimapIncomingEdgeHighlightedAtSelectedEnd(e);
+
+            if (incomingHighlight)
             {
                 if (s != MinimapEdgeState.Selected)
                     e.SetEdgeState(MinimapEdgeState.Selected, forceLog: false);
             }
-            else if (s == MinimapEdgeState.Selected)
+            else
             {
-                e.SetEdgeState(MinimapEdgeState.IdleRevealed, forceLog: false);
+                if (s == MinimapEdgeState.Selected)
+                    e.SetEdgeState(MinimapEdgeState.IdleRevealed, forceLog: false);
             }
         }
     }
@@ -340,7 +347,14 @@ public class MinimapEdgeRegistry : MonoBehaviour
     /// перевести в <see cref="MinimapEdgeState.Blocked"/>. Ноду <paramref name="endMapRoot"/> к этому моменту уже должны перевести в Blocked на карте.
     /// </summary>
     /// <param name="suppressBlockedSlidersRampOnEnter">Не запускать ramp на каждом ребре; ожидается <see cref="ScheduleBlockedSlidersSecondPhaseAfterRampDuration"/> для пакета.</param>
-    public void SetAllEdgesEndingAtMapRootToBlocked(Node endMapRoot, bool suppressBlockedSlidersRampOnEnter = false)
+    /// <param name="restrictIncomingFromMapRoot">
+    /// Если задан: блокировать только рёбра, у которых <see cref="MinimapEdge.FromNode"/> (через <see cref="Node.SelectionOwner"/>) совпадает с этим корнем.
+    /// Нужно при блокировке «альтернативного» соседа при travel: не трогать рёбра к той же ноде от других вершин (например 2→3 при отсечении только 1→3).
+    /// </param>
+    public void SetAllEdgesEndingAtMapRootToBlocked(
+        Node endMapRoot,
+        bool suppressBlockedSlidersRampOnEnter = false,
+        Node restrictIncomingFromMapRoot = null)
     {
         if (edges == null || endMapRoot == null)
             return;
@@ -352,6 +366,13 @@ public class MinimapEdgeRegistry : MonoBehaviour
                 continue;
             if (e.ToNode.SelectionOwner != endMapRoot)
                 continue;
+            if (restrictIncomingFromMapRoot != null)
+            {
+                var fromRoot = e.FromNode != null ? e.FromNode.SelectionOwner : null;
+                if (fromRoot != restrictIncomingFromMapRoot)
+                    continue;
+            }
+
             e.SetEdgeState(
                 MinimapEdgeState.Blocked,
                 forceLog: false,
@@ -360,7 +381,11 @@ public class MinimapEdgeRegistry : MonoBehaviour
     }
 
     /// <summary>Все рёбра с концом на <paramref name="endMapRoot"/> (по <see cref="Node.SelectionOwner"/> у <see cref="MinimapEdge.ToNode"/>).</summary>
-    public void CollectEdgesEndingAtMapRoot(Node endMapRoot, HashSet<MinimapEdge> into)
+    /// <inheritdoc cref="SetAllEdgesEndingAtMapRootToBlocked(Node,bool,Node)"/>
+    public void CollectEdgesEndingAtMapRoot(
+        Node endMapRoot,
+        HashSet<MinimapEdge> into,
+        Node restrictIncomingFromMapRoot = null)
     {
         if (edges == null || endMapRoot == null || into == null)
             return;
@@ -372,6 +397,13 @@ public class MinimapEdgeRegistry : MonoBehaviour
                 continue;
             if (e.ToNode.SelectionOwner != endMapRoot)
                 continue;
+            if (restrictIncomingFromMapRoot != null)
+            {
+                var fromRoot = e.FromNode != null ? e.FromNode.SelectionOwner : null;
+                if (fromRoot != restrictIncomingFromMapRoot)
+                    continue;
+            }
+
             into.Add(e);
         }
     }

@@ -112,6 +112,27 @@ public class GameManager : MonoBehaviour
     public bool IsMapSelectionTravelInProgress => _mapSelectionTravelInProgress;
 
     /// <summary>
+    /// В Play: входящее к <see cref="CurrentSelectedMapNode"/> ребро может подсвечиваться как «путь прибытия» только если это ребро последнего приезда
+    /// или начало ребра не в <see cref="NodeMapState.Blocked"/> — иначе ложно загорается другой путь к той же ноде (например 2→3 при приезде 1→3).
+    /// </summary>
+    public bool IsMinimapIncomingEdgeHighlightedAtSelectedEnd(MinimapEdge edge)
+    {
+        if (edge == null || edge.ToNode == null)
+            return false;
+
+        var sel = CurrentSelectedMapNode;
+        if (sel == null || edge.ToNode.SelectionOwner != sel)
+            return false;
+
+        if (_pendingArrivalEdgeToBlockWhenLeavingEndNode != null &&
+            ReferenceEquals(_pendingArrivalEdgeToBlockWhenLeavingEndNode, edge))
+            return true;
+
+        var fromRoot = edge.FromNode != null ? edge.FromNode.SelectionOwner : null;
+        return fromRoot != null && fromRoot.CurrentState != NodeMapState.Blocked;
+    }
+
+    /// <summary>
     /// Пересчитать видимость корней карты от стартовых нод и рёбер реестра. Не трогает ноду в <see cref="CurrentSelectedMapNode"/>, если она в <see cref="NodeMapState.Selected"/>.
     /// </summary>
     public void RefreshMinimapDiscoveryFromStartNodes()
@@ -405,8 +426,11 @@ public class GameManager : MonoBehaviour
             if (neighborRoot != null && IsActiveAlternateNeighborForMapTravel(neighborRoot))
             {
                 neighborRoot.ForceMapState(NodeMapState.Blocked);
-                registry.SetAllEdgesEndingAtMapRootToBlocked(neighborRoot, suppressBlockedSlidersRampOnEnter: true);
-                registry.CollectEdgesEndingAtMapRoot(neighborRoot, delayedSecondPhase);
+                registry.SetAllEdgesEndingAtMapRootToBlocked(
+                    neighborRoot,
+                    suppressBlockedSlidersRampOnEnter: true,
+                    restrictIncomingFromMapRoot: fromRoot);
+                registry.CollectEdgesEndingAtMapRoot(neighborRoot, delayedSecondPhase, restrictIncomingFromMapRoot: fromRoot);
             }
             else
             {
@@ -453,7 +477,8 @@ public class GameManager : MonoBehaviour
     /// После прибытия по ребру: исходящие от новой выбранной ноды рёбра в <see cref="MinimapEdgeState.Disabled"/> или «полная линия» (<see cref="MinimapEdgeState.Idle"/> / <see cref="MinimapEdgeState.IdleRevealed"/> / <see cref="MinimapEdgeState.Selected"/>)
     /// с дальним <see cref="NodeMapState.Inactive"/> — ребро в <see cref="MinimapEdgeState.Appearing"/> (рост линии); дальний корень переходит в
     /// <see cref="NodeMapState.Appearing"/> только после завершения анимации ребра (Appearing → <see cref="MinimapEdgeState.IdleRevealed"/>).
-    /// Если ребро не уходит в Appearing, дальняя нода сразу получает <see cref="NodeMapState.Appearing"/>.
+    /// С дальним <see cref="NodeMapState.Blocked"/>, если нода ещё ни разу не была выбрана и само ребро не в Blocked: та же секвенция роста линии, затем разблокировка ноды (слайдеры AB/AC к 0) — см. <see cref="Node.MapPlayUnblockedGradientSequenceAfterIncomingEdgeGrowthComplete"/>.
+    /// Если ребро не уходит в Appearing, дальняя нода сразу получает <see cref="NodeMapState.Appearing"/> (только для Inactive).
     /// Старт каждого такого раскрытия смещается на своё независимое случайное время в [ <see cref="outgoingEdgeAppearStaggerMin"/>, <see cref="outgoingEdgeAppearStaggerMax"/> ] от одного момента.
     /// </summary>
     private void RevealOutgoingDisabledFrontierAfterMapTravel(MinimapEdgeRegistry registry, Node selectedRoot)
@@ -475,7 +500,13 @@ public class GameManager : MonoBehaviour
             if (farRoot == null || farRoot == selectedRoot)
                 continue;
 
-            if (farRoot.CurrentState != NodeMapState.Inactive)
+            bool towardInactive = farRoot.CurrentState == NodeMapState.Inactive;
+            bool towardBlockedDiscover =
+                farRoot.CurrentState == NodeMapState.Blocked &&
+                !farRoot.MapWasEverSelectedOnMinimap &&
+                e.CurrentEdgeState != MinimapEdgeState.Blocked;
+
+            if (!towardInactive && !towardBlockedDiscover)
                 continue;
 
             // Отдельное случайное значение для каждого ребра (не один раз на весь набор).
@@ -494,7 +525,13 @@ public class GameManager : MonoBehaviour
             yield break;
         }
 
-        if (farRoot.CurrentState != NodeMapState.Inactive)
+        bool towardInactive = farRoot.CurrentState == NodeMapState.Inactive;
+        bool towardBlockedDiscover =
+            farRoot.CurrentState == NodeMapState.Blocked &&
+            !farRoot.MapWasEverSelectedOnMinimap &&
+            edge.CurrentEdgeState != MinimapEdgeState.Blocked;
+
+        if (!towardInactive && !towardBlockedDiscover)
         {
             edge.SetPendingOutgoingAppearStagger(false);
             yield break;
@@ -514,7 +551,13 @@ public class GameManager : MonoBehaviour
             yield break;
         }
 
-        if (farRoot.CurrentState != NodeMapState.Inactive)
+        towardInactive = farRoot.CurrentState == NodeMapState.Inactive;
+        towardBlockedDiscover =
+            farRoot.CurrentState == NodeMapState.Blocked &&
+            !farRoot.MapWasEverSelectedOnMinimap &&
+            edge.CurrentEdgeState != MinimapEdgeState.Blocked;
+
+        if (!towardInactive && !towardBlockedDiscover)
         {
             edge.SetPendingOutgoingAppearStagger(false);
             yield break;
@@ -524,20 +567,28 @@ public class GameManager : MonoBehaviour
         if (es == MinimapEdgeState.Disabled || MinimapEdgeStateUtil.IsFullLineIdleLike(es))
         {
             edge.SetPendingOutgoingAppearStagger(false);
+            bool useUnblockOnComplete = towardBlockedDiscover;
             edge.SetEdgeState(
                 MinimapEdgeState.Appearing,
                 forceLog: false,
                 MinimapEdgeState.Idle,
                 () =>
                 {
-                    if (farRoot != null)
+                    if (farRoot == null)
+                        return;
+                    if (useUnblockOnComplete)
+                        farRoot.MapPlayUnblockedGradientSequenceAfterIncomingEdgeGrowthComplete();
+                    else
                         farRoot.ForceMapState(NodeMapState.Appearing);
                 });
         }
         else
         {
             edge.SetPendingOutgoingAppearStagger(false);
-            farRoot.ForceMapState(NodeMapState.Appearing);
+            if (towardBlockedDiscover)
+                farRoot.MapPlayUnblockedGradientSequenceAfterIncomingEdgeGrowthComplete();
+            else
+                farRoot.ForceMapState(NodeMapState.Appearing);
         }
     }
 
@@ -681,9 +732,10 @@ public class GameManager : MonoBehaviour
                 yield return null;
             _suppressMapTravelSelectionClear = false;
             toRoot.SetState(NodeMapState.Selected);
+            // До RefreshMinimapEdgeRegistryLines: иначе IsMinimapIncomingEdgeHighlightedAtSelectedEnd не видит ребро прибытия (From уже Blocked) — линия гаснет до следующего события карты.
+            _pendingArrivalEdgeToBlockWhenLeavingEndNode = edge;
             RefreshMinimapEdgeRegistryLines();
             RevealOutgoingDisabledFrontierAfterMapTravel(registry, toRoot);
-            _pendingArrivalEdgeToBlockWhenLeavingEndNode = edge;
         }
         finally
         {

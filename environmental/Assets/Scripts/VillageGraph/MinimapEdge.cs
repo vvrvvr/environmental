@@ -717,14 +717,13 @@ public class MinimapEdge : MonoBehaviour
         lineRenderer.enabled = mapAllows && stateShowsLine;
     }
 
-    /// <summary>В Play: ребро в IdleRevealed с концом на <see cref="GameManager.CurrentSelectedMapNode"/> — показывать линию до смены стейта на Selected в реестре.</summary>
+    /// <summary>В Play: ребро в IdleRevealed с концом на выбранной ноде — показывать линию только для «настоящего» входящего пути (см. <see cref="GameManager.IsMinimapIncomingEdgeHighlightedAtSelectedEnd"/>).</summary>
     private bool MapSelectionShowsIncomingIdleRevealedEdge()
     {
         if (!Application.isPlaying || _currentState != MinimapEdgeState.IdleRevealed || toNode == null)
             return false;
         var gm = GameManager.Instance;
-        var sel = gm != null ? gm.CurrentSelectedMapNode : null;
-        return sel != null && toNode.SelectionOwner == sel;
+        return gm != null && gm.IsMinimapIncomingEdgeHighlightedAtSelectedEnd(this);
     }
 
     [ContextMenu("Refresh line")]
