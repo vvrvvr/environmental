@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,6 +10,12 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class VillageGraphMapCursorSwipeImpulse : MonoBehaviour
 {
+    /// <summary>
+    /// Fired when this component applies impulse to graph rigidbody.
+    /// Args: impulseMagnitude, impulseDirectionWorldXY(normalized, z=0), targetRigidbody.
+    /// </summary>
+    public static event Action<float, Vector3, Rigidbody> GraphImpulseApplied;
+
     [Header("Refs")]
     [Tooltip("Если пусто — GameManager.Instance.MapCamera.")]
     [SerializeField]
@@ -137,6 +144,7 @@ public sealed class VillageGraphMapCursorSwipeImpulse : MonoBehaviour
             return;
 
         rb.AddForce(dir * impulseMag, ForceMode.Impulse);
+        GraphImpulseApplied?.Invoke(impulseMag, dir, rb);
         _lastImpulseTimeByRb[rbId] = now;
     }
 
