@@ -4567,6 +4567,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   triggerInteraction: 2
+  sweepStepPixels: 5
+  maxSweepSteps: 48
   minCursorSpeedWorldXY: 20
   maxCursorSpeedWorldXY: 50
   maxImpulse: 30
@@ -6211,6 +6213,7 @@ GameObject:
   - component: {fileID: 1018280884}
   - component: {fileID: 1018280883}
   - component: {fileID: 1018280882}
+  - component: {fileID: 1018280887}
   m_Layer: 0
   m_Name: Main Screen
   m_TagString: Untagged
@@ -6225,7 +6228,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1018280881}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 06ae2cb22f1d7c940b8c91722f3659a7, type: 3}
   m_Name: 
@@ -6326,6 +6329,28 @@ Transform:
   - {fileID: 1971352951}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1018280887
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1018280881}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8b4c179d7635cd40bd5935cb724e9a0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fixedKickAngle: 10
+  minKickAngle: 4
+  maxKickAngle: 16
+  useImpactStrength: 1
+  impulseForMaxKick: 4
+  kickOutSharpness: 30
+  returnSharpness: 8
+  maxTotalTiltAngle: 25
+  randomPitchScale: 1
+  randomYawScale: 1
 --- !u!1001 &1070853475
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11879,6 +11904,7 @@ SceneRoots:
   - {fileID: 577752369}
   - {fileID: 1635683772}
   - {fileID: 1173002160}
+  - {fileID: 1018280886}
   - {fileID: 1448228954}
   - {fileID: 1017511042}
   - {fileID: 707802985}
@@ -11887,4 +11913,3 @@ SceneRoots:
   - {fileID: 1598500342}
   - {fileID: 1482531313}
   - {fileID: 1272875213}
-  - {fileID: 1018280886}
