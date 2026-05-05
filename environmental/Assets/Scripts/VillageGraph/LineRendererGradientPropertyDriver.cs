@@ -3,7 +3,8 @@ using UnityEngine;
 /// <summary>
 /// Задаёт свойства градиентного шейдера на <see cref="LineRenderer"/> через <see cref="MaterialPropertyBlock"/>,
 /// чтобы один общий материал не менялся глобально — значения только у этого объекта.
-/// Ожидаются имена из <c>Custom/URP/UnlitGradientTwoSliders</c>: _ColorA…_SliderAC; виньетка по материалу: _EdgeVignetteStrength, _EdgeVignetteSoftness, _EndsVignetteStrength, _EndsVignetteSoftness.
+/// Ожидаются те же свойства что у объединённого <c>Custom/URP/UnlitGraphGradientUnified</c> или <c>Custom/URP/UnlitGradientTwoSliders</c>.
+/// Принудительно выставляет <c>_GraphVisualMode</c>=0 для ленты линии.
 /// </summary>
 [ExecuteAlways]
 [DisallowMultipleComponent]
@@ -17,6 +18,7 @@ public class LineRendererGradientPropertyDriver : MonoBehaviour
     private static readonly int IdBlendAC = Shader.PropertyToID("_BlendAC");
     private static readonly int IdSliderAB = Shader.PropertyToID("_SliderAB");
     private static readonly int IdSliderAC = Shader.PropertyToID("_SliderAC");
+    private static readonly int IdGraphVisualMode = Shader.PropertyToID("_GraphVisualMode");
 
     [Header("Colors (shader)")]
     [SerializeField] private Color colorA = Color.white;
@@ -108,6 +110,7 @@ public class LineRendererGradientPropertyDriver : MonoBehaviour
         _propertyBlock.SetFloat(IdBlendAC, blendAC);
         _propertyBlock.SetFloat(IdSliderAB, sliderAB);
         _propertyBlock.SetFloat(IdSliderAC, sliderAC);
+        _propertyBlock.SetFloat(IdGraphVisualMode, 0f);
         _lineRenderer.SetPropertyBlock(_propertyBlock);
     }
 

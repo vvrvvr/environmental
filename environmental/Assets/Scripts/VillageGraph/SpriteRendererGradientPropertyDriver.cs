@@ -3,7 +3,8 @@ using UnityEngine;
 /// <summary>
 /// Задаёт свойства градиентного шейдера на указанном <see cref="SpriteRenderer"/> через <see cref="MaterialPropertyBlock"/>,
 /// чтобы один общий материал не менялся глобально — значения только у этого рендерера.
-/// Ожидаются те же имена, что у <c>Custom/URP/UnlitGradientRadialTwoSliders</c> (и линейного): _ColorA…_SliderAC. Радиальный шейдер: круглая виньетка _EdgeVignetteStrength, _EdgeVignetteSoftness. Линейный (ребро): плюс _Ends* при необходимости.
+/// Объединённый материал: <c>Custom/URP/UnlitGraphGradientUnified</c> или радиальный <c>UnlitGradientRadialTwoSliders</c>.
+/// Для Unified принудительно <c>_GraphVisualMode</c>=1 для спрайта ноды.
 /// </summary>
 [ExecuteAlways]
 [DisallowMultipleComponent]
@@ -16,6 +17,7 @@ public class SpriteRendererGradientPropertyDriver : MonoBehaviour
     private static readonly int IdBlendAC = Shader.PropertyToID("_BlendAC");
     private static readonly int IdSliderAB = Shader.PropertyToID("_SliderAB");
     private static readonly int IdSliderAC = Shader.PropertyToID("_SliderAC");
+    private static readonly int IdGraphVisualMode = Shader.PropertyToID("_GraphVisualMode");
 
     [Header("Target")]
     [Tooltip("Спрайт-рендерер с материалом градиентного шейдера (может быть на другом объекте).")]
@@ -95,6 +97,7 @@ public class SpriteRendererGradientPropertyDriver : MonoBehaviour
         _propertyBlock.SetFloat(IdBlendAC, blendAC);
         _propertyBlock.SetFloat(IdSliderAB, sliderAB);
         _propertyBlock.SetFloat(IdSliderAC, sliderAC);
+        _propertyBlock.SetFloat(IdGraphVisualMode, 1f);
         targetSpriteRenderer.SetPropertyBlock(_propertyBlock);
     }
 
