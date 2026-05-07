@@ -83,21 +83,18 @@ public partial class Node
     {
         if (isMinimapStartNode)
         {
-            gameObject.transform.localScale = Vector3.zero;
+            PrepareInitialHiddenMapScaleForAppear();
 
-            var targetScale = startScale;
             float delay = UnityEngine.Random.Range(0f, 1.5f);
             DOVirtual.DelayedCall(delay, () =>
             {
                 if (this == null)
                     return;
-                ScaleNode(targetScale);
+                PlayMapAppearScaleTween();
             }).SetLink(gameObject);
         }
         else
-        {
-            gameObject.transform.localScale = Vector3.zero;
-        }
+            PrepareInitialHiddenMapScaleForAppear();
         
         if (groupParent != null)
         {
@@ -219,7 +216,9 @@ public partial class Node
             case NodeMapState.Appearing:
                 enabled = true;
                 SetMapVisualAndCollidersActive(true);
-                ScaleNode(startScale);
+                if (mainSpriteTransform != null)
+                    transform.localScale = startScale;
+                PlayMapAppearScaleTween();
                 ApplySelectionRingForState(state);
                 {
                     float delay = appearingToVisibleDelay <= 0f ? 1f : appearingToVisibleDelay;
@@ -275,10 +274,41 @@ public partial class Node
         }
     }
 
-    private void ScaleNode(Vector3 scale)
+    /// <summary>
+    /// До первого появления: корень ноды оставляем в <see cref="startScale"/>, «нулём» делаем только <see cref="mainSpriteTransform"/> (если есть main sprite).
+    /// Иначе — прежнее поведение: скейл всего объекта в 0.
+    /// </summary>
+    private void PrepareInitialHiddenMapScaleForAppear()
     {
-        var duration = GameManager.Instance.NodeAppearDuration;
-        gameObject.transform.DOScale(scale, duration);
+        if (mainSpriteTransform != null)
+        {
+            transform.localScale = startScale;
+            mainSpriteTransform.localScale = Vector3.zero;
+            return;
+        }
+
+        transform.localScale = Vector3.zero;
+    }
+
+    /// <summary>
+    /// Анимация появления: скейл только у объекта main sprite до <see cref="mainSpriteBaseScale"/>; без main sprite — скейл корня до <see cref="startScale"/>.</summary>
+    private void PlayMapAppearScaleTween()
+    {
+        float duration = GameManager.Instance != null ? GameManager.Instance.NodeAppearDuration : 0.4f;
+
+        if (mainSpriteTransform != null)
+        {
+            KillHoverTween();
+            mainSpriteTransform.DOKill(false);
+            transform.localScale = startScale;
+            mainSpriteTransform.localScale = Vector3.zero;
+            mainSpriteTransform.DOScale(mainSpriteBaseScale, duration).SetLink(gameObject);
+            return;
+        }
+
+        transform.DOKill(false);
+        transform.localScale = Vector3.zero;
+        transform.DOScale(startScale, duration).SetLink(gameObject);
     }
 
     private void ExitMapState(NodeMapState state, NodeMapState next)

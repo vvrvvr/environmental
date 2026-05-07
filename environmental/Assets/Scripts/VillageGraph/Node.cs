@@ -196,6 +196,9 @@ public partial class Node : MonoBehaviour
         KillClickTween();
         KillSelectionRingTween();
         KillStateDelayedTween();
+        transform.DOKill(false);
+        if (mainSpriteTransform != null)
+            mainSpriteTransform.DOKill(false);
         StopSelectedMapSliderAcRamp();
         StopMapNodeBlockedSlidersSequence(resetSlidersToZero: true);
         StopMapNodeUnblockedGradientSequence();
