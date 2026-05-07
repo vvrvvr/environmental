@@ -20,6 +20,9 @@ public partial class Node
     [Tooltip("Задержка перед переходом в Visible. 0 — считается как 1 с (заглушка).")]
     [SerializeField, Min(0f)] private float appearingToVisibleDelay = 0.35f;
 
+    [Tooltip("У дочерней ноды группы (есть group parent): случайная задержка перед стартом анимации скейла появления, от 0 до этого значения (сек). 0 — без задержки.")]
+    [SerializeField, Min(0f)] private float groupChildAppearScaleRandomDelayMax = 0.4f;
+
     [Header("State: Deselected (placeholder)")]
     [SerializeField, Min(0f)] private float deselectedToVisibleDelay = 0.12f;
 
@@ -191,6 +194,16 @@ public partial class Node
     private bool _stateInitialized;
 
     private Tween _stateDelayedTween;
+    private Tween _mapAppearScaleTween;
+
+    private void KillMapAppearScaleTween()
+    {
+        if (_mapAppearScaleTween == null)
+            return;
+        if (_mapAppearScaleTween.IsActive())
+            _mapAppearScaleTween.Kill();
+        _mapAppearScaleTween = null;
+    }
 
     private void KillStateDelayedTween()
     {
@@ -296,24 +309,53 @@ public partial class Node
     {
         float duration = GameManager.Instance != null ? GameManager.Instance.NodeAppearDuration : 0.4f;
 
+        KillMapAppearScaleTween();
+
+        bool staggerChildAppear =
+            groupParent != null && groupChildAppearScaleRandomDelayMax > 0f;
+
         if (mainSpriteTransform != null)
         {
             KillHoverTween();
             mainSpriteTransform.DOKill(false);
             transform.localScale = startScale;
             mainSpriteTransform.localScale = Vector3.zero;
-            mainSpriteTransform.DOScale(mainSpriteBaseScale, duration).SetLink(gameObject);
+
+            if (staggerChildAppear)
+            {
+                float delay = UnityEngine.Random.Range(0f, groupChildAppearScaleRandomDelayMax);
+                Sequence seq = DOTween.Sequence().SetLink(gameObject);
+                seq.AppendInterval(delay);
+                seq.Append(mainSpriteTransform.DOScale(mainSpriteBaseScale, duration));
+                _mapAppearScaleTween = seq;
+            }
+            else
+                _mapAppearScaleTween = mainSpriteTransform.DOScale(mainSpriteBaseScale, duration).SetLink(gameObject);
+
             return;
         }
 
         transform.DOKill(false);
         transform.localScale = Vector3.zero;
-        transform.DOScale(startScale, duration).SetLink(gameObject);
+
+        if (staggerChildAppear)
+        {
+            float delay = UnityEngine.Random.Range(0f, groupChildAppearScaleRandomDelayMax);
+            Sequence seq = DOTween.Sequence().SetLink(gameObject);
+            seq.AppendInterval(delay);
+            seq.Append(transform.DOScale(startScale, duration));
+            _mapAppearScaleTween = seq;
+        }
+        else
+            _mapAppearScaleTween = transform.DOScale(startScale, duration).SetLink(gameObject);
     }
 
     private void ExitMapState(NodeMapState state, NodeMapState next)
     {
         KillStateDelayedTween();
+
+        if (state == NodeMapState.Appearing && next != NodeMapState.Visible)
+            KillMapAppearScaleTween();
 
         if (StateProcessesPointer(state) && !StateProcessesPointer(next))
             ResetMapPointerInteraction();

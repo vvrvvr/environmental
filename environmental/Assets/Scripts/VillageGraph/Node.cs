@@ -196,6 +196,7 @@ public partial class Node : MonoBehaviour
         KillClickTween();
         KillSelectionRingTween();
         KillStateDelayedTween();
+        KillMapAppearScaleTween();
         transform.DOKill(false);
         if (mainSpriteTransform != null)
             mainSpriteTransform.DOKill(false);
