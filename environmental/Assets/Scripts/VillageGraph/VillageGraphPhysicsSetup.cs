@@ -27,6 +27,7 @@ public class VillageGraphPhysicsSetup : MonoBehaviour
     [SerializeField]
     private bool addRigidbodyIfMissing = true;
 
+    [Tooltip("Масса Rigidbody на нодах после сборки графа: и для только что добавленного, и если компонент уже был на объекте.")]
     [SerializeField, Min(0.001f)]
     private float addedRigidbodyMass = 1f;
 
@@ -374,18 +375,15 @@ public class VillageGraphPhysicsSetup : MonoBehaviour
             return null;
 
         var rb = node.GetComponent<Rigidbody>();
-        if (rb != null)
+        if (rb == null)
         {
-            ApplyRigidbodyPhysicsPolicy(node, rb);
-            return rb;
+            if (!addRigidbodyIfMissing)
+                return null;
+            rb = AddRigidbodyToNode(node);
+            generatedRigidbodies.Add(rb);
         }
 
-        if (!addRigidbodyIfMissing)
-            return null;
-
-        rb = AddRigidbodyToNode(node);
         rb.mass = addedRigidbodyMass;
-        generatedRigidbodies.Add(rb);
         ApplyRigidbodyPhysicsPolicy(node, rb);
         return rb;
     }
