@@ -7413,6 +7413,16 @@ PrefabInstance:
       propertyPath: colorC.r
       value: 0.4515984
       objectReference: {fileID: 0}
+    - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
+        type: 3}
+      propertyPath: sliderAB
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
+        type: 3}
+      propertyPath: sliderAC
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6082926137204214183, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: m_Name

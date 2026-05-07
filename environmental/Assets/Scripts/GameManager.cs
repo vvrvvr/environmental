@@ -112,8 +112,8 @@ public class GameManager : MonoBehaviour
     public bool IsMapSelectionTravelInProgress => _mapSelectionTravelInProgress;
 
     /// <summary>
-    /// В Play: входящее к <see cref="CurrentSelectedMapNode"/> ребро может подсвечиваться как «путь прибытия» только если это ребро последнего приезда
-    /// или начало ребра не в <see cref="NodeMapState.Blocked"/> — иначе ложно загорается другой путь к той же ноде (например 2→3 при приезде 1→3).
+    /// В Play: входящее к <see cref="CurrentSelectedMapNode"/> подсвечивается только если это ребро последнего приезда по карте
+    /// (то же, что позже блокируется при уходе с ноды). Иначе при узле-слиянии ошибочно показывается другой входящий путь.
     /// </summary>
     public bool IsMinimapIncomingEdgeHighlightedAtSelectedEnd(MinimapEdge edge)
     {
@@ -124,12 +124,8 @@ public class GameManager : MonoBehaviour
         if (sel == null || edge.ToNode.SelectionOwner != sel)
             return false;
 
-        if (_pendingArrivalEdgeToBlockWhenLeavingEndNode != null &&
-            ReferenceEquals(_pendingArrivalEdgeToBlockWhenLeavingEndNode, edge))
-            return true;
-
-        var fromRoot = edge.FromNode != null ? edge.FromNode.SelectionOwner : null;
-        return fromRoot != null && fromRoot.CurrentState != NodeMapState.Blocked;
+        return _pendingArrivalEdgeToBlockWhenLeavingEndNode != null &&
+               ReferenceEquals(_pendingArrivalEdgeToBlockWhenLeavingEndNode, edge);
     }
 
     /// <summary>
@@ -731,9 +727,9 @@ public class GameManager : MonoBehaviour
             while (edge.CurrentEdgeState == MinimapEdgeState.MovingAlongEdge)
                 yield return null;
             _suppressMapTravelSelectionClear = false;
-            toRoot.SetState(NodeMapState.Selected);
-            // До RefreshMinimapEdgeRegistryLines: иначе IsMinimapIncomingEdgeHighlightedAtSelectedEnd не видит ребро прибытия (From уже Blocked) — линия гаснет до следующего события карты.
+            // До SetState(Selected): синхронные уведомления / refresh должны видеть ребро прибытия; From уже Blocked — подсветка только по pending.
             _pendingArrivalEdgeToBlockWhenLeavingEndNode = edge;
+            toRoot.SetState(NodeMapState.Selected);
             RefreshMinimapEdgeRegistryLines();
             RevealOutgoingDisabledFrontierAfterMapTravel(registry, toRoot);
         }
