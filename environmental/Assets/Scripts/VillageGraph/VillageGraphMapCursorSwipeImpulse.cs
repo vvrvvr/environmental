@@ -66,6 +66,19 @@ public sealed class VillageGraphMapCursorSwipeImpulse : MonoBehaviour
     public float MinSwipeSpeedWorldXY => minCursorSpeedWorldXY;
     public float MaxSwipeSpeedWorldXY => maxCursorSpeedWorldXY;
 
+    /// <summary>Те же world-точки и Z, что для импульса (sweep + bounds.center.z). Без правила «тот же rb на шаге 0».</summary>
+    public bool TryGetTrailWorldPositions(Vector3 prevScreen, Vector3 currScreen, out Vector3 worldPrev, out Vector3 worldCurr)
+    {
+        worldPrev = default;
+        worldCurr = default;
+        TryResolveCamera();
+        if (_cachedCamera == null)
+            return false;
+        if (!TryGetFirstGraphHitOnMouseSegment(prevScreen, currScreen, out var graphCol, out _, out _, out _))
+            return false;
+        return TryComputeWorldOnGraphColliderPlane(prevScreen, currScreen, graphCol, out worldPrev, out worldCurr);
+    }
+
     private Camera _cachedCamera;
     private Vector3 _prevMouseScreen;
     private bool _hasPrevMouse;
@@ -91,53 +104,14 @@ public sealed class VillageGraphMapCursorSwipeImpulse : MonoBehaviour
         var prevScreen = _prevMouseScreen;
         _prevMouseScreen = currScreen;
 
-        var pixelDist = Vector2.Distance(
-            new Vector2(prevScreen.x, prevScreen.y),
-            new Vector2(currScreen.x, currScreen.y));
-
-        var steps = pixelDist < 0.5f
-            ? 1
-            : Mathf.Clamp(Mathf.CeilToInt(pixelDist / Mathf.Max(1f, sweepStepPixels)), 1, maxSweepSteps);
-
-        Rigidbody wasGraphRb = null;
-        var rayPrevProbe = _cachedCamera.ScreenPointToRay(prevScreen);
-        if (Physics.Raycast(rayPrevProbe, out var prevProbeHit, Mathf.Infinity, raycastLayers, triggerInteraction) &&
-            prevProbeHit.collider != null)
-            TryGetGraphRigidbody(prevProbeHit.collider, out wasGraphRb);
-
-        Collider graphCol = null;
-        Rigidbody graphRb = null;
-        var firstGraphHitStep = -1;
-
-        for (var i = 0; i <= steps; i++)
-        {
-            var u = steps <= 1 ? 1f : i / (float)steps;
-            var sp = Vector3.Lerp(prevScreen, currScreen, u);
-            var ray = _cachedCamera.ScreenPointToRay(sp);
-            if (!Physics.Raycast(ray, out var hit, Mathf.Infinity, raycastLayers, triggerInteraction))
-                continue;
-            if (hit.collider == null)
-                continue;
-            if (!TryGetGraphRigidbody(hit.collider, out var rb))
-                continue;
-            graphCol = hit.collider;
-            graphRb = rb;
-            firstGraphHitStep = i;
-            break;
-        }
-
-        if (graphCol == null || graphRb == null)
+        if (!TryGetFirstGraphHitOnMouseSegment(prevScreen, currScreen, out var graphCol, out var graphRb, out var firstGraphHitStep, out var wasGraphRb))
             return;
 
         // Не считать ударом движение, начинающееся уже над тем же графом (в т.ч. резкий выход — первое попадание вдоль sweep в точке prev).
         if (wasGraphRb != null && graphRb == wasGraphRb && firstGraphHitStep == 0)
             return;
 
-        var planeZ = graphCol.bounds.center.z;
-        var rayPrev = _cachedCamera.ScreenPointToRay(prevScreen);
-        var rayCurr = _cachedCamera.ScreenPointToRay(currScreen);
-        if (!TryRayIntersectWorldXYPlaneAtZ(rayPrev, planeZ, out var worldPrev) ||
-            !TryRayIntersectWorldXYPlaneAtZ(rayCurr, planeZ, out var worldCurr))
+        if (!TryComputeWorldOnGraphColliderPlane(prevScreen, currScreen, graphCol, out var worldPrev, out var worldCurr))
             return;
 
         var dt = Time.unscaledDeltaTime;
@@ -173,6 +147,64 @@ public sealed class VillageGraphMapCursorSwipeImpulse : MonoBehaviour
         graphRb.AddForce(dir * impulseMag, ForceMode.Impulse);
         GraphImpulseApplied?.Invoke(impulseMag, dir, graphRb);
         _lastImpulseTimeByRb[rbId] = now;
+    }
+
+    private bool TryGetFirstGraphHitOnMouseSegment(
+        Vector3 prevScreen,
+        Vector3 currScreen,
+        out Collider graphCol,
+        out Rigidbody graphRb,
+        out int firstGraphHitStep,
+        out Rigidbody wasGraphRbAtPrev)
+    {
+        graphCol = null;
+        graphRb = null;
+        firstGraphHitStep = -1;
+        wasGraphRbAtPrev = null;
+
+        var pixelDist = Vector2.Distance(
+            new Vector2(prevScreen.x, prevScreen.y),
+            new Vector2(currScreen.x, currScreen.y));
+
+        var steps = pixelDist < 0.5f
+            ? 1
+            : Mathf.Clamp(Mathf.CeilToInt(pixelDist / Mathf.Max(1f, sweepStepPixels)), 1, maxSweepSteps);
+
+        var rayPrevProbe = _cachedCamera.ScreenPointToRay(prevScreen);
+        if (Physics.Raycast(rayPrevProbe, out var prevProbeHit, Mathf.Infinity, raycastLayers, triggerInteraction) &&
+            prevProbeHit.collider != null)
+            TryGetGraphRigidbody(prevProbeHit.collider, out wasGraphRbAtPrev);
+
+        for (var i = 0; i <= steps; i++)
+        {
+            var u = steps <= 1 ? 1f : i / (float)steps;
+            var sp = Vector3.Lerp(prevScreen, currScreen, u);
+            var ray = _cachedCamera.ScreenPointToRay(sp);
+            if (!Physics.Raycast(ray, out var hit, Mathf.Infinity, raycastLayers, triggerInteraction))
+                continue;
+            if (hit.collider == null)
+                continue;
+            if (!TryGetGraphRigidbody(hit.collider, out var rb))
+                continue;
+            graphCol = hit.collider;
+            graphRb = rb;
+            firstGraphHitStep = i;
+            break;
+        }
+
+        return graphCol != null && graphRb != null;
+    }
+
+    private bool TryComputeWorldOnGraphColliderPlane(Vector3 prevScreen, Vector3 currScreen, Collider graphCol, out Vector3 worldPrev, out Vector3 worldCurr)
+    {
+        worldPrev = default;
+        worldCurr = default;
+        var planeZ = graphCol.bounds.center.z;
+        var rayPrev = _cachedCamera.ScreenPointToRay(prevScreen);
+        var rayCurr = _cachedCamera.ScreenPointToRay(currScreen);
+        if (!TryRayIntersectWorldXYPlaneAtZ(rayPrev, planeZ, out worldPrev))
+            return false;
+        return TryRayIntersectWorldXYPlaneAtZ(rayCurr, planeZ, out worldCurr);
     }
 
     private void TryResolveCamera()

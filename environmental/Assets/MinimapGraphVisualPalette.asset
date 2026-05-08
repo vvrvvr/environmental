@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gradientColorA: {r: 0.7254902, g: 0.58337665, b: 0.28627452, a: 1}
   gradientColorB: {r: 0.9529412, g: 0.87730885, b: 0.3725491, a: 1}
-  gradientColorC: {r: 0.5366678, g: 0.8490566, b: 0.5366678, a: 1}
+  gradientColorC: {r: 0.62352943, g: 0.8470589, b: 0.62352943, a: 1}
