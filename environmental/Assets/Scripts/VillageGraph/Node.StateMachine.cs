@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Состояния карты и переходы. Расширяй через <c>partial void OnMapStateEntered/Exiting</c> в другом partial-файле
@@ -20,8 +21,11 @@ public partial class Node
     [Tooltip("Задержка перед переходом в Visible. 0 — считается как 1 с (заглушка).")]
     [SerializeField, Min(0f)] private float appearingToVisibleDelay = 0.35f;
 
-    [Tooltip("У дочерней ноды группы (есть group parent): случайная задержка перед стартом анимации скейла появления, от 0 до этого значения (сек). 0 — без задержки.")]
-    [SerializeField, Min(0f)] private float groupChildAppearScaleRandomDelayMax = 0.4f;
+    [Header("Node group: stagger for child visuals")]
+    [Tooltip(
+        "У дочерней ноды группы (есть Group Parent): случайная задержка от 0 до этого значения (сек) перед стартом визуала — скейл появления на карте, ramp Slider AC при выборе, ramp AB/AC при блокировке. 0 — без задержки.")]
+    [FormerlySerializedAs("groupChildAppearScaleRandomDelayMax")]
+    [SerializeField, Min(0f)] private float groupChildVisualStaggerDelayMax = 1f;
 
     [Header("State: Deselected (placeholder)")]
     [SerializeField, Min(0f)] private float deselectedToVisibleDelay = 0.12f;
@@ -255,7 +259,7 @@ public partial class Node
                 ApplySelectionRingForState(state);
                 if (groupParent == null)
                     _mapWasEverSelectedOnMinimap = true;
-                BeginSelectedMapSliderAcRampIfMapRoot();
+                BeginSelectedMapSliderAcRamp();
                 break;
 
             case NodeMapState.Deselected:
@@ -312,7 +316,7 @@ public partial class Node
         KillMapAppearScaleTween();
 
         bool staggerChildAppear =
-            groupParent != null && groupChildAppearScaleRandomDelayMax > 0f;
+            groupParent != null && groupChildVisualStaggerDelayMax > 0f;
 
         if (mainSpriteTransform != null)
         {
@@ -323,7 +327,7 @@ public partial class Node
 
             if (staggerChildAppear)
             {
-                float delay = UnityEngine.Random.Range(0f, groupChildAppearScaleRandomDelayMax);
+                float delay = UnityEngine.Random.Range(0f, groupChildVisualStaggerDelayMax);
                 Sequence seq = DOTween.Sequence().SetLink(gameObject);
                 seq.AppendInterval(delay);
                 seq.Append(mainSpriteTransform.DOScale(mainSpriteBaseScale, duration));
@@ -340,7 +344,7 @@ public partial class Node
 
         if (staggerChildAppear)
         {
-            float delay = UnityEngine.Random.Range(0f, groupChildAppearScaleRandomDelayMax);
+            float delay = UnityEngine.Random.Range(0f, groupChildVisualStaggerDelayMax);
             Sequence seq = DOTween.Sequence().SetLink(gameObject);
             seq.AppendInterval(delay);
             seq.Append(transform.DOScale(startScale, duration));

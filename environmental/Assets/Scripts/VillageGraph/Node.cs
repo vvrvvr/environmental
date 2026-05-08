@@ -56,13 +56,13 @@ public partial class Node : MonoBehaviour
 
     [Header("Map state: Selected (gradient sliders)")]
     [Tooltip(
-        "В Play: при входе ноды карты в NodeMapState.Selected у всех SpriteRendererGradientPropertyDriver под этой нодой Slider AC за это время линейно идёт от текущего значения до 100. При смене выбора на карте AC не сбрасывается. Только у корня группы (без groupParent); у дочерних нод группы не запускается.")]
+        "В Play: при входе ноды карты в NodeMapState.Selected у всех SpriteRendererGradientPropertyDriver под этой нодой Slider AC за это время линейно идёт от текущего значения до 100. При смене выбора на карте AC не сбрасывается. У дочерней ноды группы перед ramp добавляется случайная задержка 0…Group Child Visual Stagger Delay Max (см. State machine).")]
     [SerializeField, Min(0.01f)]
     private float selectedMapSliderAcRampDuration = 0.35f;
 
     [Header("Map state: Blocked (gradient sliders)")]
     [Tooltip(
-        "Длительность полной секвенции блокирования ноды на карте (сек): после того как все входящие рёбра в Blocked завершили свою секвенцию слайдеров на линии, у ноды Slider AC и AB за это время линейно идут от текущих значений до 100%. Только корень группы.")]
+        "Длительность полной секвенции блокирования ноды на карте (сек): у корня — после входящих рёбер; у дочерней — та же кривая AB/AC, старт вместе с brown родителя, плюс случайная задержка 0…Group Child Visual Stagger Delay Max.")]
     [SerializeField, Min(0.01f)]
     private float mapNodeBlockedVisualSequenceDuration = 0.5f;
 
@@ -131,14 +131,43 @@ public partial class Node : MonoBehaviour
         if (mapVisualPalette == null)
             return;
         mapVisualPalette.GetGradientColors(out var ca, out var cb, out var cc);
-        var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
-        for (var i = 0; i < drivers.Length; i++)
+        PopulateOwnMapSpriteGradientDriversScratch();
+        var drivers = _ownMapGradientDriversScratch;
+        for (var i = 0; i < drivers.Count; i++)
         {
             if (drivers[i] != null)
                 drivers[i].SetColorsABC(ca, cb, cc);
         }
         if (selectionRing != null)
             selectionRing.color = cb;
+    }
+
+    /// <summary>
+    /// Только драйверы этой ноды: не заходим в иерархию вложенного <see cref="Node"/> (иначе родитель трогал бы слайдеры/цвета детей группы).
+    /// </summary>
+    private void PopulateOwnMapSpriteGradientDriversScratch()
+    {
+        _ownMapGradientDriversScratch.Clear();
+        CollectOwnMapSpriteGradientDriversRecursive(transform);
+    }
+
+    private void CollectOwnMapSpriteGradientDriversRecursive(Transform t)
+    {
+        var onTransform = t.GetComponents<SpriteRendererGradientPropertyDriver>();
+        for (var i = 0; i < onTransform.Length; i++)
+        {
+            if (onTransform[i] != null)
+                _ownMapGradientDriversScratch.Add(onTransform[i]);
+        }
+
+        for (var c = 0; c < t.childCount; c++)
+        {
+            Transform child = t.GetChild(c);
+            Node nested = child.GetComponent<Node>();
+            if (nested != null && nested != this)
+                continue;
+            CollectOwnMapSpriteGradientDriversRecursive(child);
+        }
     }
 
     [Header("UI")]
@@ -160,6 +189,7 @@ public partial class Node : MonoBehaviour
     private Coroutine _mapNodeBlockedEdgeAcSyncCoroutine;
     private Coroutine _mapNodeUnblockedGradientCoroutine;
     private bool _mapWasEverSelectedOnMinimap;
+    private readonly List<SpriteRendererGradientPropertyDriver> _ownMapGradientDriversScratch = new List<SpriteRendererGradientPropertyDriver>();
     private Camera cachedMapCamera;
     private Transform selectionRingTransform;
     private Vector3 selectionRingBaseScale;
@@ -468,11 +498,11 @@ public partial class Node : MonoBehaviour
     }
 
     /// <summary>
-    /// Корень карты (без родителя группы): в Play при <see cref="NodeMapState.Selected"/> — Slider AC с текущего до 100 за <see cref="selectedMapSliderAcRampDuration"/>.
+    /// В Play при <see cref="NodeMapState.Selected"/> — Slider AC с текущего до 100 за <see cref="selectedMapSliderAcRampDuration"/>; у дочерней ноды группы — после случайной задержки <see cref="groupChildVisualStaggerDelayMax"/>.
     /// </summary>
-    private void BeginSelectedMapSliderAcRampIfMapRoot()
+    private void BeginSelectedMapSliderAcRamp()
     {
-        if (!Application.isPlaying || groupParent != null)
+        if (!Application.isPlaying)
             return;
 
         StopSelectedMapSliderAcRamp();
@@ -490,8 +520,12 @@ public partial class Node : MonoBehaviour
 
     private IEnumerator CoSelectedMapSliderAcRamp()
     {
-        var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
-        var n = drivers.Length;
+        if (groupParent != null && groupChildVisualStaggerDelayMax > 0f)
+            yield return new WaitForSeconds(UnityEngine.Random.Range(0f, groupChildVisualStaggerDelayMax));
+
+        PopulateOwnMapSpriteGradientDriversScratch();
+        var drivers = _ownMapGradientDriversScratch;
+        var n = drivers.Count;
         var ac0 = new float[n];
         for (var i = 0; i < n; i++)
         {
@@ -616,7 +650,32 @@ public partial class Node : MonoBehaviour
         if (!Application.isPlaying || groupParent != null)
             return;
         StopMapNodeBlockedSlidersSequence(resetSlidersToZero: false);
-        _mapNodeBlockedSlidersCoroutine = StartCoroutine(CoMapNodeBlockedSlidersRamp());
+        _mapNodeBlockedSlidersCoroutine = StartCoroutine(CoMapNodeBlockedSlidersRamp(groupChildFollower: false));
+        NotifyOrderedGroupChildrenBeginBlockedSlidersRamp();
+    }
+
+    private void NotifyOrderedGroupChildrenBeginBlockedSlidersRamp()
+    {
+        if (orderedChildNodes == null)
+            return;
+        for (var i = 0; i < orderedChildNodes.Count; i++)
+        {
+            var ch = orderedChildNodes[i];
+            if (ch == null || ch.groupParent != this)
+                continue;
+            ch.BeginMapNodeBlockedSlidersSequenceForGroupChild();
+        }
+    }
+
+    /// <summary>
+    /// Дочерняя нода группы: вызывается родителем при старте его brown-секвенции — тот же ramp AB/AC со случайной задержкой (без событий MapNodeBlocked*).
+    /// </summary>
+    private void BeginMapNodeBlockedSlidersSequenceForGroupChild()
+    {
+        if (!Application.isPlaying || groupParent == null)
+            return;
+        StopMapNodeBlockedSlidersSequence(resetSlidersToZero: false);
+        _mapNodeBlockedSlidersCoroutine = StartCoroutine(CoMapNodeBlockedSlidersRamp(groupChildFollower: true));
     }
 
     private void StopMapNodeBlockedEdgeAcSyncRamp()
@@ -636,11 +695,12 @@ public partial class Node : MonoBehaviour
             _mapNodeBlockedSlidersCoroutine = null;
         }
 
-        if (!resetSlidersToZero || groupParent != null)
+        if (!resetSlidersToZero)
             return;
 
-        var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
-        for (var i = 0; i < drivers.Length; i++)
+        PopulateOwnMapSpriteGradientDriversScratch();
+        var drivers = _ownMapGradientDriversScratch;
+        for (var i = 0; i < drivers.Count; i++)
         {
             if (drivers[i] != null)
             {
@@ -650,13 +710,17 @@ public partial class Node : MonoBehaviour
         }
     }
 
-    private IEnumerator CoMapNodeBlockedSlidersRamp()
+    private IEnumerator CoMapNodeBlockedSlidersRamp(bool groupChildFollower)
     {
-        if (groupParent == null)
+        if (groupChildFollower && groupChildVisualStaggerDelayMax > 0f)
+            yield return new WaitForSeconds(UnityEngine.Random.Range(0f, groupChildVisualStaggerDelayMax));
+
+        if (!groupChildFollower)
             MapNodeBlockedMainBrownRampStarted?.Invoke();
 
-        var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
-        var n = drivers.Length;
+        PopulateOwnMapSpriteGradientDriversScratch();
+        var drivers = _ownMapGradientDriversScratch;
+        var n = drivers.Count;
         var ab0 = new float[n];
         var ac0 = new float[n];
         for (var i = 0; i < n; i++)
@@ -694,14 +758,15 @@ public partial class Node : MonoBehaviour
         }
 
         _mapNodeBlockedSlidersCoroutine = null;
-        if (groupParent == null)
+        if (!groupChildFollower)
             MapPostFullyBlockedGradientRampCompleted?.Invoke();
     }
 
     private IEnumerator CoMapNodeBlockedEdgeAcSyncRamp()
     {
-        var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
-        var n = drivers.Length;
+        PopulateOwnMapSpriteGradientDriversScratch();
+        var drivers = _ownMapGradientDriversScratch;
+        var n = drivers.Count;
         var ac0 = new float[n];
         for (var i = 0; i < n; i++)
         {
@@ -741,8 +806,9 @@ public partial class Node : MonoBehaviour
 
     private IEnumerator CoMapNodeUnblockedGradientReveal()
     {
-        var drivers = GetComponentsInChildren<SpriteRendererGradientPropertyDriver>(true);
-        var n = drivers.Length;
+        PopulateOwnMapSpriteGradientDriversScratch();
+        var drivers = _ownMapGradientDriversScratch;
+        var n = drivers.Count;
         var ab0 = new float[n];
         var ac0 = new float[n];
         for (var i = 0; i < n; i++)
