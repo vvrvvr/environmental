@@ -63,6 +63,9 @@ public sealed class VillageGraphMapCursorSwipeImpulse : MonoBehaviour
     [SerializeField]
     private bool enableSwipeImpulse = true;
 
+    public float MinSwipeSpeedWorldXY => minCursorSpeedWorldXY;
+    public float MaxSwipeSpeedWorldXY => maxCursorSpeedWorldXY;
+
     private Camera _cachedCamera;
     private Vector3 _prevMouseScreen;
     private bool _hasPrevMouse;
