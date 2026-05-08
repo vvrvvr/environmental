@@ -3,6 +3,7 @@ using UnityEngine;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(VillageGraphMapCursorSwipeImpulse))]
+[DefaultExecutionOrder(50)]
 public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
 {
     private const int MaxLineGradientKeys = 8;
@@ -11,26 +12,18 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
     [SerializeField]
     private LineRenderer lineRenderer;
 
-    [Tooltip("Пусто — GameManager.MapCamera. Только для проекции точек трейла под курсор.")]
+    [Tooltip("Пусто — GameManager.MapCamera. Проекция курсора на плоскость трейла.")]
     [SerializeField]
     private Camera mapCameraOverride;
 
-    [Header("Plane (визуал под мышью)")]
+    [Header("Plane")]
     [SerializeField]
     private float referencePlaneZ;
 
-    [Header("Trail")]
-    [Tooltip("Добавляется к порогу скорости импульса только для трейла: < 0 — раньше, > 0 — позже (юнит/с в плоскости XY).")]
-    [SerializeField, Range(-3f, 3f)]
-    private float trailSpeedThresholdOffset;
-
-    [Tooltip("Ниже порога трейла на столько скорость должна упасть, чтобы выключить (гистерезис, меньше дёрганья на низах).")]
-    [SerializeField, Min(0f)]
-    private float trailSpeedDeactivateHysteresis = 0.28f;
-
-    [Tooltip("После реального импульса по графу держать трейл ещё столько секунд (unscaled), если курсор всё ещё над графом.")]
-    [SerializeField, Min(0f)]
-    private float trailHoldAfterImpulseSeconds = 0.12f;
+    [Header("Рисование (по событию импульса)")]
+    [Tooltip("Сколько секунд (unscaled) после удара трейл тянется за курсором. Каждый новый импульс обновляет отсчёт.")]
+    [SerializeField, Min(0.01f)]
+    private float trailDrawDurationSeconds = 0.35f;
 
     [SerializeField, Min(2)]
     private int maxPoints = 96;
@@ -38,20 +31,30 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
     [SerializeField, Min(0f)]
     private float minPointDistance = 0.015f;
 
+    [Tooltip("Минимальная длина хвоста (world), если пока одна точка.")]
     [SerializeField, Min(0f)]
-    private float widthAtMinStrength = 0.02f;
+    private float trailMinStubWorldLength = 0.004f;
+
+    [Header("Толщина")]
+    [SerializeField, Min(0f)]
+    private float widthMin = 0.02f;
 
     [SerializeField, Min(0f)]
-    private float widthAtMaxStrength = 0.14f;
+    private float widthMax = 0.14f;
 
-    [Tooltip("0 — у курсора (голова), 1 — конец хвоста. LineRenderer идёт от 0 к n−1.")]
+    [Tooltip("За столько секунд (unscaled) с начала текущей «жизни» трейла толщина дорастает до widthMax. 0 — сразу widthMax.")]
+    [SerializeField, Min(0f)]
+    private float secondsToReachMaxWidth = 0.5f;
+
+    [Tooltip("0 — у курсора (голова), 1 — конец хвоста.")]
     [SerializeField]
     private AnimationCurve tailWidthAlongLine = new AnimationCurve(
         new Keyframe(0f, 1f),
         new Keyframe(1f, 0.22f));
 
+    [Header("Затухание")]
     [SerializeField, Min(0.01f)]
-    private float fadeOutDuration = 0.14f;
+    private float fadeOutDuration = 0.12f;
 
     [SerializeField]
     private Gradient strengthGradient;
@@ -62,20 +65,16 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
     [SerializeField]
     private bool enableTrail = true;
 
-    private VillageGraphMapCursorSwipeImpulse _impulse;
     private Camera _cam;
-    private Vector3 _prevMouseScreen;
-    private bool _hasPrev;
-    private bool _trailSpeedGateOpen;
-    private float _trailImpulseHoldUntilUnscaled;
     private readonly List<Vector3> _pts = new List<Vector3>(128);
-    private readonly List<float> _str = new List<float>(128);
-    private float _lastStrength01;
+    private float _drawUntilUnscaled;
+    private float _aliveSinceUnscaled;
     private float _lineFade = 1f;
+    private Vector3 _prevW1;
+    private bool _hasPrevW1;
 
     private void Awake()
     {
-        _impulse = GetComponent<VillageGraphMapCursorSwipeImpulse>();
         if (lineRenderer == null)
             lineRenderer = GetComponent<LineRenderer>();
         if (lineRenderer == null)
@@ -98,17 +97,21 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
 
     private void OnEnable()
     {
-        VillageGraphMapCursorSwipeImpulse.GraphImpulseApplied += OnGraphSwipeImpulseApplied;
+        VillageGraphMapCursorSwipeImpulse.GraphImpulseApplied += OnGraphImpulseApplied;
     }
 
     private void OnDisable()
     {
-        VillageGraphMapCursorSwipeImpulse.GraphImpulseApplied -= OnGraphSwipeImpulseApplied;
+        VillageGraphMapCursorSwipeImpulse.GraphImpulseApplied -= OnGraphImpulseApplied;
     }
 
-    private void OnGraphSwipeImpulseApplied(float _, Vector3 __, Rigidbody ___)
+    private void OnGraphImpulseApplied(float _, Vector3 __, Rigidbody ___)
     {
-        _trailImpulseHoldUntilUnscaled = Time.unscaledTime + trailHoldAfterImpulseSeconds;
+        var now = Time.unscaledTime;
+        if (_pts.Count == 0)
+            _aliveSinceUnscaled = now;
+        _drawUntilUnscaled = now + trailDrawDurationSeconds;
+        _lineFade = 1f;
     }
 
     private void Update()
@@ -120,85 +123,37 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
         if (_cam == null)
             return;
 
-        var curr = Input.mousePosition;
-        if (!_hasPrev)
-        {
-            _prevMouseScreen = curr;
-            _hasPrev = true;
-            ClearTrail();
-            return;
-        }
-
-        var prev = _prevMouseScreen;
-        _prevMouseScreen = curr;
-
-        var onGraph = _impulse.TryGetTrailWorldPositions(prev, curr, out _, out _);
-
-        var rayP = _cam.ScreenPointToRay(prev);
-        var rayC = _cam.ScreenPointToRay(curr);
-        var ok0 = TryPlaneHit(rayP, out var w0);
-        var ok1 = TryPlaneHit(rayC, out var w1);
-        var geomRenderOk = ok0 && ok1;
-        var geomOk = onGraph && geomRenderOk;
-
         var dt = Time.unscaledDeltaTime;
-        var speed = 0f;
-        if (geomOk && dt >= 1e-6f)
-        {
-            var vel = (w1 - w0) / dt;
-            speed = new Vector2(vel.x, vel.y).magnitude;
-        }
+        var ray = _cam.ScreenPointToRay(Input.mousePosition);
+        var w1Ok = TryPlaneHit(ray, out var w1);
 
-        var vMinImpulse = _impulse.MinSwipeSpeedWorldXY;
-        var vMinTrail = vMinImpulse + trailSpeedThresholdOffset;
-        var vRelease = Mathf.Max(0f, vMinTrail - trailSpeedDeactivateHysteresis);
+        var drawing = Time.unscaledTime < _drawUntilUnscaled;
 
-        if (!geomOk)
-            _trailSpeedGateOpen = false;
-        else if (dt >= 1e-6f)
-        {
-            if (speed >= vMinTrail)
-                _trailSpeedGateOpen = true;
-            else if (speed < vRelease)
-                _trailSpeedGateOpen = false;
-        }
-
-        var holdImpulse = Time.unscaledTime < _trailImpulseHoldUntilUnscaled;
-        var swipeStrong = geomOk && (_trailSpeedGateOpen || holdImpulse);
-
-        if (swipeStrong)
+        if (drawing && w1Ok)
         {
             _lineFade = 1f;
-            var vMax = Mathf.Max(_impulse.MaxSwipeSpeedWorldXY, vMinTrail + 1e-4f);
-            var t01 = Mathf.InverseLerp(vMinTrail, vMax, Mathf.Clamp(speed, vMinTrail, vMax));
-            _lastStrength01 = t01;
-
             if (_pts.Count == 0 || Vector3.Distance(w1, _pts[0]) >= minPointDistance)
             {
                 _pts.Insert(0, w1);
-                _str.Insert(0, t01);
                 while (_pts.Count > maxPoints)
-                {
                     _pts.RemoveAt(_pts.Count - 1);
-                    _str.RemoveAt(_str.Count - 1);
-                }
             }
             else if (_pts.Count > 0)
-            {
                 _pts[0] = w1;
-                _str[0] = t01;
-            }
+
+            EnsureMinimumTwoWorldPoints(w1, w1Ok);
+            _prevW1 = w1;
+            _hasPrevW1 = true;
         }
-        else
+        else if (!drawing)
         {
             if (_pts.Count < 2)
             {
-                if (!geomOk)
-                    ClearTrail();
+                ClearTrail();
                 return;
             }
 
-            _lineFade -= Time.unscaledDeltaTime / Mathf.Max(1e-4f, fadeOutDuration);
+            _lineFade -= dt / Mathf.Max(1e-4f, fadeOutDuration);
             if (_lineFade <= 0f)
             {
                 ClearTrail();
@@ -210,25 +165,25 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
             ApplyLineRenderer();
     }
 
+    private float WidthForCurrentAge()
+    {
+        if (secondsToReachMaxWidth <= 1e-5f)
+            return widthMax;
+        var age = Mathf.Max(0f, Time.unscaledTime - _aliveSinceUnscaled);
+        var t = Mathf.Clamp01(age / secondsToReachMaxWidth);
+        return Mathf.Lerp(widthMin, widthMax, t);
+    }
+
     private void ApplyLineRenderer()
     {
         var n = _pts.Count;
-        if (n < 2)
-        {
-            lineRenderer.positionCount = 0;
-            lineRenderer.enabled = false;
-            return;
-        }
-
         lineRenderer.enabled = true;
         lineRenderer.positionCount = n;
         for (var i = 0; i < n; i++)
             lineRenderer.SetPosition(i, _pts[i]);
 
-        var baseW = Mathf.Lerp(widthAtMinStrength, widthAtMaxStrength, _lastStrength01) * _lineFade;
         lineRenderer.widthCurve = tailWidthAlongLine;
-        lineRenderer.widthMultiplier = baseW;
-
+        lineRenderer.widthMultiplier = WidthForCurrentAge() * _lineFade;
         lineRenderer.colorGradient = BuildGradientForLine(n);
     }
 
@@ -242,10 +197,7 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
         for (var k = 0; k < keyCount; k++)
         {
             var u = keyCount <= 1 ? 0f : k / (float)(keyCount - 1);
-            // u=0 у курсора (_pts[0]), u=1 у хвоста (_pts[n-1])
-            var i = Mathf.Clamp(Mathf.RoundToInt(u * (n - 1)), 0, n - 1);
-            var s = _str[i];
-            var c = strengthGradient.Evaluate(Mathf.Lerp(u, s, 0.65f));
+            var c = strengthGradient.Evaluate(u);
             c.a *= _lineFade;
             ck[k] = new GradientColorKey(c, u);
             ak[k] = new GradientAlphaKey(c.a, u);
@@ -256,12 +208,34 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
         return g;
     }
 
+    private void EnsureMinimumTwoWorldPoints(Vector3 w1, bool w1Ok)
+    {
+        if (_pts.Count != 1)
+            return;
+        var head = _pts[0];
+        Vector3 tail;
+        if (w1Ok && _hasPrevW1)
+        {
+            var d = head - _prevW1;
+            var len = d.magnitude;
+            if (len > 1e-6f)
+                tail = head - d * (Mathf.Max(trailMinStubWorldLength, len * 0.35f) / len);
+            else
+                tail = head + new Vector3(trailMinStubWorldLength, 0f, 0f);
+        }
+        else
+            tail = head + new Vector3(trailMinStubWorldLength, 0f, 0f);
+
+        tail.z = referencePlaneZ;
+        _pts.Add(tail);
+    }
+
     private void ClearTrail()
     {
         _pts.Clear();
-        _str.Clear();
         _lineFade = 1f;
-        _trailSpeedGateOpen = false;
+        _drawUntilUnscaled = 0f;
+        _hasPrevW1 = false;
         if (lineRenderer != null)
         {
             lineRenderer.positionCount = 0;

@@ -8,6 +8,7 @@ using UnityEngine;
 /// Скорость считается по смещению курсора на фиксированной мировой плоскости Z (глубина попадания).
 /// </summary>
 [DisallowMultipleComponent]
+[DefaultExecutionOrder(-50)]
 public sealed class VillageGraphMapCursorSwipeImpulse : MonoBehaviour
 {
     /// <summary>
@@ -65,19 +66,6 @@ public sealed class VillageGraphMapCursorSwipeImpulse : MonoBehaviour
 
     public float MinSwipeSpeedWorldXY => minCursorSpeedWorldXY;
     public float MaxSwipeSpeedWorldXY => maxCursorSpeedWorldXY;
-
-    /// <summary>Те же world-точки и Z, что для импульса (sweep + bounds.center.z). Без правила «тот же rb на шаге 0».</summary>
-    public bool TryGetTrailWorldPositions(Vector3 prevScreen, Vector3 currScreen, out Vector3 worldPrev, out Vector3 worldCurr)
-    {
-        worldPrev = default;
-        worldCurr = default;
-        TryResolveCamera();
-        if (_cachedCamera == null)
-            return false;
-        if (!TryGetFirstGraphHitOnMouseSegment(prevScreen, currScreen, out var graphCol, out _, out _, out _))
-            return false;
-        return TryComputeWorldOnGraphColliderPlane(prevScreen, currScreen, graphCol, out worldPrev, out worldCurr);
-    }
 
     private Camera _cachedCamera;
     private Vector3 _prevMouseScreen;

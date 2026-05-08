@@ -5468,13 +5468,13 @@ MonoBehaviour:
   lineRenderer: {fileID: 0}
   mapCameraOverride: {fileID: 330585545}
   referencePlaneZ: 0
-  trailSpeedThresholdOffset: 0
-  trailSpeedDeactivateHysteresis: 0.28
-  trailHoldAfterImpulseSeconds: 0.12
+  trailDrawDurationSeconds: 0.35
   maxPoints: 96
   minPointDistance: 0.015
-  widthAtMinStrength: 0.02
-  widthAtMaxStrength: 0.14
+  trailMinStubWorldLength: 0.004
+  widthMin: 0.02
+  widthMax: 0.14
+  secondsToReachMaxWidth: 0.5
   tailWidthAlongLine:
     serializedVersion: 2
     m_Curve:
