@@ -18,6 +18,11 @@ public sealed class VillageGraphMouseNodeAttraction : MonoBehaviour
     [SerializeField]
     private GameObject attractionZonePrefab;
 
+    [Tooltip(
+        "Слой только для объёма аттрактора. Создай в Unity (Tags & Layers → Layers), назови например как подсказка. Raycast узлов и свип исключают этот слой, иначе луч упирается в триггер.")]
+    [SerializeField]
+    private string attractionColliderLayerName = "VillageGraphAttractor";
+
     [Tooltip("Z плоскости следования (мир): луч из камеры в эту Z кладёт центр зоны.")]
     [SerializeField]
     private float followPlaneWorldZ;
@@ -57,6 +62,50 @@ public sealed class VillageGraphMouseNodeAttraction : MonoBehaviour
     private Transform _zoneTransform;
     private VillageGraphAttractionTriggerVolume _zoneVolume;
     private readonly HashSet<Node> _nodesInZone = new HashSet<Node>();
+
+    private bool _registeredPointerMaskForThisZone;
+
+    private static int _pointerPhysicsLayerMaskIncludingAllExceptAttractor = ~0;
+
+    private static int _attractorPhysicsMaskRegistrationCount;
+
+    /// <summary>Маска для <see cref="Physics.Raycast"/> по карте (ноды, рёбра, свип), чтобы не цеплять триггер зоны аттрактора.</summary>
+    public static int MapPointerPhysicsLayerMask => _pointerPhysicsLayerMaskIncludingAllExceptAttractor;
+
+    public static int CombineImpulseRaycastLayers(LayerMask authoredImpulseLayers) =>
+        authoredImpulseLayers.value & _pointerPhysicsLayerMaskIncludingAllExceptAttractor;
+
+    private void RegisterPointerExcludeMaskContribution(int physicsLayerId)
+    {
+        if (physicsLayerId < 0 || physicsLayerId > 31 || _registeredPointerMaskForThisZone)
+            return;
+
+        _attractorPhysicsMaskRegistrationCount++;
+        _pointerPhysicsLayerMaskIncludingAllExceptAttractor &= ~(1 << physicsLayerId);
+        _registeredPointerMaskForThisZone = true;
+    }
+
+    private void ReleasePointerExcludeMaskContribution()
+    {
+        if (!_registeredPointerMaskForThisZone)
+            return;
+
+        _registeredPointerMaskForThisZone = false;
+        _attractorPhysicsMaskRegistrationCount = Mathf.Max(0, _attractorPhysicsMaskRegistrationCount - 1);
+        if (_attractorPhysicsMaskRegistrationCount <= 0)
+        {
+            _attractorPhysicsMaskRegistrationCount = 0;
+            _pointerPhysicsLayerMaskIncludingAllExceptAttractor = ~0;
+        }
+    }
+
+    private static void SetLayerRecursive(GameObject obj, int layer)
+    {
+        obj.layer = layer;
+        var t = obj.transform;
+        for (var i = 0; i < t.childCount; i++)
+            SetLayerRecursive(t.GetChild(i).gameObject, layer);
+    }
 
     private void OnEnable()
     {
@@ -157,10 +206,25 @@ public sealed class VillageGraphMouseNodeAttraction : MonoBehaviour
             rbZone.isKinematic = true;
             rbZone.useGravity = false;
         }
+
+        var layerId = LayerMask.NameToLayer(attractionColliderLayerName);
+        if (layerId < 0)
+        {
+            Debug.LogWarning(
+                $"{nameof(VillageGraphMouseNodeAttraction)}: нет слоя «{attractionColliderLayerName}». Создай слой в Project Settings и назначь зоне, иначе клики по нодам будут перекрываться аттрактором.",
+                this);
+        }
+        else
+        {
+            SetLayerRecursive(inst, layerId);
+            RegisterPointerExcludeMaskContribution(layerId);
+        }
     }
 
     private void DestroyZoneInstance()
     {
+        ReleasePointerExcludeMaskContribution();
+
         if (_zoneTransform != null)
         {
             Destroy(_zoneTransform.gameObject);

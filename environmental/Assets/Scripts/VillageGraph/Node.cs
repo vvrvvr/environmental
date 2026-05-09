@@ -325,7 +325,8 @@ public partial class Node : MonoBehaviour
             return false;
 
         Ray ray = cachedMapCamera.ScreenPointToRay(Input.mousePosition);
-        if (!Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~0, QueryTriggerInteraction.Collide))
+        if (!Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, VillageGraphMouseNodeAttraction.MapPointerPhysicsLayerMask,
+                QueryTriggerInteraction.Collide))
             return false;
 
         if (hit.collider == null)

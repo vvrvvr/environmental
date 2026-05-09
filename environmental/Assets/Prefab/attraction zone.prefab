@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 5472229163658348602}
   - component: {fileID: 5935320476475903542}
   - component: {fileID: 1574304825909339452}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: attraction zone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 6.7408805, y: 6.740882, z: 6.740882}
+  m_LocalScale: {x: 10, y: 10, z: 10}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}

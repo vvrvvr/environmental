@@ -175,7 +175,8 @@ public sealed class VillageGraphEdgeColliderMapPointer : MonoBehaviour
     private bool IsMouseRayOverThisEdgeCollider()
     {
         var ray = _mapCamera.ScreenPointToRay(Input.mousePosition);
-        if (!Physics.Raycast(ray, out var hit, Mathf.Infinity, ~0, QueryTriggerInteraction.Collide))
+        if (!Physics.Raycast(ray, out var hit, Mathf.Infinity, VillageGraphMouseNodeAttraction.MapPointerPhysicsLayerMask,
+                QueryTriggerInteraction.Collide))
             return false;
 
         var hitDriver = hit.collider.GetComponentInParent<VillageGraphEdgeEndColliderDriver>();

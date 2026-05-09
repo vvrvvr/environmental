@@ -172,7 +172,8 @@ public sealed class VillageGraphMapCursorSwipeImpulse : MonoBehaviour
             : Mathf.Clamp(Mathf.CeilToInt(pixelDist / Mathf.Max(1f, sweepStepPixels)), 1, maxSweepSteps);
 
         var rayPrevProbe = _cachedCamera.ScreenPointToRay(prevScreen);
-        if (Physics.Raycast(rayPrevProbe, out var prevProbeHit, Mathf.Infinity, raycastLayers, triggerInteraction) &&
+        var layers = VillageGraphMouseNodeAttraction.CombineImpulseRaycastLayers(raycastLayers);
+        if (Physics.Raycast(rayPrevProbe, out var prevProbeHit, Mathf.Infinity, layers, triggerInteraction) &&
             prevProbeHit.collider != null)
             TryGetGraphRigidbody(prevProbeHit.collider, out wasGraphRbAtPrev);
 
@@ -181,7 +182,7 @@ public sealed class VillageGraphMapCursorSwipeImpulse : MonoBehaviour
             var u = steps <= 1 ? 1f : i / (float)steps;
             var sp = Vector3.Lerp(prevScreen, currScreen, u);
             var ray = _cachedCamera.ScreenPointToRay(sp);
-            if (!Physics.Raycast(ray, out var hit, Mathf.Infinity, raycastLayers, triggerInteraction))
+            if (!Physics.Raycast(ray, out var hit, Mathf.Infinity, layers, triggerInteraction))
                 continue;
             if (hit.collider == null)
                 continue;
