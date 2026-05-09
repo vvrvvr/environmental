@@ -52,9 +52,9 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
         new Keyframe(0f, 1f),
         new Keyframe(1f, 0.22f));
 
-    [Header("Затухание")]
+    [Header("Схлопывание длины")]
     [SerializeField, Min(0.01f)]
-    private float fadeOutDuration = 0.12f;
+    private float shrinkToZeroDuration = 0.12f;
 
     [SerializeField]
     private Gradient strengthGradient;
@@ -69,7 +69,8 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
     private readonly List<Vector3> _pts = new List<Vector3>(128);
     private float _drawUntilUnscaled;
     private float _aliveSinceUnscaled;
-    private float _lineFade = 1f;
+    private float _shrinkStartedUnscaled;
+    private int _shrinkStartPointCount;
     private Vector3 _prevW1;
     private bool _hasPrevW1;
 
@@ -111,7 +112,8 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
         if (_pts.Count == 0)
             _aliveSinceUnscaled = now;
         _drawUntilUnscaled = now + trailDrawDurationSeconds;
-        _lineFade = 1f;
+        _shrinkStartedUnscaled = 0f;
+        _shrinkStartPointCount = 0;
     }
 
     private void Update()
@@ -123,7 +125,6 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
         if (_cam == null)
             return;
 
-        var dt = Time.unscaledDeltaTime;
         var ray = _cam.ScreenPointToRay(Input.mousePosition);
         var w1Ok = TryPlaneHit(ray, out var w1);
 
@@ -131,7 +132,6 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
 
         if (drawing && w1Ok)
         {
-            _lineFade = 1f;
             if (_pts.Count == 0 || Vector3.Distance(w1, _pts[0]) >= minPointDistance)
             {
                 _pts.Insert(0, w1);
@@ -153,8 +153,22 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
                 return;
             }
 
-            _lineFade -= dt / Mathf.Max(1e-4f, fadeOutDuration);
-            if (_lineFade <= 0f)
+            if (_shrinkStartedUnscaled <= 0f)
+            {
+                _shrinkStartedUnscaled = Time.unscaledTime;
+                _shrinkStartPointCount = _pts.Count;
+            }
+
+            var shrinkDuration = Mathf.Max(1e-4f, shrinkToZeroDuration);
+            var shrinkT = Mathf.Clamp01((Time.unscaledTime - _shrinkStartedUnscaled) / shrinkDuration);
+            var targetVisible = Mathf.Clamp(
+                Mathf.CeilToInt(Mathf.Lerp(_shrinkStartPointCount, 0f, shrinkT)),
+                0,
+                _pts.Count);
+            while (_pts.Count > targetVisible)
+                _pts.RemoveAt(_pts.Count - 1);
+
+            if (_pts.Count < 2)
             {
                 ClearTrail();
                 return;
@@ -183,7 +197,7 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
             lineRenderer.SetPosition(i, _pts[i]);
 
         lineRenderer.widthCurve = tailWidthAlongLine;
-        lineRenderer.widthMultiplier = WidthForCurrentAge() * _lineFade;
+        lineRenderer.widthMultiplier = WidthForCurrentAge();
         lineRenderer.colorGradient = BuildGradientForLine(n);
     }
 
@@ -198,7 +212,6 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
         {
             var u = keyCount <= 1 ? 0f : k / (float)(keyCount - 1);
             var c = strengthGradient.Evaluate(u);
-            c.a *= _lineFade;
             ck[k] = new GradientColorKey(c, u);
             ak[k] = new GradientAlphaKey(c.a, u);
         }
@@ -233,8 +246,9 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
     private void ClearTrail()
     {
         _pts.Clear();
-        _lineFade = 1f;
         _drawUntilUnscaled = 0f;
+        _shrinkStartedUnscaled = 0f;
+        _shrinkStartPointCount = 0;
         _hasPrevW1 = false;
         if (lineRenderer != null)
         {
