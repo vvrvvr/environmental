@@ -6,8 +6,6 @@ using UnityEngine;
 [DefaultExecutionOrder(50)]
 public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
 {
-    private const int MaxLineGradientKeys = 8;
-
     [Header("Refs")]
     [SerializeField]
     private LineRenderer lineRenderer;
@@ -57,9 +55,6 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
     private float shrinkToZeroDuration = 0.12f;
 
     [SerializeField]
-    private Gradient strengthGradient;
-
-    [SerializeField]
     private Material lineMaterial;
 
     [SerializeField]
@@ -87,13 +82,6 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
         if (lineMaterial != null)
             lineRenderer.material = lineMaterial;
         lineRenderer.widthCurve = tailWidthAlongLine;
-        if (strengthGradient == null || strengthGradient.colorKeys == null || strengthGradient.colorKeys.Length == 0)
-        {
-            strengthGradient = new Gradient();
-            strengthGradient.SetKeys(
-                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(1f, 1f, 1f, 0.35f), 1f) },
-                new[] { new GradientAlphaKey(0.9f, 0f), new GradientAlphaKey(0f, 1f) });
-        }
     }
 
     private void OnEnable()
@@ -198,27 +186,6 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
 
         lineRenderer.widthCurve = tailWidthAlongLine;
         lineRenderer.widthMultiplier = WidthForCurrentAge();
-        lineRenderer.colorGradient = BuildGradientForLine(n);
-    }
-
-    private Gradient BuildGradientForLine(int n)
-    {
-        if (n < 2)
-            return strengthGradient;
-        var keyCount = Mathf.Min(n, MaxLineGradientKeys);
-        var ck = new GradientColorKey[keyCount];
-        var ak = new GradientAlphaKey[keyCount];
-        for (var k = 0; k < keyCount; k++)
-        {
-            var u = keyCount <= 1 ? 0f : k / (float)(keyCount - 1);
-            var c = strengthGradient.Evaluate(u);
-            ck[k] = new GradientColorKey(c, u);
-            ak[k] = new GradientAlphaKey(c.a, u);
-        }
-
-        var g = new Gradient();
-        g.SetKeys(ck, ak);
-        return g;
     }
 
     private void EnsureMinimumTwoWorldPoints(Vector3 w1, bool w1Ok)
