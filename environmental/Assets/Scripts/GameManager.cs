@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.Video;
 
 /// <summary>
@@ -56,6 +57,16 @@ public class GameManager : MonoBehaviour
     [Tooltip("Единый VideoPlayer для ролика выбранной ноды (выход на RawImage / Camera и т.д. настраивается на нём).")]
     [SerializeField] private VideoPlayer mapVideoPlayer;
 
+    [Tooltip("Общий слайдер прогресса воспроизведения (0…длина клипа). Пусто — только локальный таймер на ноде.")]
+    [SerializeField]
+    private Slider minimapVideoProgressSlider;
+
+    [Tooltip("Если вкл., тот же слайдер показывает прогресс ролика перехода по ребру; иначе только ролики нод/группы.")]
+    [SerializeField]
+    private bool showMinimapVideoProgressForEdgeTravel;
+
+    private bool _mapVideoPlaybackIsEdgeTravel;
+
     private Node _groupPlaylistRoot;
     private Node _groupPlaylistFocusNode;
     private bool _groupLoopHandlerRegistered;
@@ -95,6 +106,9 @@ public class GameManager : MonoBehaviour
     private readonly HashSet<Node> _minimapStartRootCache = new HashSet<Node>();
 
     public Camera MapCamera => mapCamera;
+
+    /// <summary>Назначен общий UI прогресса — локальный обратный отсчёт на ноде не показываем.</summary>
+    public bool UsesGlobalMinimapVideoProgressUi => minimapVideoProgressSlider != null;
 
     /// <summary>Дебаг: вся карта доступна для клика и выбора.</summary>
     public bool DebugRevealFullMinimap => debugRevealFullMinimap;
@@ -749,6 +763,7 @@ public class GameManager : MonoBehaviour
         if (mapVideoPlayer == null || node == null)
             return;
 
+        _mapVideoPlaybackIsEdgeTravel = false;
         EndGroupPlaylist();
 
         if (node.IsGroupParent && node.OrderedChildNodes.Count > 0)
@@ -771,6 +786,7 @@ public class GameManager : MonoBehaviour
         if (mapVideoPlayer == null)
             return;
 
+        _mapVideoPlaybackIsEdgeTravel = false;
         _groupPlaylistRoot = root;
         RegisterGroupLoopHandler();
         PlayGroupClip(root);
@@ -890,6 +906,7 @@ public class GameManager : MonoBehaviour
         if (mapVideoPlayer == null || mapVideoPlayer.clip == null)
             return;
 
+        _mapVideoPlaybackIsEdgeTravel = false;
         mapVideoPlayer.time = 0;
         mapVideoPlayer.Play();
     }
@@ -898,6 +915,7 @@ public class GameManager : MonoBehaviour
     {
         if (mapVideoPlayer == null)
             return;
+        _mapVideoPlaybackIsEdgeTravel = false;
         mapVideoPlayer.Stop();
         EndGroupPlaylist();
     }
@@ -913,6 +931,7 @@ public class GameManager : MonoBehaviour
         mapVideoPlayer.clip = clip;
         mapVideoPlayer.isLooping = false;
         mapVideoPlayer.Play();
+        _mapVideoPlaybackIsEdgeTravel = true;
         return true;
     }
 
@@ -921,6 +940,7 @@ public class GameManager : MonoBehaviour
     {
         if (mapVideoPlayer == null)
             return;
+        _mapVideoPlaybackIsEdgeTravel = false;
         mapVideoPlayer.Stop();
     }
 
@@ -1001,9 +1021,56 @@ public class GameManager : MonoBehaviour
         }
 
         if (!enableNodeStateHotkeys)
+        {
+            UpdateMinimapVideoProgressSlider();
             return;
+        }
 
         TryDebugNodeStateHotkeys();
+        UpdateMinimapVideoProgressSlider();
+    }
+
+    private void UpdateMinimapVideoProgressSlider()
+    {
+        if (minimapVideoProgressSlider == null)
+            return;
+
+        var go = minimapVideoProgressSlider.gameObject;
+        if (mapVideoPlayer == null ||
+            !mapVideoPlayer.isPlaying ||
+            mapVideoPlayer.clip == null)
+        {
+            minimapVideoProgressSlider.SetValueWithoutNotify(minimapVideoProgressSlider.minValue);
+            minimapVideoProgressSlider.interactable = false;
+            if (go.activeSelf)
+                go.SetActive(false);
+            return;
+        }
+
+        if (_mapVideoPlaybackIsEdgeTravel && !showMinimapVideoProgressForEdgeTravel)
+        {
+            minimapVideoProgressSlider.SetValueWithoutNotify(minimapVideoProgressSlider.minValue);
+            minimapVideoProgressSlider.interactable = false;
+            if (go.activeSelf)
+                go.SetActive(false);
+            return;
+        }
+
+        var len = mapVideoPlayer.length;
+        if (len < 1e-5)
+        {
+            if (go.activeSelf)
+                go.SetActive(false);
+            return;
+        }
+
+        if (!go.activeSelf)
+            go.SetActive(true);
+
+        var t = Mathf.Clamp01((float)(mapVideoPlayer.time / len));
+        var v = Mathf.Lerp(minimapVideoProgressSlider.minValue, minimapVideoProgressSlider.maxValue, t);
+        minimapVideoProgressSlider.SetValueWithoutNotify(v);
+        minimapVideoProgressSlider.interactable = false;
     }
 
     private void ApplyMinimapRulesAfterMapNotify()

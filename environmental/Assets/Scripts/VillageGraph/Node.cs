@@ -249,6 +249,12 @@ public partial class Node : MonoBehaviour
         if (remainingTimeText == null)
             return;
 
+        if (GameManager.Instance != null && GameManager.Instance.UsesGlobalMinimapVideoProgressUi)
+        {
+            remainingTimeText.text = string.Empty;
+            return;
+        }
+
         if (GameManager.Instance == null ||
             !GameManager.Instance.TryGetRemainingTimeForNodeDisplay(this, out float seconds))
         {
