@@ -47,6 +47,10 @@ public sealed class VillageGraphMapCursorSwipeImpulse : MonoBehaviour
     [SerializeField, Min(0.0001f)]
     private float maxCursorSpeedWorldXY = 12f;
 
+    [Tooltip("Сглаживание оценки скорости (сек). Убирает ложные «пики» на медленном подводе курсора.")]
+    [SerializeField, Min(0f)]
+    private float speedSmoothingSeconds = 0.05f;
+
     [Tooltip("Жёсткий потолок величины импульса (AddForce, ForceMode.Impulse). Итог не превышает это значение.")]
     [SerializeField, Min(0f)]
     private float maxImpulse = 4f;
@@ -70,6 +74,7 @@ public sealed class VillageGraphMapCursorSwipeImpulse : MonoBehaviour
     private Camera _cachedCamera;
     private Vector3 _prevMouseScreen;
     private bool _hasPrevMouse;
+    private float _smoothedSpeedWorldXY;
     private readonly Dictionary<int, float> _lastImpulseTimeByRb = new Dictionary<int, float>(32);
 
     private void Update()
@@ -93,7 +98,10 @@ public sealed class VillageGraphMapCursorSwipeImpulse : MonoBehaviour
         _prevMouseScreen = currScreen;
 
         if (!TryGetFirstGraphHitOnMouseSegment(prevScreen, currScreen, out var graphCol, out var graphRb, out var firstGraphHitStep, out var wasGraphRb))
+        {
+            _smoothedSpeedWorldXY = 0f;
             return;
+        }
 
         // Не считать ударом движение, начинающееся уже над тем же графом (в т.ч. резкий выход — первое попадание вдоль sweep в точке prev).
         if (wasGraphRb != null && graphRb == wasGraphRb && firstGraphHitStep == 0)
@@ -108,7 +116,12 @@ public sealed class VillageGraphMapCursorSwipeImpulse : MonoBehaviour
 
         var delta = worldCurr - worldPrev;
         var vel = delta / dt;
-        var speedXY = new Vector3(vel.x, vel.y, 0f).magnitude;
+        var speedXYInstant = new Vector3(vel.x, vel.y, 0f).magnitude;
+        var speedFilter01 = speedSmoothingSeconds <= 1e-6f
+            ? 1f
+            : 1f - Mathf.Exp(-dt / speedSmoothingSeconds);
+        _smoothedSpeedWorldXY = Mathf.Lerp(_smoothedSpeedWorldXY, speedXYInstant, speedFilter01);
+        var speedXY = _smoothedSpeedWorldXY;
 
         if (speedXY < minCursorSpeedWorldXY)
             return;
