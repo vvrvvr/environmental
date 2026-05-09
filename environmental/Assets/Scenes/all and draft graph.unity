@@ -5467,15 +5467,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d42df330353dfc42a7b664044f07410, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  lineRenderer: {fileID: 0}
+  lineRenderer: {fileID: 707802987}
   mapCameraOverride: {fileID: 330585545}
   referencePlaneZ: 0
+  trailHeadScreenOffsetPx: {x: 0, y: -10}
   trailDrawDurationSeconds: 0.35
   maxPoints: 96
   minPointDistance: 0.015
   trailMinStubWorldLength: 0.004
   widthMin: 0.02
-  widthMax: 0.14
+  widthMax: 0.15
   secondsToReachMaxWidth: 0.5
   tailWidthAlongLine:
     serializedVersion: 2
@@ -5576,7 +5577,7 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 1, g: 1, b: 1, a: 0.19607843}
+      key0: {r: 1, g: 1, b: 1, a: 0.11764706}
       key1: {r: 1, g: 1, b: 1, a: 0.078431375}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}

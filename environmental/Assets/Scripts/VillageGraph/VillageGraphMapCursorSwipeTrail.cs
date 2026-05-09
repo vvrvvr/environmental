@@ -18,6 +18,10 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
     [SerializeField]
     private float referencePlaneZ;
 
+    [Tooltip("Сдвиг точки трейла от hot spot мыши, пиксели экрана: +X вправо, +Y вверх.")]
+    [SerializeField]
+    private Vector2 trailHeadScreenOffsetPx;
+
     [Header("Рисование (по событию импульса)")]
     [Tooltip("Сколько секунд (unscaled) после удара трейл тянется за курсором. Каждый новый импульс обновляет отсчёт.")]
     [SerializeField, Min(0.01f)]
@@ -113,7 +117,10 @@ public sealed class VillageGraphMapCursorSwipeTrail : MonoBehaviour
         if (_cam == null)
             return;
 
-        var ray = _cam.ScreenPointToRay(Input.mousePosition);
+        var screen = Input.mousePosition;
+        screen.x += trailHeadScreenOffsetPx.x;
+        screen.y += trailHeadScreenOffsetPx.y;
+        var ray = _cam.ScreenPointToRay(screen);
         var w1Ok = TryPlaneHit(ray, out var w1);
 
         var drawing = Time.unscaledTime < _drawUntilUnscaled;
