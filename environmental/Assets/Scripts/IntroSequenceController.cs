@@ -53,6 +53,11 @@ public sealed class IntroSequenceController : MonoBehaviour
     [FormerlySerializedAs("introMoveFourEndWorld3")]
     private Vector3 introMoveFourEndLocal3;
 
+    [Space(8)]
+    [Tooltip("Корень «граф и видео»: включается в блоке Disable Move Four / Enable Graph And Video.")]
+    [SerializeField]
+    private GameObject introGraphAndVideo;
+
     [Space(16)]
     [Tooltip("Порядок выполнения блоков.")]
     [SerializeField]
@@ -127,6 +132,18 @@ public sealed class IntroSequenceController : MonoBehaviour
             if (block.action == IntroSequenceAction.DeactivateGameObjects)
             {
                 Intro_DeactivateGameObjects(block);
+                continue;
+            }
+
+            if (block.action == IntroSequenceAction.ActivateGameObjects)
+            {
+                Intro_ActivateGameObjects(block);
+                continue;
+            }
+
+            if (block.action == IntroSequenceAction.DisableMoveFourEnableGraphAndVideo)
+            {
+                Intro_DisableMoveFourEnableGraphAndVideo();
                 continue;
             }
 
@@ -306,6 +323,33 @@ public sealed class IntroSequenceController : MonoBehaviour
         }
     }
 
+    private static void Intro_ActivateGameObjects(IntroSequenceBlock block)
+    {
+        var arr = block.objectsToActivate;
+        if (arr == null)
+            return;
+        for (var i = 0; i < arr.Length; i++)
+        {
+            if (arr[i] != null)
+                arr[i].SetActive(true);
+        }
+    }
+
+    private void Intro_DisableMoveFourEnableGraphAndVideo()
+    {
+        if (introMoveFourTarget0 != null)
+            introMoveFourTarget0.SetActive(false);
+        if (introMoveFourTarget1 != null)
+            introMoveFourTarget1.SetActive(false);
+        if (introMoveFourTarget2 != null)
+            introMoveFourTarget2.SetActive(false);
+        if (introMoveFourTarget3 != null)
+            introMoveFourTarget3.SetActive(false);
+
+        if (introGraphAndVideo != null)
+            introGraphAndVideo.SetActive(true);
+    }
+
     private IEnumerator WaitUntilButtonClicked(Button button)
     {
         ClearPendingButtonWait();
@@ -343,6 +387,12 @@ public enum IntroSequenceAction
 
     [Tooltip("Те же объекты: из текущих позиций к закэшированным стартам после MoveFourToPositions. Float0 = длительность, ease общий с MoveFour.")]
     MoveFourBackToCachedStarts = 6,
+
+    [Tooltip("Выкл. четыре объекта Move Four (поля контроллера), вкл. Intro Graph And Video. Мгновенно; Float0 не используется.")]
+    DisableMoveFourEnableGraphAndVideo = 7,
+
+    [Tooltip("Включить (SetActive true) все указанные в блоке объекты. Float0 не используется.")]
+    ActivateGameObjects = 8,
 }
 
 [Serializable]
@@ -354,7 +404,7 @@ public struct IntroSequenceBlock
     [Tooltip("Если вкл. — следующий блок стартует после завершения твина этого; иначе — сразу (параллельно).")]
     public bool waitForTweenCompletion;
 
-    [Tooltip("WaitSeconds / MoveFour / MoveFourBack / FadeUIImage: длительность (сек, unscaled). WaitForButtonClick / DeactivateGameObjects: не используется.")]
+    [Tooltip("WaitSeconds / MoveFour / MoveFourBack / FadeUIImage: длительность (сек, unscaled). WaitForButtonClick / DeactivateGameObjects / ActivateGameObjects / DisableMoveFourEnableGraphAndVideo: не используется.")]
     public float float0;
 
     [Tooltip("Для WaitForButtonClick: кнопка, по нажатию на которую секвенция продолжится.")]
@@ -372,4 +422,7 @@ public struct IntroSequenceBlock
 
     [Tooltip("Для DeactivateGameObjects: объекты для выключения (размер массива — сколько нужно).")]
     public GameObject[] objectsToDeactivate;
+
+    [Tooltip("Для ActivateGameObjects: объекты для включения (размер массива — сколько нужно).")]
+    public GameObject[] objectsToActivate;
 }

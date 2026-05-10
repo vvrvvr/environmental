@@ -5,6 +5,11 @@ using UnityEngine;
 [CustomPropertyDrawer(typeof(IntroSequenceBlock))]
 public sealed class IntroSequenceBlockDrawer : PropertyDrawer
 {
+    private static float HelpBoxHeight(string text, float width)
+    {
+        return EditorStyles.helpBox.CalcHeight(new GUIContent(text), width);
+    }
+
     private static int GetLineCount(SerializedProperty property)
     {
         var actionProp = property.FindPropertyRelative("action");
@@ -23,12 +28,24 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
         var action = (IntroSequenceAction)property.FindPropertyRelative("action").enumValueIndex;
-        if (action == IntroSequenceAction.DeactivateGameObjects)
+        if (action == IntroSequenceAction.DeactivateGameObjects || action == IntroSequenceAction.ActivateGameObjects)
         {
             var lineH = EditorGUIUtility.singleLineHeight;
             var sp = EditorGUIUtility.standardVerticalSpacing;
-            var arr = property.FindPropertyRelative("objectsToDeactivate");
+            var arrName = action == IntroSequenceAction.DeactivateGameObjects ? "objectsToDeactivate" : "objectsToActivate";
+            var arr = property.FindPropertyRelative(arrName);
             return lineH + sp + lineH + sp + EditorGUI.GetPropertyHeight(arr, GUIContent.none, true);
+        }
+
+        if (action == IntroSequenceAction.DisableMoveFourEnableGraphAndVideo)
+        {
+            var lineH = EditorGUIUtility.singleLineHeight;
+            var sp = EditorGUIUtility.standardVerticalSpacing;
+            var w = EditorGUIUtility.currentViewWidth - 40f;
+            var helpH = HelpBoxHeight(
+                "Объекты Move Four и Intro Graph And Video задаются на IntroSequenceController.",
+                w);
+            return lineH + sp + lineH + sp + helpH;
         }
 
         var lines = GetLineCount(property);
@@ -53,6 +70,7 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
         var fadeInProp = property.FindPropertyRelative("fadeUiFadeIn");
         var fadeEndAlphaProp = property.FindPropertyRelative("fadeUiEndAlpha");
         var objectsToDeactivateProp = property.FindPropertyRelative("objectsToDeactivate");
+        var objectsToActivateProp = property.FindPropertyRelative("objectsToActivate");
 
         var row0 = new Rect(position.x, y, position.width, lineH);
         row0 = EditorGUI.PrefixLabel(row0, GUIUtility.GetControlID(FocusType.Passive), label);
@@ -82,6 +100,17 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
         {
             var arrH = EditorGUI.GetPropertyHeight(objectsToDeactivateProp, true);
             EditorGUI.PropertyField(new Rect(position.x, y, position.width, arrH), objectsToDeactivateProp, new GUIContent("Objects To Deactivate"), true);
+        }
+        else if (action == IntroSequenceAction.ActivateGameObjects)
+        {
+            var arrH = EditorGUI.GetPropertyHeight(objectsToActivateProp, true);
+            EditorGUI.PropertyField(new Rect(position.x, y, position.width, arrH), objectsToActivateProp, new GUIContent("Objects To Activate"), true);
+        }
+        else if (action == IntroSequenceAction.DisableMoveFourEnableGraphAndVideo)
+        {
+            var help = "Объекты Move Four и Intro Graph And Video задаются на IntroSequenceController.";
+            var helpH = HelpBoxHeight(help, position.width);
+            EditorGUI.HelpBox(new Rect(position.x, y, position.width, helpH), help, MessageType.Info);
         }
         else
         {

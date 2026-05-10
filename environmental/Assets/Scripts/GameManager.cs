@@ -57,6 +57,10 @@ public class GameManager : MonoBehaviour
     [Tooltip("Единый VideoPlayer для ролика выбранной ноды (выход на RawImage / Camera и т.д. настраивается на нём).")]
     [SerializeField] private VideoPlayer mapVideoPlayer;
 
+    [Tooltip("Ролик до первого выбора ноды на карте: стартует при загрузке сцены, зациклен. Пусто — видео как раньше только после выбора ноды.")]
+    [SerializeField]
+    private VideoClip introLoopMinimapVideoClip;
+
     [Tooltip("Общий слайдер прогресса воспроизведения (0…длина клипа). Пусто — только локальный таймер на ноде.")]
     [SerializeField]
     private Slider minimapVideoProgressSlider;
@@ -918,6 +922,21 @@ public class GameManager : MonoBehaviour
         _mapVideoPlaybackIsEdgeTravel = false;
         mapVideoPlayer.Stop();
         EndGroupPlaylist();
+        TryStartIntroLoopMinimapVideo();
+    }
+
+    /// <summary>Пока нет ролика ноды/ребра — зацикленный интро-клип на том же <see cref="mapVideoPlayer"/>.</summary>
+    private void TryStartIntroLoopMinimapVideo()
+    {
+        if (mapVideoPlayer == null || introLoopMinimapVideoClip == null)
+            return;
+
+        EndGroupPlaylist();
+        _mapVideoPlaybackIsEdgeTravel = false;
+        mapVideoPlayer.Stop();
+        mapVideoPlayer.clip = introLoopMinimapVideoClip;
+        mapVideoPlayer.isLooping = true;
+        mapVideoPlayer.Play();
     }
 
     /// <summary>Одноразовый ролик перехода по ребру на общем <see cref="mapVideoPlayer"/> (без лупа).</summary>
@@ -991,6 +1010,7 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator Start()
     {
+        TryStartIntroLoopMinimapVideo();
         yield return null;
         yield return null;
         if (this != null)
