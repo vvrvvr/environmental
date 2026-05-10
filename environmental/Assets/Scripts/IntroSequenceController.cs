@@ -178,6 +178,9 @@ public sealed class IntroSequenceController : MonoBehaviour
             case IntroSequenceAction.FadeUIImage:
                 return Intro_FadeUIImage(block);
 
+            case IntroSequenceAction.FadeMaterialAlpha:
+                return Intro_FadeMaterialAlpha(block);
+
             default:
                 Debug.LogWarning($"[{nameof(IntroSequenceController)}] Нет обработчика для {block.action}.", this);
                 return null;
@@ -311,6 +314,40 @@ public sealed class IntroSequenceController : MonoBehaviour
         return img.DOFade(0f, duration).SetUpdate(true);
     }
 
+    /// <summary>
+    /// Альфа <see cref="Material.color"/> (шейдерное <c>_Color</c>): с 0 до <see cref="IntroSequenceBlock.fadeMaterialEndAlpha"/> за <see cref="IntroSequenceBlock.float0"/> сек (unscaled).
+    /// RGB берётся из материала в момент старта блока. Общий материал затронет все объекты с ним.
+    /// При выходе из Play Mode в редакторе альфа снова сбрасывается в 0 — см. <see cref="ResetFadeMaterialAlphaBlocksToZero"/>.
+    /// </summary>
+    private Tween Intro_FadeMaterialAlpha(IntroSequenceBlock block)
+    {
+        var mat = block.fadeMaterial;
+        var duration = Mathf.Max(0f, block.float0);
+        if (mat == null)
+            return null;
+
+        var endA = Mathf.Clamp01(block.fadeMaterialEndAlpha);
+        var c0 = mat.color;
+        var r = c0.r;
+        var g = c0.g;
+        var b = c0.b;
+
+        if (duration <= 0f)
+        {
+            mat.color = new Color(r, g, b, endA);
+            return null;
+        }
+
+        mat.color = new Color(r, g, b, 0f);
+
+        return DOTween.To(
+                () => mat.color.a,
+                a => mat.color = new Color(r, g, b, a),
+                endA,
+                duration)
+            .SetUpdate(isIndependentUpdate: true);
+    }
+
     private static void Intro_DeactivateGameObjects(IntroSequenceBlock block)
     {
         var arr = block.objectsToDeactivate;
@@ -348,6 +385,30 @@ public sealed class IntroSequenceController : MonoBehaviour
 
         if (introGraphAndVideo != null)
             introGraphAndVideo.SetActive(true);
+    }
+
+    /// <summary>
+    /// Альфа <see cref="Material.color"/> → 0 для всех уникальных <see cref="IntroSequenceBlock.fadeMaterial"/> из блоков <see cref="IntroSequenceAction.FadeMaterialAlpha"/>.
+    /// Редактор вызывает при выходе из Play Mode, чтобы состояние материала не оставалось «проявленным» в Edit Mode.
+    /// </summary>
+    public void ResetFadeMaterialAlphaBlocksToZero()
+    {
+        if (blocks == null || blocks.Count == 0)
+            return;
+
+        var seen = new HashSet<Material>();
+        for (var i = 0; i < blocks.Count; i++)
+        {
+            var block = blocks[i];
+            if (block.action != IntroSequenceAction.FadeMaterialAlpha)
+                continue;
+            var mat = block.fadeMaterial;
+            if (mat == null || !seen.Add(mat))
+                continue;
+            var c = mat.color;
+            c.a = 0f;
+            mat.color = c;
+        }
     }
 
     private IEnumerator WaitUntilButtonClicked(Button button)
@@ -393,6 +454,9 @@ public enum IntroSequenceAction
 
     [Tooltip("Включить (SetActive true) все указанные в блоке объекты. Float0 не используется.")]
     ActivateGameObjects = 8,
+
+    [Tooltip("Material.color: альфа 0 → Fade Material End Alpha за Float0 сек (unscaled). Нужен шейдер с _Color и поддержкой прозрачности.")]
+    FadeMaterialAlpha = 9,
 }
 
 [Serializable]
@@ -404,7 +468,7 @@ public struct IntroSequenceBlock
     [Tooltip("Если вкл. — следующий блок стартует после завершения твина этого; иначе — сразу (параллельно).")]
     public bool waitForTweenCompletion;
 
-    [Tooltip("WaitSeconds / MoveFour / MoveFourBack / FadeUIImage: длительность (сек, unscaled). WaitForButtonClick / DeactivateGameObjects / ActivateGameObjects / DisableMoveFourEnableGraphAndVideo: не используется.")]
+    [Tooltip("WaitSeconds / MoveFour / MoveFourBack / FadeUIImage / FadeMaterialAlpha: длительность (сек, unscaled). WaitForButtonClick / DeactivateGameObjects / ActivateGameObjects / DisableMoveFourEnableGraphAndVideo: не используется.")]
     public float float0;
 
     [Tooltip("Для WaitForButtonClick: кнопка, по нажатию на которую секвенция продолжится.")]
@@ -425,4 +489,11 @@ public struct IntroSequenceBlock
 
     [Tooltip("Для ActivateGameObjects: объекты для включения (размер массива — сколько нужно).")]
     public GameObject[] objectsToActivate;
+
+    [Tooltip("Для FadeMaterialAlpha: материал (лучше instance на объекте, если не нужно менять ассет).")]
+    public Material fadeMaterial;
+
+    [Tooltip("Для FadeMaterialAlpha: целевая альфа (0…1), старт всегда 0.")]
+    [Range(0f, 1f)]
+    public float fadeMaterialEndAlpha;
 }

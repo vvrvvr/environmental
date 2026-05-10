@@ -20,6 +20,8 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
                 return 3;
             case IntroSequenceAction.FadeUIImage:
                 return property.FindPropertyRelative("fadeUiFadeIn").boolValue ? 6 : 5;
+            case IntroSequenceAction.FadeMaterialAlpha:
+                return 5;
             default:
                 return 3;
         }
@@ -71,6 +73,8 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
         var fadeEndAlphaProp = property.FindPropertyRelative("fadeUiEndAlpha");
         var objectsToDeactivateProp = property.FindPropertyRelative("objectsToDeactivate");
         var objectsToActivateProp = property.FindPropertyRelative("objectsToActivate");
+        var fadeMaterialProp = property.FindPropertyRelative("fadeMaterial");
+        var fadeMaterialEndAlphaProp = property.FindPropertyRelative("fadeMaterialEndAlpha");
 
         var row0 = new Rect(position.x, y, position.width, lineH);
         row0 = EditorGUI.PrefixLabel(row0, GUIUtility.GetControlID(FocusType.Passive), label);
@@ -95,6 +99,14 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
             y += lineH + sp;
             if (fadeInProp.boolValue)
                 EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), fadeEndAlphaProp);
+        }
+        else if (action == IntroSequenceAction.FadeMaterialAlpha)
+        {
+            EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), float0Prop);
+            y += lineH + sp;
+            EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), fadeMaterialProp);
+            y += lineH + sp;
+            EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), fadeMaterialEndAlphaProp);
         }
         else if (action == IntroSequenceAction.DeactivateGameObjects)
         {

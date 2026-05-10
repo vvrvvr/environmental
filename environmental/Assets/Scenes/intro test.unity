@@ -4675,7 +4675,7 @@ RectTransform:
   m_Father: {fileID: 1323788867}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -6565,14 +6565,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.02641511, g: 0.017493779, b: 0.017493779, a: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: 588e4b5cb401bac4d9685c86b928f5c1, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -6590,6 +6590,112 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 837903884}
   m_CullTransparentMesh: 1
+--- !u!1 &847799393
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 847799394}
+  - component: {fileID: 847799397}
+  - component: {fileID: 847799396}
+  - component: {fileID: 847799395}
+  m_Layer: 0
+  m_Name: Background
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &847799394
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 847799393}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.000002078712, y: -0.7071057, z: 0.70710796, w: 0.0000023245811}
+  m_LocalPosition: {x: 0, y: 5.32, z: 17.74}
+  m_LocalScale: {x: 4.3464246, y: 1.1690431, z: 2.4207382}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1657977835}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!64 &847799395
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 847799393}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &847799396
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 847799393}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 0062339f01ebba04890e05f5c008ebc8, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &847799397
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 847799393}
+  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1001 &858288017
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7259,7 +7365,7 @@ RectTransform:
   m_Father: {fileID: 869288638}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -10032,15 +10138,30 @@ MonoBehaviour:
   introMoveFourEndLocal3: {x: 94.91, y: 0, z: 0}
   introGraphAndVideo: {fileID: 1657977834}
   blocks:
+  - action: 1
+    waitForTweenCompletion: 1
+    float0: 1
+    waitForButton: {fileID: 0}
+    fadeUiImage: {fileID: 0}
+    fadeUiFadeIn: 0
+    fadeUiEndAlpha: 0
+    objectsToDeactivate: []
+    objectsToActivate:
+    - {fileID: 1482531312}
+    - {fileID: 1598500341}
+    fadeMaterial: {fileID: 2100000, guid: 0062339f01ebba04890e05f5c008ebc8, type: 2}
+    fadeMaterialEndAlpha: 1
   - action: 4
     waitForTweenCompletion: 0
-    float0: 5
+    float0: 15
     waitForButton: {fileID: 0}
     fadeUiImage: {fileID: 837903886}
     fadeUiFadeIn: 0
     fadeUiEndAlpha: 1
     objectsToDeactivate: []
     objectsToActivate: []
+    fadeMaterial: {fileID: 0}
+    fadeMaterialEndAlpha: 0
   - action: 3
     waitForTweenCompletion: 1
     float0: 3
@@ -10050,6 +10171,8 @@ MonoBehaviour:
     fadeUiEndAlpha: 0
     objectsToDeactivate: []
     objectsToActivate: []
+    fadeMaterial: {fileID: 0}
+    fadeMaterialEndAlpha: 0
   - action: 5
     waitForTweenCompletion: 0
     float0: 3
@@ -10060,6 +10183,8 @@ MonoBehaviour:
     objectsToDeactivate:
     - {fileID: 1441437383}
     objectsToActivate: []
+    fadeMaterial: {fileID: 0}
+    fadeMaterialEndAlpha: 0
   - action: 2
     waitForTweenCompletion: 1
     float0: 3
@@ -10069,6 +10194,8 @@ MonoBehaviour:
     fadeUiEndAlpha: 0
     objectsToDeactivate: []
     objectsToActivate: []
+    fadeMaterial: {fileID: 0}
+    fadeMaterialEndAlpha: 0
   - action: 5
     waitForTweenCompletion: 1
     float0: 3
@@ -10079,6 +10206,8 @@ MonoBehaviour:
     objectsToDeactivate:
     - {fileID: 1850578681}
     objectsToActivate: []
+    fadeMaterial: {fileID: 0}
+    fadeMaterialEndAlpha: 0
   - action: 7
     waitForTweenCompletion: 1
     float0: 3
@@ -10088,6 +10217,8 @@ MonoBehaviour:
     fadeUiEndAlpha: 0
     objectsToDeactivate: []
     objectsToActivate: []
+    fadeMaterial: {fileID: 0}
+    fadeMaterialEndAlpha: 0
   - action: 1
     waitForTweenCompletion: 1
     float0: 2
@@ -10097,6 +10228,8 @@ MonoBehaviour:
     fadeUiEndAlpha: 0
     objectsToDeactivate: []
     objectsToActivate: []
+    fadeMaterial: {fileID: 0}
+    fadeMaterialEndAlpha: 0
   - action: 8
     waitForTweenCompletion: 1
     float0: 3
@@ -10108,6 +10241,21 @@ MonoBehaviour:
     objectsToActivate:
     - {fileID: 1482531312}
     - {fileID: 1598500341}
+    fadeMaterial: {fileID: 0}
+    fadeMaterialEndAlpha: 0
+  - action: 9
+    waitForTweenCompletion: 1
+    float0: 5
+    waitForButton: {fileID: 0}
+    fadeUiImage: {fileID: 0}
+    fadeUiFadeIn: 0
+    fadeUiEndAlpha: 0
+    objectsToDeactivate: []
+    objectsToActivate:
+    - {fileID: 1482531312}
+    - {fileID: 1598500341}
+    fadeMaterial: {fileID: 2100000, guid: 0062339f01ebba04890e05f5c008ebc8, type: 2}
+    fadeMaterialEndAlpha: 1
 --- !u!1 &1323788866
 GameObject:
   m_ObjectHideFlags: 0
@@ -11359,7 +11507,7 @@ MonoBehaviour:
   outgoingEdgeAppearStaggerMax: 0.5
   outgoingBlockedEdgeVisualOffsetSeconds: -0.2
   mapVideoPlayer: {fileID: 1173002159}
-  introLoopMinimapVideoClip: {fileID: 32900000, guid: 9290193577788624bb9f6b9d4e7eba98,
+  introLoopMinimapVideoClip: {fileID: 32900000, guid: 07e1498198839024ba6408ef67af1e1f,
     type: 3}
   minimapVideoProgressSlider: {fileID: 291518809}
   showMinimapVideoProgressForEdgeTravel: 1
@@ -12763,7 +12911,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1657977835
 Transform:
   m_ObjectHideFlags: 0
@@ -12777,6 +12925,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 847799394}
   - {fileID: 1482531313}
   - {fileID: 1598500342}
   - {fileID: 707802985}
@@ -15312,7 +15461,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &2000613730
 MonoBehaviour:
   m_ObjectHideFlags: 0
