@@ -121,6 +121,12 @@ public sealed class IntroSequenceController : MonoBehaviour
                 continue;
             }
 
+            if (block.action == IntroSequenceAction.DeactivateGameObjects)
+            {
+                Intro_DeactivateGameObjects(block);
+                continue;
+            }
+
             var tween = BuildTweenForBlock(block);
             if (tween != null && tween.IsActive())
                 tween.SetLink(gameObject).SetId(this);
@@ -145,6 +151,9 @@ public sealed class IntroSequenceController : MonoBehaviour
 
             case IntroSequenceAction.MoveFourToPositions:
                 return Intro_MoveFourToPositions(block);
+
+            case IntroSequenceAction.FadeUIImage:
+                return Intro_FadeUIImage(block);
 
             default:
                 Debug.LogWarning($"[{nameof(IntroSequenceController)}] Нет обработчика для {block.action}.", this);
@@ -201,6 +210,45 @@ public sealed class IntroSequenceController : MonoBehaviour
         return seq;
     }
 
+    /// <summary>Alpha UI <see cref="Image"/>: fade-in 0→<see cref="IntroSequenceBlock.fadeUiEndAlpha"/> или fade-out текущая→0 за <see cref="IntroSequenceBlock.float0"/> сек (unscaled).</summary>
+    private Tween Intro_FadeUIImage(IntroSequenceBlock block)
+    {
+        var img = block.fadeUiImage;
+        var duration = Mathf.Max(0f, block.float0);
+        if (img == null)
+            return null;
+
+        if (duration <= 0f)
+        {
+            var c = img.color;
+            c.a = block.fadeUiFadeIn ? Mathf.Clamp01(block.fadeUiEndAlpha) : 0f;
+            img.color = c;
+            return null;
+        }
+
+        if (block.fadeUiFadeIn)
+        {
+            var c0 = img.color;
+            c0.a = 0f;
+            img.color = c0;
+            return img.DOFade(Mathf.Clamp01(block.fadeUiEndAlpha), duration).SetUpdate(true);
+        }
+
+        return img.DOFade(0f, duration).SetUpdate(true);
+    }
+
+    private static void Intro_DeactivateGameObjects(IntroSequenceBlock block)
+    {
+        var arr = block.objectsToDeactivate;
+        if (arr == null)
+            return;
+        for (var i = 0; i < arr.Length; i++)
+        {
+            if (arr[i] != null)
+                arr[i].SetActive(false);
+        }
+    }
+
     private IEnumerator WaitUntilButtonClicked(Button button)
     {
         ClearPendingButtonWait();
@@ -229,6 +277,12 @@ public enum IntroSequenceAction
 
     [Tooltip("Ждать один клик по Wait For Button (поле в блоке). Wait For Tween Completion для этого типа не используется.")]
     WaitForButtonClick = 3,
+
+    [Tooltip("Fade UI Image: Float0 = длительность (unscaled), в блоке Image и направление фейда.")]
+    FadeUIImage = 4,
+
+    [Tooltip("Выключить (SetActive false) все указанные в блоке объекты. Float0 не используется.")]
+    DeactivateGameObjects = 5,
 }
 
 [Serializable]
@@ -240,9 +294,22 @@ public struct IntroSequenceBlock
     [Tooltip("Если вкл. — следующий блок стартует после завершения твина этого; иначе — сразу (параллельно).")]
     public bool waitForTweenCompletion;
 
-    [Tooltip("WaitSeconds: пауза (сек, unscaled). MoveFourToPositions: длительность движения (сек, unscaled). WaitForButtonClick: не используется.")]
+    [Tooltip("WaitSeconds / MoveFour / FadeUIImage: длительность (сек, unscaled). WaitForButtonClick / DeactivateGameObjects: не используется.")]
     public float float0;
 
     [Tooltip("Для WaitForButtonClick: кнопка, по нажатию на которую секвенция продолжится.")]
     public Button waitForButton;
+
+    [Tooltip("Для FadeUIImage: какой Graphic (Image).")]
+    public Image fadeUiImage;
+
+    [Tooltip("Для FadeUIImage: вкл. — с 0 до Fade Ui End Alpha; выкл. — с текущей альфы до 0.")]
+    public bool fadeUiFadeIn;
+
+    [Tooltip("Для FadeUIImage при fade-in: целевая альфа (0…1). При fade-out не используется.")]
+    [Range(0f, 1f)]
+    public float fadeUiEndAlpha;
+
+    [Tooltip("Для DeactivateGameObjects: объекты для выключения (размер массива — сколько нужно).")]
+    public GameObject[] objectsToDeactivate;
 }
