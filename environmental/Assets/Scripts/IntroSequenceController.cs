@@ -20,7 +20,7 @@ public sealed class IntroSequenceController : MonoBehaviour
 
     [Space(18)]
     [Header("черные поля интро секвенции")]
-    [Tooltip("Общий easing для действия MoveFourToPositions (DOTween). Unset → InOutQuad.")]
+    [Tooltip("Общий easing для MoveFourToPositions и MoveFourBackToCachedStarts (DOTween). Unset → InOutQuad.")]
     [SerializeField]
     private Ease introMoveFourEase;
 
@@ -61,6 +61,9 @@ public sealed class IntroSequenceController : MonoBehaviour
     private Coroutine _runRoutine;
     private Button _pendingButtonWaitTarget;
     private UnityAction _pendingButtonWaitHandler;
+
+    private readonly Vector3[] _introMoveFourCachedStartLocal = new Vector3[4];
+    private bool _introMoveFourCachedStartValid;
 
     private void OnEnable()
     {
@@ -152,6 +155,9 @@ public sealed class IntroSequenceController : MonoBehaviour
             case IntroSequenceAction.MoveFourToPositions:
                 return Intro_MoveFourToPositions(block);
 
+            case IntroSequenceAction.MoveFourBackToCachedStarts:
+                return Intro_MoveFourBackToCachedStarts(block);
+
             case IntroSequenceAction.FadeUIImage:
                 return Intro_FadeUIImage(block);
 
@@ -192,6 +198,15 @@ public sealed class IntroSequenceController : MonoBehaviour
             introMoveFourEndLocal3,
         };
 
+        _introMoveFourCachedStartValid = false;
+        for (var i = 0; i < 4; i++)
+        {
+            if (gos[i] == null)
+                continue;
+            _introMoveFourCachedStartLocal[i] = gos[i].transform.localPosition;
+            _introMoveFourCachedStartValid = true;
+        }
+
         var seq = DOTween.Sequence().SetUpdate(isIndependentUpdate: true);
         var any = false;
         for (var i = 0; i < 4; i++)
@@ -210,7 +225,46 @@ public sealed class IntroSequenceController : MonoBehaviour
         return seq;
     }
 
-    /// <summary>Alpha UI <see cref="Image"/>: fade-in 0→<see cref="IntroSequenceBlock.fadeUiEndAlpha"/> или fade-out текущая→0 за <see cref="IntroSequenceBlock.float0"/> сек (unscaled).</summary>
+    /// <summary>Те же 4 объекта: из текущих localPosition к закэшированным стартам перед последним <see cref="IntroSequenceAction.MoveFourToPositions"/> (тот же ease).</summary>
+    private Tween Intro_MoveFourBackToCachedStarts(IntroSequenceBlock block)
+    {
+        if (!_introMoveFourCachedStartValid)
+        {
+            Debug.LogWarning(
+                $"[{nameof(IntroSequenceController)}] MoveFourBackToCachedStarts: нет кэша стартов — сначала выполни блок MoveFourToPositions.",
+                this);
+            return null;
+        }
+
+        var duration = Mathf.Max(0f, block.float0);
+        var ease = introMoveFourEase == Ease.Unset ? Ease.InOutQuad : introMoveFourEase;
+
+        GameObject[] gos =
+        {
+            introMoveFourTarget0,
+            introMoveFourTarget1,
+            introMoveFourTarget2,
+            introMoveFourTarget3,
+        };
+
+        var seq = DOTween.Sequence().SetUpdate(isIndependentUpdate: true);
+        var any = false;
+        for (var i = 0; i < 4; i++)
+        {
+            if (gos[i] == null)
+                continue;
+            any = true;
+            var tw = gos[i].transform.DOLocalMove(_introMoveFourCachedStartLocal[i], duration).SetEase(ease);
+            seq.Join(tw);
+        }
+
+        if (!any)
+            return null;
+
+        return seq;
+    }
+
+    /// <summary>Alpha UI <see cref="Image"/>: fade-in старт с 0 → <see cref="IntroSequenceBlock.fadeUiEndAlpha"/>; fade-out старт с 1 → 0 за <see cref="IntroSequenceBlock.float0"/> сек (unscaled).</summary>
     private Tween Intro_FadeUIImage(IntroSequenceBlock block)
     {
         var img = block.fadeUiImage;
@@ -234,6 +288,9 @@ public sealed class IntroSequenceController : MonoBehaviour
             return img.DOFade(Mathf.Clamp01(block.fadeUiEndAlpha), duration).SetUpdate(true);
         }
 
+        var c1 = img.color;
+        c1.a = 1f;
+        img.color = c1;
         return img.DOFade(0f, duration).SetUpdate(true);
     }
 
@@ -272,7 +329,7 @@ public enum IntroSequenceAction
     [Tooltip("Пауза Float0 секунд (unscaled).")]
     WaitSeconds = 1,
 
-    [Tooltip("Объекты, ease и конечные localPosition — в «черные поля интро секвенции». В блоке только Float0 = длительность (сек, unscaled).")]
+    [Tooltip("Объекты, ease и конечные localPosition — в «черные поля интро секвенции». В блоке только Float0 = длительность (сек, unscaled). Кэширует стартовые localPosition для обратного блока.")]
     MoveFourToPositions = 2,
 
     [Tooltip("Ждать один клик по Wait For Button (поле в блоке). Wait For Tween Completion для этого типа не используется.")]
@@ -283,6 +340,9 @@ public enum IntroSequenceAction
 
     [Tooltip("Выключить (SetActive false) все указанные в блоке объекты. Float0 не используется.")]
     DeactivateGameObjects = 5,
+
+    [Tooltip("Те же объекты: из текущих позиций к закэшированным стартам после MoveFourToPositions. Float0 = длительность, ease общий с MoveFour.")]
+    MoveFourBackToCachedStarts = 6,
 }
 
 [Serializable]
@@ -294,7 +354,7 @@ public struct IntroSequenceBlock
     [Tooltip("Если вкл. — следующий блок стартует после завершения твина этого; иначе — сразу (параллельно).")]
     public bool waitForTweenCompletion;
 
-    [Tooltip("WaitSeconds / MoveFour / FadeUIImage: длительность (сек, unscaled). WaitForButtonClick / DeactivateGameObjects: не используется.")]
+    [Tooltip("WaitSeconds / MoveFour / MoveFourBack / FadeUIImage: длительность (сек, unscaled). WaitForButtonClick / DeactivateGameObjects: не используется.")]
     public float float0;
 
     [Tooltip("Для WaitForButtonClick: кнопка, по нажатию на которую секвенция продолжится.")]
@@ -303,7 +363,7 @@ public struct IntroSequenceBlock
     [Tooltip("Для FadeUIImage: какой Graphic (Image).")]
     public Image fadeUiImage;
 
-    [Tooltip("Для FadeUIImage: вкл. — с 0 до Fade Ui End Alpha; выкл. — с текущей альфы до 0.")]
+    [Tooltip("Для FadeUIImage: вкл. — старт альфы 0, до Fade Ui End Alpha; выкл. — старт 1, до 0.")]
     public bool fadeUiFadeIn;
 
     [Tooltip("Для FadeUIImage при fade-in: целевая альфа (0…1). При fade-out не используется.")]
