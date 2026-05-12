@@ -23,6 +23,10 @@ public sealed class PersistentPlaylistAudioPlayer : MonoBehaviour
     [SerializeField]
     private bool loopPlaylist = true;
 
+    [Tooltip("Случайный порядок: каждый ненулевой трек из списка один раз за раунд, без повторов до полного круга; следующий раунд снова случайно. Выключи — порядок как в списке.")]
+    [SerializeField]
+    private bool randomPlayback;
+
     [Tooltip("Порядок воспроизведения. Пустые элементы пропускаются.")]
     [SerializeField]
     private List<AudioClip> tracks = new List<AudioClip>();
@@ -52,6 +56,12 @@ public sealed class PersistentPlaylistAudioPlayer : MonoBehaviour
 
     private AudioSource _source;
     private Coroutine _playlistRoutine;
+
+    /// <summary>Индексы треков, ещё не сыгранных в текущем раунде случайного режима.</summary>
+    private readonly List<int> _shuffleRemaining = new List<int>();
+
+    /// <summary>Индекс в <see cref="tracks"/> последнего сыгранного трека в случайном режиме (для границы раундов).</summary>
+    private int _lastRandomPlayedTrackIndex = -1;
 
     private void Awake()
     {
@@ -119,23 +129,44 @@ public sealed class PersistentPlaylistAudioPlayer : MonoBehaviour
             if (tracks == null || tracks.Count == 0 || !HasAnyNonNullTrack())
                 yield break;
 
-            var index = 0;
+            _shuffleRemaining.Clear();
+            _lastRandomPlayedTrackIndex = -1;
+            var sequentialIndex = 0;
+
             while (true)
             {
-                while (index < tracks.Count && tracks[index] == null)
-                    index++;
-
-                if (index >= tracks.Count)
+                int playIndex;
+                if (randomPlayback)
                 {
-                    if (!loopPlaylist)
+                    if (_shuffleRemaining.Count == 0)
+                        FillShuffleRemaining();
+                    if (_shuffleRemaining.Count == 0)
                         yield break;
-                    index = 0;
-                    if (!HasAnyNonNullTrack())
-                        yield break;
-                    continue;
+
+                    var validCount = GetValidTrackCount();
+                    var pick = PickShuffleListIndexExcludingRoundBoundaryRepeat(validCount);
+                    playIndex = _shuffleRemaining[pick];
+                    _shuffleRemaining.RemoveAt(pick);
+                }
+                else
+                {
+                    while (sequentialIndex < tracks.Count && tracks[sequentialIndex] == null)
+                        sequentialIndex++;
+
+                    if (sequentialIndex >= tracks.Count)
+                    {
+                        if (!loopPlaylist)
+                            yield break;
+                        sequentialIndex = 0;
+                        if (!HasAnyNonNullTrack())
+                            yield break;
+                        continue;
+                    }
+
+                    playIndex = sequentialIndex++;
                 }
 
-                AudioClip clip = tracks[index];
+                AudioClip clip = tracks[playIndex];
                 _source.clip = clip;
                 _source.loop = false;
                 _source.Play();
@@ -145,12 +176,18 @@ public sealed class PersistentPlaylistAudioPlayer : MonoBehaviour
                 yield return new WaitUntil(() => _source.isPlaying);
                 yield return new WaitWhile(() => _source.isPlaying);
 
-                index++;
-                if (index >= tracks.Count)
+                if (randomPlayback)
                 {
-                    if (!loopPlaylist)
+                    _lastRandomPlayedTrackIndex = playIndex;
+                    if (_shuffleRemaining.Count == 0 && !loopPlaylist)
                         yield break;
-                    index = 0;
+                }
+                else
+                {
+                    if (sequentialIndex >= tracks.Count && !loopPlaylist)
+                        yield break;
+                    if (sequentialIndex >= tracks.Count)
+                        sequentialIndex = 0;
                 }
             }
         }
@@ -171,6 +208,65 @@ public sealed class PersistentPlaylistAudioPlayer : MonoBehaviour
         }
 
         return false;
+    }
+
+    private void FillShuffleRemaining()
+    {
+        _shuffleRemaining.Clear();
+        if (tracks == null)
+            return;
+        for (var i = 0; i < tracks.Count; i++)
+        {
+            if (tracks[i] != null)
+                _shuffleRemaining.Add(i);
+        }
+    }
+
+    private int GetValidTrackCount()
+    {
+        if (tracks == null)
+            return 0;
+        var n = 0;
+        for (var i = 0; i < tracks.Count; i++)
+        {
+            if (tracks[i] != null)
+                n++;
+        }
+
+        return n;
+    }
+
+    /// <summary>
+    /// Индекс в <see cref="_shuffleRemaining"/> для удаления.
+    /// После полного пополнения колоды (первый трек нового раунда) не возвращает слот с тем же треком, что только что играл в конце прошлого раунда (если есть альтернатива).
+    /// </summary>
+    private int PickShuffleListIndexExcludingRoundBoundaryRepeat(int validTrackCount)
+    {
+        var n = _shuffleRemaining.Count;
+        if (n <= 1)
+            return 0;
+
+        var last = _lastRandomPlayedTrackIndex;
+        var isFirstPickOfFullRound = n == validTrackCount && validTrackCount > 1 && last >= 0;
+        if (!isFirstPickOfFullRound)
+            return Random.Range(0, n);
+
+        var lastListIndex = -1;
+        for (var i = 0; i < n; i++)
+        {
+            if (_shuffleRemaining[i] != last)
+                continue;
+            lastListIndex = i;
+            break;
+        }
+
+        if (lastListIndex < 0)
+            return Random.Range(0, n);
+
+        var pick = Random.Range(0, n - 1);
+        if (pick < lastListIndex)
+            return pick;
+        return pick + 1;
     }
 
     private void ResetTrackTitleAlphaZero()
