@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Serialization;
@@ -181,6 +182,9 @@ public sealed class IntroSequenceController : MonoBehaviour
             case IntroSequenceAction.FadeMaterialAlpha:
                 return Intro_FadeMaterialAlpha(block);
 
+            case IntroSequenceAction.FadeTMPTextAlphaToZero:
+                return Intro_FadeTMPTextAlphaToZero(block);
+
             default:
                 Debug.LogWarning($"[{nameof(IntroSequenceController)}] Нет обработчика для {block.action}.", this);
                 return null;
@@ -348,6 +352,33 @@ public sealed class IntroSequenceController : MonoBehaviour
             .SetUpdate(isIndependentUpdate: true);
     }
 
+    /// <summary>Альфа <see cref="TMP_Text.color"/>: от текущего значения к 0 за <see cref="IntroSequenceBlock.float0"/> сек (unscaled). RGB не меняется.</summary>
+    private Tween Intro_FadeTMPTextAlphaToZero(IntroSequenceBlock block)
+    {
+        var tmp = block.fadeTmpText;
+        var duration = Mathf.Max(0f, block.float0);
+        if (tmp == null)
+            return null;
+
+        var c0 = tmp.color;
+        var r = c0.r;
+        var g = c0.g;
+        var b = c0.b;
+
+        if (duration <= 0f)
+        {
+            tmp.color = new Color(r, g, b, 0f);
+            return null;
+        }
+
+        return DOTween.To(
+                () => tmp.color.a,
+                a => tmp.color = new Color(r, g, b, a),
+                0f,
+                duration)
+            .SetUpdate(isIndependentUpdate: true);
+    }
+
     private static void Intro_DeactivateGameObjects(IntroSequenceBlock block)
     {
         var arr = block.objectsToDeactivate;
@@ -457,6 +488,9 @@ public enum IntroSequenceAction
 
     [Tooltip("Material.color: альфа 0 → Fade Material End Alpha за Float0 сек (unscaled). Нужен шейдер с _Color и поддержкой прозрачности.")]
     FadeMaterialAlpha = 9,
+
+    [Tooltip("TextMesh Pro: текущая альфа → 0 за Float0 сек (unscaled). Поле текста в блоке. Ждать конца — галка Wait For Tween Completion.")]
+    FadeTMPTextAlphaToZero = 10,
 }
 
 [Serializable]
@@ -465,10 +499,10 @@ public struct IntroSequenceBlock
     [Tooltip("Что выполнить в этом блоке.")]
     public IntroSequenceAction action;
 
-    [Tooltip("Если вкл. — следующий блок стартует после завершения твина этого; иначе — сразу (параллельно).")]
+    [Tooltip("Если вкл. — следующий блок стартует после завершения твина этого; иначе — сразу (параллельно). Для блоков без твина не используется.")]
     public bool waitForTweenCompletion;
 
-    [Tooltip("WaitSeconds / MoveFour / MoveFourBack / FadeUIImage / FadeMaterialAlpha: длительность (сек, unscaled). WaitForButtonClick / DeactivateGameObjects / ActivateGameObjects / DisableMoveFourEnableGraphAndVideo: не используется.")]
+    [Tooltip("WaitSeconds / MoveFour / MoveFourBack / FadeUIImage / FadeMaterialAlpha / FadeTMPTextAlphaToZero: длительность (сек, unscaled). WaitForButtonClick / DeactivateGameObjects / ActivateGameObjects / DisableMoveFourEnableGraphAndVideo: не используется.")]
     public float float0;
 
     [Tooltip("Для WaitForButtonClick: кнопка, по нажатию на которую секвенция продолжится.")]
@@ -496,4 +530,7 @@ public struct IntroSequenceBlock
     [Tooltip("Для FadeMaterialAlpha: целевая альфа (0…1), старт всегда 0.")]
     [Range(0f, 1f)]
     public float fadeMaterialEndAlpha;
+
+    [Tooltip("Для FadeTMPTextAlphaToZero: TextMesh Pro (UI или 3D).")]
+    public TMP_Text fadeTmpText;
 }

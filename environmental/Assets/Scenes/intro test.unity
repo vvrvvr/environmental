@@ -448,6 +448,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playOnEnable: 1
   loopPlaylist: 1
+  randomPlayback: 1
   tracks:
   - {fileID: 8300000, guid: 0672a219d97cfdf4087d1adc2bf5c673, type: 3}
   - {fileID: 8300000, guid: ce47a71ada08f0c40aba11dea1082ff2, type: 3}
@@ -9552,7 +9553,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u0432 \u044D\u0442\u043E\u043C \u043C\u0438\u0440\u0435 \u0437\u0432\u0435\u0440\u0435\u0439\n\u0416\u0430\u0440\u043E\u043A"
+  m_text: "\u043D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0442\u0440\u0435\u043A\u0430"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d78bff65522465544b7840976cc0ab2c, type: 2}
   m_sharedMaterial: {fileID: 3927886726570525697, guid: d78bff65522465544b7840976cc0ab2c,
@@ -10575,6 +10576,7 @@ MonoBehaviour:
     - {fileID: 1598500341}
     fadeMaterial: {fileID: 2100000, guid: 0062339f01ebba04890e05f5c008ebc8, type: 2}
     fadeMaterialEndAlpha: 1
+    fadeTmpText: {fileID: 0}
   - action: 4
     waitForTweenCompletion: 0
     float0: 15
@@ -10586,6 +10588,7 @@ MonoBehaviour:
     objectsToActivate: []
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
+    fadeTmpText: {fileID: 0}
   - action: 3
     waitForTweenCompletion: 1
     float0: 3
@@ -10597,6 +10600,7 @@ MonoBehaviour:
     objectsToActivate: []
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
+    fadeTmpText: {fileID: 0}
   - action: 5
     waitForTweenCompletion: 0
     float0: 3
@@ -10609,6 +10613,21 @@ MonoBehaviour:
     objectsToActivate: []
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
+    fadeTmpText: {fileID: 0}
+  - action: 10
+    waitForTweenCompletion: 0
+    float0: 2
+    waitForButton: {fileID: 0}
+    fadeUiImage: {fileID: 0}
+    fadeUiFadeIn: 0
+    fadeUiEndAlpha: 0
+    objectsToDeactivate: []
+    objectsToActivate:
+    - {fileID: 1482531312}
+    - {fileID: 1598500341}
+    fadeMaterial: {fileID: 2100000, guid: 0062339f01ebba04890e05f5c008ebc8, type: 2}
+    fadeMaterialEndAlpha: 1
+    fadeTmpText: {fileID: 213802644}
   - action: 2
     waitForTweenCompletion: 1
     float0: 3
@@ -10620,6 +10639,7 @@ MonoBehaviour:
     objectsToActivate: []
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
+    fadeTmpText: {fileID: 0}
   - action: 5
     waitForTweenCompletion: 1
     float0: 3
@@ -10632,6 +10652,7 @@ MonoBehaviour:
     objectsToActivate: []
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
+    fadeTmpText: {fileID: 0}
   - action: 7
     waitForTweenCompletion: 1
     float0: 3
@@ -10643,6 +10664,7 @@ MonoBehaviour:
     objectsToActivate: []
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
+    fadeTmpText: {fileID: 0}
   - action: 1
     waitForTweenCompletion: 1
     float0: 2
@@ -10654,6 +10676,7 @@ MonoBehaviour:
     objectsToActivate: []
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
+    fadeTmpText: {fileID: 0}
   - action: 8
     waitForTweenCompletion: 1
     float0: 3
@@ -10667,6 +10690,7 @@ MonoBehaviour:
     - {fileID: 1598500341}
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
+    fadeTmpText: {fileID: 0}
   - action: 9
     waitForTweenCompletion: 1
     float0: 5
@@ -10680,6 +10704,7 @@ MonoBehaviour:
     - {fileID: 1598500341}
     fadeMaterial: {fileID: 2100000, guid: 0062339f01ebba04890e05f5c008ebc8, type: 2}
     fadeMaterialEndAlpha: 1
+    fadeTmpText: {fileID: 0}
 --- !u!1 &1323788866
 GameObject:
   m_ObjectHideFlags: 0
