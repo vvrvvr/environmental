@@ -3596,7 +3596,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &337314104
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4287,6 +4287,57 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b92ba7495596c0e4394b2af662820f29, type: 3}
+--- !u!1 &408488964
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 408488966}
+  - component: {fileID: 408488965}
+  m_Layer: 0
+  m_Name: restart sequence
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &408488965
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 408488964}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76152cf735ff6f8498ed41b16f144304, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  restartTriggerButton: {fileID: 1635355282}
+  minimapGraphRewind: {fileID: 1448228955}
+  blocks:
+  - action: 2
+    waitForCompletion: 1
+    float0: 0
+    reloadSceneName: 
+--- !u!4 &408488966
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 408488964}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -12.672541, y: 2.9331036, z: 17.456789}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -12803,6 +12854,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1448228954}
   - component: {fileID: 1448228953}
+  - component: {fileID: 1448228955}
   m_Layer: 0
   m_Name: Game manager
   m_TagString: Untagged
@@ -12832,12 +12884,13 @@ MonoBehaviour:
   outgoingEdgeAppearStaggerMax: 0.5
   outgoingBlockedEdgeVisualOffsetSeconds: -0.2
   mapVideoPlayer: {fileID: 1173002159}
-  introLoopMinimapVideoClip: {fileID: 32900000, guid: 07e1498198839024ba6408ef67af1e1f,
+  introLoopMinimapVideoClip: {fileID: 32900000, guid: fb878619af96018409e0e020c0095817,
     type: 3}
   minimapVideoProgressSlider: {fileID: 291518809}
   showMinimapVideoProgressForEdgeTravel: 1
   debugTargetNode: {fileID: 0}
   enableNodeStateHotkeys: 0
+  graphRewind: {fileID: 1448228955}
 --- !u!4 &1448228954
 Transform:
   m_ObjectHideFlags: 0
@@ -12853,6 +12906,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1657977835}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1448228955
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1448228952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0033d778c9c1c08428d8d01640bae4c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rewindKey: 114
+  stepDelaySeconds: 0.07
+  enableRewindKey: 1
 --- !u!1 &1449366749
 GameObject:
   m_ObjectHideFlags: 0
@@ -14503,8 +14571,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   reloadButton: {fileID: 1635355281}
   tooltipPanel: {fileID: 1025091758}
-  reloadButtonComponent: {fileID: 1635355282}
-  reloadSceneName: intro test
   hideDelaySeconds: 0.18
   panelFadeInSeconds: 0.15
   panelFadeOutSeconds: 0.12
@@ -17009,7 +17075,7 @@ VideoPlayer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1971352950}
   m_Enabled: 0
-  m_VideoClip: {fileID: 32900000, guid: 07e1498198839024ba6408ef67af1e1f, type: 3}
+  m_VideoClip: {fileID: 32900000, guid: b830402a5a3d2cf45a6f35e4364b23aa, type: 3}
   m_TargetCameraAlpha: 1
   m_TargetCamera3DLayout: 0
   m_TargetCamera: {fileID: 0}
@@ -19168,6 +19234,7 @@ SceneRoots:
   - {fileID: 2094650667}
   - {fileID: 1301778872}
   - {fileID: 52173939}
+  - {fileID: 408488966}
   - {fileID: 1242072635}
   - {fileID: 1657977835}
   - {fileID: 337314106}

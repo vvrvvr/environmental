@@ -99,7 +99,13 @@ public class GameManager : MonoBehaviour
     [Tooltip("Включить переключение состояний ноды по цифрам 1–9.")]
     [SerializeField] private bool enableNodeStateHotkeys = true;
 
+    [Tooltip("Отмотка графа (клавиша R на компоненте). Пусто — ищется на этом же объекте.")]
+    [SerializeField]
+    private MinimapGraphRewind graphRewind;
+
     private bool _lastDebugRevealFullMinimap;
+
+    private readonly List<Coroutine> _frontierRevealCoroutines = new List<Coroutine>();
 
     /// <summary>Гасит повторный вход из <see cref="NotifyNodeMapStateChanged"/> при массовых <see cref="Node.ForceMapState"/>.</summary>
     private bool _suppressMinimapPostNotify;
@@ -116,6 +122,9 @@ public class GameManager : MonoBehaviour
 
     /// <summary>Дебаг: вся карта доступна для клика и выбора.</summary>
     public bool DebugRevealFullMinimap => debugRevealFullMinimap;
+
+    /// <summary>Идёт пошаговая отмотка раскрытия карты (<see cref="MinimapGraphRewind"/>).</summary>
+    public bool IsGraphRewindInProgress => graphRewind != null && graphRewind.IsRewinding;
 
     /// <summary>Корень карты помечен как стартовый (кэш актуален после последнего <see cref="RefreshMinimapDiscoveryFromStartNodes"/>).</summary>
     public bool IsMinimapStartMapRoot(Node mapRoot) =>
@@ -335,7 +344,7 @@ public class GameManager : MonoBehaviour
         if (debugRevealFullMinimap)
             return false;
 
-        if (_mapSelectionTravelInProgress)
+        if (_mapSelectionTravelInProgress || IsGraphRewindInProgress)
             return true;
 
         if (TryBeginMapTravelToNeighbor(logicalOwner, clickedNode))
@@ -526,8 +535,109 @@ public class GameManager : MonoBehaviour
             // Отдельное случайное значение для каждого ребра (не один раз на весь набор).
             float delay = maxD > minD ? UnityEngine.Random.Range(minD, maxD) : minD;
             e.SetPendingOutgoingAppearStagger(true);
-            StartCoroutine(CoRevealOneOutgoingAfterStaggerDelay(e, farRoot, delay));
+            StartFrontierRevealCoroutine(e, farRoot, delay);
         }
+    }
+
+    private void StartFrontierRevealCoroutine(MinimapEdge edge, Node farRoot, float delaySeconds)
+    {
+        var c = StartCoroutine(CoRevealFrontierTracked(edge, farRoot, delaySeconds));
+        _frontierRevealCoroutines.Add(c);
+    }
+
+    private IEnumerator CoRevealFrontierTracked(MinimapEdge edge, Node farRoot, float delaySeconds)
+    {
+        yield return CoRevealOneOutgoingAfterStaggerDelay(edge, farRoot, delaySeconds);
+    }
+
+    /// <summary>Остановить travel / выбор перед отмоткой графа.</summary>
+    public void AbortMapActivityForGraphRewind()
+    {
+        ClearMapTravelFromRootPostFullyBlockedListeners();
+
+        if (_mapTravelCoroutine != null)
+        {
+            StopCoroutine(_mapTravelCoroutine);
+            _mapTravelCoroutine = null;
+        }
+
+        _mapSelectionTravelInProgress = false;
+        _suppressMapTravelSelectionClear = false;
+        _mapTravelTargetRoot = null;
+        _pendingArrivalEdgeToBlockWhenLeavingEndNode = null;
+
+        if (CurrentSelectedMapNode != null)
+        {
+            var sel = CurrentSelectedMapNode;
+            CurrentSelectedMapNode = null;
+            sel.ForceMapState(NodeMapState.Visible);
+        }
+
+        StopMinimapVideo();
+    }
+
+    /// <summary>Остановить отложенные корутины раскрытия исходящих рёбер.</summary>
+    public void StopAllPendingFrontierRevealCoroutines()
+    {
+        for (var i = 0; i < _frontierRevealCoroutines.Count; i++)
+        {
+            if (_frontierRevealCoroutines[i] != null)
+                StopCoroutine(_frontierRevealCoroutines[i]);
+        }
+
+        _frontierRevealCoroutines.Clear();
+    }
+
+    /// <summary>После отмотки стека: стартовые ноды, рёбра idle, интро-видео.</summary>
+    public void ApplyGraphRewindBaseline()
+    {
+        var ownsSuppress = false;
+        if (!_suppressMinimapPostNotify)
+        {
+            _suppressMinimapPostNotify = true;
+            ownsSuppress = true;
+        }
+
+        try
+        {
+            EndGroupPlaylist();
+            CurrentSelectedMapNode = null;
+            _pendingArrivalEdgeToBlockWhenLeavingEndNode = null;
+            StopMinimapVideo();
+            TryStartIntroLoopMinimapVideo();
+            ForceMapToPrePlayDiscoveryLayout();
+        }
+        finally
+        {
+            if (ownsSuppress)
+                _suppressMinimapPostNotify = false;
+        }
+    }
+
+    /// <summary>Стартовые ноды Visible, остальные корни Inactive, все рёбра idle — как до первого выбора на карте.</summary>
+    private void ForceMapToPrePlayDiscoveryLayout()
+    {
+        var mapRoots = CollectMapRootNodes();
+        for (var i = 0; i < mapRoots.Count; i++)
+        {
+            var root = mapRoots[i];
+            if (root == null)
+                continue;
+            if (root.IsMinimapStartNode)
+                root.ForceMapState(NodeMapState.Visible);
+            else
+                root.ForceMapState(NodeMapState.Inactive);
+        }
+
+        ResetAllMinimapEdgesIdle();
+        RefreshMinimapEdgeRegistryLines();
+    }
+
+    private MinimapGraphRewind ResolveGraphRewind()
+    {
+        if (graphRewind == null)
+            graphRewind = GetComponent<MinimapGraphRewind>();
+        return graphRewind;
     }
 
     private IEnumerator CoRevealOneOutgoingAfterStaggerDelay(MinimapEdge edge, Node farRoot, float delaySeconds)
@@ -577,11 +687,14 @@ public class GameManager : MonoBehaviour
             yield break;
         }
 
+        var rewind = debugRevealFullMinimap ? null : ResolveGraphRewind();
+
         var es = edge.CurrentEdgeState;
         if (es == MinimapEdgeState.Disabled || MinimapEdgeStateUtil.IsFullLineIdleLike(es))
         {
             edge.SetPendingOutgoingAppearStagger(false);
             bool useUnblockOnComplete = towardBlockedDiscover;
+            rewind?.RecordEdgeAppeared(edge);
             edge.SetEdgeState(
                 MinimapEdgeState.Appearing,
                 forceLog: false,
@@ -591,18 +704,30 @@ public class GameManager : MonoBehaviour
                     if (farRoot == null)
                         return;
                     if (useUnblockOnComplete)
+                    {
+                        rewind?.RecordNodeAppeared(farRoot);
                         farRoot.MapPlayUnblockedGradientSequenceAfterIncomingEdgeGrowthComplete();
+                    }
                     else
+                    {
+                        rewind?.RecordNodeAppeared(farRoot);
                         farRoot.ForceMapState(NodeMapState.Appearing);
+                    }
                 });
         }
         else
         {
             edge.SetPendingOutgoingAppearStagger(false);
             if (towardBlockedDiscover)
+            {
+                rewind?.RecordNodeAppeared(farRoot);
                 farRoot.MapPlayUnblockedGradientSequenceAfterIncomingEdgeGrowthComplete();
+            }
             else
+            {
+                rewind?.RecordNodeAppeared(farRoot);
                 farRoot.ForceMapState(NodeMapState.Appearing);
+            }
         }
     }
 
@@ -1006,6 +1131,8 @@ public class GameManager : MonoBehaviour
 
         Instance = this;
         _lastDebugRevealFullMinimap = debugRevealFullMinimap;
+        if (graphRewind == null)
+            graphRewind = GetComponent<MinimapGraphRewind>();
     }
 
     private IEnumerator Start()
@@ -1026,6 +1153,8 @@ public class GameManager : MonoBehaviour
             StopCoroutine(_mapTravelCoroutine);
             _mapTravelCoroutine = null;
         }
+
+        StopAllPendingFrontierRevealCoroutines();
 
         EndGroupPlaylist();
         if (Instance == this)

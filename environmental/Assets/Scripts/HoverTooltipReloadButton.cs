@@ -1,31 +1,22 @@
 using System.Collections;
 using DG.Tweening;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
-/// Кнопка: при наведении — панель подсказки с фейдом (как у громкости); по клику — перезагрузка сцены.
+/// Панель подсказки по наведению на кнопку: фейд появления/исчезновения (как у громкости). Клик не обрабатывается — см. <see cref="GameRestartSequenceController"/>.
 /// На <see cref="tooltipPanel"/> нужен или будет добавлен <see cref="CanvasGroup"/>.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class HoverTooltipReloadButton : MonoBehaviour
 {
-    [Tooltip("Кнопка (RectTransform). Наведение — показать подсказку; клик — перезагрузка.")]
+    [Tooltip("Область наведения (RectTransform), обычно та же кнопка.")]
     [SerializeField]
     private RectTransform reloadButton;
 
     [Tooltip("Панель подсказки (скрыта при старте).")]
     [SerializeField]
     private RectTransform tooltipPanel;
-
-    [Tooltip("Пусто — подписка на onClick у Button на reloadButton.")]
-    [SerializeField]
-    private Button reloadButtonComponent;
-
-    [Tooltip("Пусто — перезагрузка активной сцены по build index. Иначе — загрузка сцены по имени.")]
-    [SerializeField]
-    private string reloadSceneName;
 
     [Tooltip("Задержка перед скрытием подсказки после ухода мыши (сек, unscaled).")]
     [SerializeField]
@@ -55,12 +46,6 @@ public sealed class HoverTooltipReloadButton : MonoBehaviour
         if (_rootCanvas == null && tooltipPanel != null)
             _rootCanvas = tooltipPanel.GetComponentInParent<Canvas>();
 
-        if (reloadButtonComponent == null && reloadButton != null)
-            reloadButtonComponent = reloadButton.GetComponent<Button>();
-
-        if (reloadButtonComponent != null)
-            reloadButtonComponent.onClick.AddListener(ReloadGame);
-
         if (tooltipPanel != null)
         {
             _panelGroup = tooltipPanel.GetComponent<CanvasGroup>();
@@ -76,8 +61,6 @@ public sealed class HoverTooltipReloadButton : MonoBehaviour
     private void OnDestroy()
     {
         KillPanelFadeTween();
-        if (reloadButtonComponent != null)
-            reloadButtonComponent.onClick.RemoveListener(ReloadGame);
     }
 
     private void LateUpdate()
@@ -109,18 +92,6 @@ public sealed class HoverTooltipReloadButton : MonoBehaviour
         }
         else if (PanelIsOpenForHideScheduling())
             ScheduleHide();
-    }
-
-    /// <summary>Перезагрузка: <see cref="reloadSceneName"/> или текущая сцена.</summary>
-    public void ReloadGame()
-    {
-        if (!Application.isPlaying)
-            return;
-
-        if (!string.IsNullOrWhiteSpace(reloadSceneName))
-            SceneManager.LoadScene(reloadSceneName);
-        else
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     private bool PanelIsOpenForHideScheduling()
