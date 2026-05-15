@@ -85,6 +85,12 @@ public sealed class PersistentPlaylistAudioPlayer : MonoBehaviour
             s_instance = null;
     }
 
+    /// <summary>Активный экземпляр после <see cref="Awake"/> (дубликаты уничтожаются).</summary>
+    public static PersistentPlaylistAudioPlayer Instance => s_instance;
+
+    /// <summary>Источник звука плейлиста — для UI громкости и т.п.</summary>
+    public AudioSource MusicAudioSource => _source;
+
     private void OnEnable()
     {
         if (!Application.isPlaying || s_instance != this)
