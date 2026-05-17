@@ -21,11 +21,16 @@ public sealed class GameRestartSequenceController : MonoBehaviour
     [SerializeField]
     private MinimapGraphRewind minimapGraphRewind;
 
+    [Tooltip("Пусто — ищется в сцене при блоке Set Graph Impulse Jelly Tilt.")]
+    [SerializeField]
+    private GraphImpulseJellyTilt graphImpulseJellyTilt;
+
     [Tooltip("Порядок блоков.")]
     [SerializeField]
     private List<GameRestartSequenceBlock> blocks = new List<GameRestartSequenceBlock>();
 
     private Coroutine _runRoutine;
+    private readonly Dictionary<int, Vector3> _cachedLocalScales = new();
 
     private void Awake()
     {
@@ -95,6 +100,21 @@ public sealed class GameRestartSequenceController : MonoBehaviour
                     continue;
                 }
 
+                if (block.action == GameRestartSequenceAction.SetGraphImpulseJellyTiltEnabled)
+                {
+                    var tilt = ResolveGraphImpulseJellyTilt(block.graphImpulseJellyTilt);
+                    if (tilt == null)
+                    {
+                        Debug.LogWarning(
+                            $"[{nameof(GameRestartSequenceController)}] Блок {i}: GraphImpulseJellyTilt не найден — пропуск.",
+                            this);
+                        continue;
+                    }
+
+                    tilt.enabled = block.enableComponent;
+                    continue;
+                }
+
                 if (block.action == GameRestartSequenceAction.ReloadScene)
                 {
                     if (string.IsNullOrWhiteSpace(block.reloadSceneName))
@@ -125,6 +145,12 @@ public sealed class GameRestartSequenceController : MonoBehaviour
             case GameRestartSequenceAction.WaitSeconds:
                 return Restart_WaitSeconds(block);
 
+            case GameRestartSequenceAction.RotateGameObject180AroundY:
+                return Restart_RotateGameObject180AroundY(block);
+
+            case GameRestartSequenceAction.ScaleGameObjectToOrFromZero:
+                return Restart_ScaleGameObjectToOrFromZero(block);
+
             default:
                 Debug.LogWarning($"[{nameof(GameRestartSequenceController)}] Нет обработчика для {block.action}.", this);
                 return null;
@@ -139,6 +165,73 @@ public sealed class GameRestartSequenceController : MonoBehaviour
         return DOVirtual.DelayedCall(d, static () => { }).SetUpdate(isIndependentUpdate: true);
     }
 
+    private Tween Restart_RotateGameObject180AroundY(GameRestartSequenceBlock block)
+    {
+        if (block.rotateTarget == null)
+        {
+            Debug.LogWarning(
+                $"[{nameof(GameRestartSequenceController)}] RotateGameObject180AroundY: не задан Rotate Target.",
+                this);
+            return null;
+        }
+
+        var tr = block.rotateTarget.transform;
+        var duration = Mathf.Max(0f, block.float0);
+        var ease = block.tweenEase == Ease.Unset ? Ease.InOutQuad : block.tweenEase;
+
+        if (duration <= 0f)
+        {
+            tr.Rotate(0f, 180f, 0f, Space.Self);
+            return null;
+        }
+
+        return tr
+            .DOLocalRotate(new Vector3(0f, 180f, 0f), duration, RotateMode.LocalAxisAdd)
+            .SetEase(ease)
+            .SetUpdate(isIndependentUpdate: true);
+    }
+
+    private Tween Restart_ScaleGameObjectToOrFromZero(GameRestartSequenceBlock block)
+    {
+        if (block.scaleTarget == null)
+        {
+            Debug.LogWarning(
+                $"[{nameof(GameRestartSequenceController)}] ScaleGameObjectToOrFromZero: не задан Scale Target.",
+                this);
+            return null;
+        }
+
+        var tr = block.scaleTarget.transform;
+        var cacheKey = tr.GetInstanceID();
+        var duration = Mathf.Max(0f, block.float0);
+        var ease = block.tweenEase == Ease.Unset ? Ease.InOutQuad : block.tweenEase;
+
+        if (block.scaleFromZero)
+        {
+            if (!_cachedLocalScales.TryGetValue(cacheKey, out var endScale))
+                endScale = tr.localScale.sqrMagnitude > 1e-8f ? tr.localScale : Vector3.one;
+
+            if (duration <= 0f)
+            {
+                tr.localScale = endScale;
+                return null;
+            }
+
+            tr.localScale = Vector3.zero;
+            return tr.DOScale(endScale, duration).SetEase(ease).SetUpdate(isIndependentUpdate: true);
+        }
+
+        _cachedLocalScales[cacheKey] = tr.localScale;
+
+        if (duration <= 0f)
+        {
+            tr.localScale = Vector3.zero;
+            return null;
+        }
+
+        return tr.DOScale(Vector3.zero, duration).SetEase(ease).SetUpdate(isIndependentUpdate: true);
+    }
+
     private MinimapGraphRewind ResolveMinimapGraphRewind()
     {
         if (minimapGraphRewind != null)
@@ -151,6 +244,15 @@ public sealed class GameRestartSequenceController : MonoBehaviour
         }
 
         return FindObjectOfType<MinimapGraphRewind>();
+    }
+
+    private GraphImpulseJellyTilt ResolveGraphImpulseJellyTilt(GraphImpulseJellyTilt fromBlock)
+    {
+        if (fromBlock != null)
+            return fromBlock;
+        if (graphImpulseJellyTilt != null)
+            return graphImpulseJellyTilt;
+        return FindObjectOfType<GraphImpulseJellyTilt>();
     }
 }
 
@@ -167,20 +269,50 @@ public enum GameRestartSequenceAction
 
     [Tooltip("Загрузка сцены: пустое Reload Scene Name — активная сцена по build index. После этого блока корутина завершается.")]
     ReloadScene = 3,
+
+    [Tooltip("Включить или выключить GraphImpulseJellyTilt (галка Enable Component в блоке). Мгновенно.")]
+    SetGraphImpulseJellyTiltEnabled = 4,
+
+    [Tooltip("Повернуть Rotate Target на +180° вокруг локальной оси Y (DOTween). Float0 = длительность; Tween Ease; Wait For Completion.")]
+    RotateGameObject180AroundY = 5,
+
+    [Tooltip("Scale Target: уменьшение localScale до 0 или рост с 0 до сохранённого (галка Scale From Zero). Float0, Tween Ease, Wait For Completion.")]
+    ScaleGameObjectToOrFromZero = 6,
 }
 
 [Serializable]
 public struct GameRestartSequenceBlock
 {
+    [Tooltip("Заметка для себя в инспекторе (на выполнение секвенции не влияет).")]
+    public string blockNote;
+
     [Tooltip("Действие блока.")]
     public GameRestartSequenceAction action;
 
-    [Tooltip("Для WaitSeconds и MinimapGraphRewind: ждать завершения (пауза / отмотка). Для ReloadScene не используется.")]
+    [Tooltip("WaitSeconds / MinimapGraphRewind / RotateGameObject180AroundY / ScaleGameObjectToOrFromZero: ждать завершения.")]
     public bool waitForCompletion;
 
-    [Tooltip("Для WaitSeconds: длительность (сек, unscaled). Остальные типы — не используется.")]
+    [Tooltip("WaitSeconds / RotateGameObject180AroundY / ScaleGameObjectToOrFromZero: длительность (сек, unscaled).")]
     public float float0;
 
     [Tooltip("Только для ReloadScene: имя сцены в Build Settings; пусто — перезагрузка текущей.")]
     public string reloadSceneName;
+
+    [Tooltip("SetGraphImpulseJellyTiltEnabled: включить (true) или выключить (false) компонент.")]
+    public bool enableComponent;
+
+    [Tooltip("SetGraphImpulseJellyTiltEnabled: цель; пусто — с контроллера или FindObjectOfType.")]
+    public GraphImpulseJellyTilt graphImpulseJellyTilt;
+
+    [Tooltip("RotateGameObject180AroundY: объект для поворота.")]
+    public GameObject rotateTarget;
+
+    [Tooltip("RotateGameObject180AroundY / ScaleGameObjectToOrFromZero: easing DOTween. Unset → InOutQuad.")]
+    public Ease tweenEase;
+
+    [Tooltip("ScaleGameObjectToOrFromZero: объект для масштабирования.")]
+    public GameObject scaleTarget;
+
+    [Tooltip("ScaleGameObjectToOrFromZero: выкл. — текущий scale → 0; вкл. — 0 → scale, сохранённый при последнем сжатии этого объекта.")]
+    public bool scaleFromZero;
 }
