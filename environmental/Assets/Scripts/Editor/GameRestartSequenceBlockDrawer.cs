@@ -38,6 +38,10 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
             case GameRestartSequenceAction.ScaleGameObjectToOrFromZero:
                 bodyLines = 5f;
                 break;
+            case GameRestartSequenceAction.MinimapAnchorReturnToStart:
+                bodyLines = 3f;
+                extraHelp = HelpBoxHeight("Ease и unscaled time берутся с MinimapCameraAnchorFollowSelection (moveEase).", w);
+                break;
             case GameRestartSequenceAction.WaitSeconds:
             case GameRestartSequenceAction.ReloadScene:
                 bodyLines = 3f;
@@ -68,6 +72,7 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
         var tweenEaseProp = property.FindPropertyRelative("tweenEase");
         var scaleTargetProp = property.FindPropertyRelative("scaleTarget");
         var scaleFromZeroProp = property.FindPropertyRelative("scaleFromZero");
+        var anchorFollowProp = property.FindPropertyRelative("minimapCameraAnchorFollow");
 
         y = DrawNoteSection(position.x, y, contentW, noteProp);
         y += SectionGap;
@@ -128,6 +133,22 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
                 EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), float0Prop, new GUIContent("Duration (sec)"));
                 y += lineH + sp;
                 EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), tweenEaseProp, new GUIContent("Tween Ease"));
+                break;
+
+            case GameRestartSequenceAction.MinimapAnchorReturnToStart:
+                EditorGUI.PropertyField(
+                    new Rect(ix, y, iw, lineH),
+                    anchorFollowProp,
+                    new GUIContent("Anchor Follow"));
+                y += lineH + sp;
+                EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), float0Prop, new GUIContent("Duration (sec)"));
+                y += lineH + sp;
+                var anchorHelpH = HelpBoxHeight(
+                    "Ease и unscaled time берутся с MinimapCameraAnchorFollowSelection (moveEase).",
+                    iw);
+                EditorGUI.HelpBox(new Rect(ix, y, iw, anchorHelpH),
+                    "Ease и unscaled time берутся с MinimapCameraAnchorFollowSelection (moveEase).",
+                    MessageType.Info);
                 break;
 
             case GameRestartSequenceAction.ReloadScene:

@@ -25,6 +25,10 @@ public sealed class GameRestartSequenceController : MonoBehaviour
     [SerializeField]
     private GraphImpulseJellyTilt graphImpulseJellyTilt;
 
+    [Tooltip("Пусто — ищется в сцене при блоке Minimap Anchor Return To Start.")]
+    [SerializeField]
+    private MinimapCameraAnchorFollowSelection minimapCameraAnchorFollow;
+
     [Tooltip("Порядок блоков.")]
     [SerializeField]
     private List<GameRestartSequenceBlock> blocks = new List<GameRestartSequenceBlock>();
@@ -151,6 +155,9 @@ public sealed class GameRestartSequenceController : MonoBehaviour
             case GameRestartSequenceAction.ScaleGameObjectToOrFromZero:
                 return Restart_ScaleGameObjectToOrFromZero(block);
 
+            case GameRestartSequenceAction.MinimapAnchorReturnToStart:
+                return Restart_MinimapAnchorReturnToStart(block);
+
             default:
                 Debug.LogWarning($"[{nameof(GameRestartSequenceController)}] Нет обработчика для {block.action}.", this);
                 return null;
@@ -232,6 +239,21 @@ public sealed class GameRestartSequenceController : MonoBehaviour
         return tr.DOScale(Vector3.zero, duration).SetEase(ease).SetUpdate(isIndependentUpdate: true);
     }
 
+    private Tween Restart_MinimapAnchorReturnToStart(GameRestartSequenceBlock block)
+    {
+        var follow = ResolveMinimapCameraAnchorFollow(block.minimapCameraAnchorFollow);
+        if (follow == null)
+        {
+            Debug.LogWarning(
+                $"[{nameof(GameRestartSequenceController)}] MinimapAnchorReturnToStart: MinimapCameraAnchorFollowSelection не найден.",
+                this);
+            return null;
+        }
+
+        var duration = Mathf.Max(0f, block.float0);
+        return follow.TweenAnchorToInitialPosition(duration);
+    }
+
     private MinimapGraphRewind ResolveMinimapGraphRewind()
     {
         if (minimapGraphRewind != null)
@@ -253,6 +275,16 @@ public sealed class GameRestartSequenceController : MonoBehaviour
         if (graphImpulseJellyTilt != null)
             return graphImpulseJellyTilt;
         return FindObjectOfType<GraphImpulseJellyTilt>();
+    }
+
+    private MinimapCameraAnchorFollowSelection ResolveMinimapCameraAnchorFollow(
+        MinimapCameraAnchorFollowSelection fromBlock)
+    {
+        if (fromBlock != null)
+            return fromBlock;
+        if (minimapCameraAnchorFollow != null)
+            return minimapCameraAnchorFollow;
+        return FindObjectOfType<MinimapCameraAnchorFollowSelection>();
     }
 }
 
@@ -278,6 +310,9 @@ public enum GameRestartSequenceAction
 
     [Tooltip("Scale Target: уменьшение localScale до 0 или рост с 0 до сохранённого (галка Scale From Zero). Float0, Tween Ease, Wait For Completion.")]
     ScaleGameObjectToOrFromZero = 6,
+
+    [Tooltip("Вернуть якорь к стартовой позиции (moveEase на MinimapCameraAnchorFollowSelection). Float0 = длительность; Wait For Completion.")]
+    MinimapAnchorReturnToStart = 7,
 }
 
 [Serializable]
@@ -289,10 +324,10 @@ public struct GameRestartSequenceBlock
     [Tooltip("Действие блока.")]
     public GameRestartSequenceAction action;
 
-    [Tooltip("WaitSeconds / MinimapGraphRewind / RotateGameObject180AroundY / ScaleGameObjectToOrFromZero: ждать завершения.")]
+    [Tooltip("WaitSeconds / MinimapGraphRewind / твины (rotate, scale, anchor): ждать завершения.")]
     public bool waitForCompletion;
 
-    [Tooltip("WaitSeconds / RotateGameObject180AroundY / ScaleGameObjectToOrFromZero: длительность (сек, unscaled).")]
+    [Tooltip("WaitSeconds / Rotate / Scale / MinimapAnchorReturnToStart: длительность (сек, unscaled).")]
     public float float0;
 
     [Tooltip("Только для ReloadScene: имя сцены в Build Settings; пусто — перезагрузка текущей.")]
@@ -307,8 +342,11 @@ public struct GameRestartSequenceBlock
     [Tooltip("RotateGameObject180AroundY: объект для поворота.")]
     public GameObject rotateTarget;
 
-    [Tooltip("RotateGameObject180AroundY / ScaleGameObjectToOrFromZero: easing DOTween. Unset → InOutQuad.")]
+    [Tooltip("Rotate / Scale: easing DOTween. Unset → InOutQuad. MinimapAnchorReturnToStart использует moveEase на компоненте якоря.")]
     public Ease tweenEase;
+
+    [Tooltip("MinimapAnchorReturnToStart: цель; пусто — с контроллера или FindObjectOfType.")]
+    public MinimapCameraAnchorFollowSelection minimapCameraAnchorFollow;
 
     [Tooltip("ScaleGameObjectToOrFromZero: объект для масштабирования.")]
     public GameObject scaleTarget;

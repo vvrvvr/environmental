@@ -38,6 +38,14 @@ public sealed class MinimapCameraAnchorFollowSelection : MonoBehaviour
     [SerializeField]
     private bool useSelectionOwnerTransform;
 
+    private Vector3 _initialAnchorWorldPosition;
+    private bool _hasInitialAnchorPosition;
+
+    private void Awake()
+    {
+        CacheInitialAnchorPosition();
+    }
+
     private void OnEnable()
     {
         if (gameManager != null)
@@ -50,6 +58,55 @@ public sealed class MinimapCameraAnchorFollowSelection : MonoBehaviour
             gameManager.MapNodeStateChanged -= OnMapNodeStateChanged;
 
         DOTween.Kill(this, complete: false);
+    }
+
+    /// <summary>Запомнить текущую мировую позицию якоря как стартовую (вызывается в Awake).</summary>
+    public void CacheInitialAnchorPosition()
+    {
+        if (minimapCameraAnchor == null)
+        {
+            _hasInitialAnchorPosition = false;
+            return;
+        }
+
+        _initialAnchorWorldPosition = minimapCameraAnchor.position;
+        _hasInitialAnchorPosition = true;
+    }
+
+    /// <summary>Плавно вернуть якорь к стартовой позиции (тот же moveEase / unscaledTime, что при следовании за нодой).</summary>
+    public Tween TweenAnchorToInitialPosition(float duration)
+    {
+        if (!_hasInitialAnchorPosition)
+            CacheInitialAnchorPosition();
+        if (!_hasInitialAnchorPosition)
+            return null;
+
+        return TweenAnchorMoveTo(_initialAnchorWorldPosition, duration);
+    }
+
+    private Tween TweenAnchorMoveTo(Vector3 endWorldPosition, float duration)
+    {
+        if (minimapCameraAnchor == null)
+            return null;
+
+        var anchor = minimapCameraAnchor;
+        DOTween.Kill(this, complete: false);
+
+        if ((anchor.position - endWorldPosition).sqrMagnitude < 1e-6f)
+            return null;
+
+        duration = Mathf.Max(0f, duration);
+        if (duration <= 0f)
+        {
+            anchor.position = endWorldPosition;
+            return null;
+        }
+
+        return anchor.DOMove(endWorldPosition, duration)
+            .SetEase(moveEase)
+            .SetId(this)
+            .SetLink(gameObject)
+            .SetUpdate(unscaledTime);
     }
 
     private void OnMapNodeStateChanged(Node node, NodeMapState newState, NodeMapState? previousState)
@@ -71,21 +128,8 @@ public sealed class MinimapCameraAnchorFollowSelection : MonoBehaviour
         if (Vector2.Distance(a, b) <= maxDistanceXY)
             return;
 
-        DOTween.Kill(this, complete: false);
-
         var end = new Vector3(targetPos.x, targetPos.y, anchor.position.z);
-        var duration = Mathf.Max(0f, moveDurationSeconds);
-        if (duration <= 0f)
-        {
-            anchor.position = end;
-            return;
-        }
-
-        anchor.DOMove(end, duration)
-            .SetEase(moveEase)
-            .SetId(this)
-            .SetLink(gameObject)
-            .SetUpdate(unscaledTime);
+        TweenAnchorMoveTo(end, moveDurationSeconds);
     }
 
 #if UNITY_EDITOR
