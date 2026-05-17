@@ -573,7 +573,7 @@ public class GameManager : MonoBehaviour
             sel.ForceMapState(NodeMapState.Visible);
         }
 
-        StopMinimapVideo();
+        StopMinimapVideo(playIntroLoopAfterStop: false);
     }
 
     /// <summary>Остановить отложенные корутины раскрытия исходящих рёбер.</summary>
@@ -603,8 +603,6 @@ public class GameManager : MonoBehaviour
             EndGroupPlaylist();
             CurrentSelectedMapNode = null;
             _pendingArrivalEdgeToBlockWhenLeavingEndNode = null;
-            StopMinimapVideo();
-            TryStartIntroLoopMinimapVideo();
             ForceMapToPrePlayDiscoveryLayout();
         }
         finally
@@ -1040,13 +1038,20 @@ public class GameManager : MonoBehaviour
         mapVideoPlayer.Play();
     }
 
-    private void StopMinimapVideo()
+    private void StopMinimapVideo(bool playIntroLoopAfterStop = true)
     {
         if (mapVideoPlayer == null)
             return;
         _mapVideoPlaybackIsEdgeTravel = false;
         mapVideoPlayer.Stop();
         EndGroupPlaylist();
+        if (playIntroLoopAfterStop)
+            TryStartIntroLoopMinimapVideo();
+    }
+
+    /// <summary>Стартовое зацикленное интро на <see cref="mapVideoPlayer"/> (для секвенции перезагрузки и т.п.).</summary>
+    public void SwitchMinimapToIntroLoopVideo()
+    {
         TryStartIntroLoopMinimapVideo();
     }
 

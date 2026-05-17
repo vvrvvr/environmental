@@ -104,6 +104,22 @@ public sealed class GameRestartSequenceController : MonoBehaviour
                     continue;
                 }
 
+                if (block.action == GameRestartSequenceAction.SwitchMinimapToIntroLoopVideo)
+                {
+                    if (GameManager.Instance == null)
+                    {
+                        Debug.LogWarning(
+                            $"[{nameof(GameRestartSequenceController)}] Блок {i}: GameManager.Instance не найден — пропуск.",
+                            this);
+                    }
+                    else
+                    {
+                        GameManager.Instance.SwitchMinimapToIntroLoopVideo();
+                    }
+
+                    continue;
+                }
+
                 if (block.action == GameRestartSequenceAction.SetGraphImpulseJellyTiltEnabled)
                 {
                     var tilt = ResolveGraphImpulseJellyTilt(block.graphImpulseJellyTilt);
@@ -296,8 +312,11 @@ public enum GameRestartSequenceAction
     [Tooltip("Пауза float0 сек (unscaled).")]
     WaitSeconds = 1,
 
-    [Tooltip("Отмотка раскрытия мини-карты (стек в MinimapGraphRewind). Wait For Completion — ждать конца отмотки.")]
+    [Tooltip("Отмотка раскрытия мини-карты (стек в MinimapGraphRewind). Видео не переключается — см. SwitchMinimapToIntroLoopVideo. Wait For Completion — ждать отмотки.")]
     MinimapGraphRewind = 2,
+
+    [Tooltip("Мгновенно: стартовое зацикленное интро на mapVideoPlayer (GameManager).")]
+    SwitchMinimapToIntroLoopVideo = 8,
 
     [Tooltip("Загрузка сцены: пустое Reload Scene Name — активная сцена по build index. После этого блока корутина завершается.")]
     ReloadScene = 3,

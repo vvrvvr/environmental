@@ -23,8 +23,16 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
         switch (action)
         {
             case GameRestartSequenceAction.MinimapGraphRewind:
-                extraHelp = HelpBoxHeight("Float0 не используется. Укажите Minimap Graph Rewind на контроллере.", w);
+                extraHelp = HelpBoxHeight(
+                    "Видео не меняется. Float0 не используется. Minimap Graph Rewind — на контроллере.",
+                    w);
                 bodyLines = 2f;
+                break;
+            case GameRestartSequenceAction.SwitchMinimapToIntroLoopVideo:
+                bodyLines = 2f;
+                extraHelp = HelpBoxHeight(
+                    "Мгновенно: intro-loop на mapVideoPlayer (GameManager.Instance). Wait / Float0 не используются.",
+                    w);
                 break;
             case GameRestartSequenceAction.SetGraphImpulseJellyTiltEnabled:
                 bodyLines = 3f;
@@ -91,6 +99,18 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
 
         var ix = position.x + NoteIndent;
         var iw = position.width - NoteIndent;
+
+        if (action == GameRestartSequenceAction.SwitchMinimapToIntroLoopVideo)
+        {
+            var introHelpH = HelpBoxHeight(
+                "Мгновенно: intro-loop на mapVideoPlayer (GameManager.Instance). Wait / Float0 не используются.",
+                iw);
+            EditorGUI.HelpBox(new Rect(ix, y, iw, introHelpH),
+                "Мгновенно: intro-loop на mapVideoPlayer (GameManager.Instance). Wait / Float0 не используются.",
+                MessageType.Info);
+            EditorGUI.EndProperty();
+            return;
+        }
 
         if (action == GameRestartSequenceAction.SetGraphImpulseJellyTiltEnabled)
         {
