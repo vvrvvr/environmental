@@ -132,7 +132,7 @@ Material:
     - _ReceiveShadows: 1
     - _ShakeBlend: 0
     - _ShakeColumns: 28
-    - _ShakeIntensity: 0.6735409
+    - _ShakeIntensity: 0.4870374
     - _ShakeMaxOffset: 8
     - _ShakeSpeed: 15.46
     - _Smoothness: 0.5
