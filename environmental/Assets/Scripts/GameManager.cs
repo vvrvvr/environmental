@@ -103,7 +103,14 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private MinimapGraphRewind graphRewind;
 
+    [Tooltip("Секвенция концовки ветки после финальной ноды. Пусто — FindObjectOfType.")]
+    [SerializeField]
+    private BranchEndingSequenceController branchEndingSequence;
+
     private bool _lastDebugRevealFullMinimap;
+
+    private Node _branchFinalVideoWatchNode;
+    private VideoPlayer.EventHandler _branchFinalVideoEndHandler;
 
     private readonly List<Coroutine> _frontierRevealCoroutines = new List<Coroutine>();
 
@@ -127,6 +134,16 @@ public class GameManager : MonoBehaviour
 
     /// <summary>Идёт пошаговая отмотка раскрытия карты (<see cref="MinimapGraphRewind"/>).</summary>
     public bool IsGraphRewindInProgress => graphRewind != null && graphRewind.IsRewinding;
+
+    /// <summary>Идёт секвенция концовки ветки (<see cref="BranchEndingSequenceController"/>).</summary>
+    public bool IsBranchEndingSequenceInProgress
+    {
+        get
+        {
+            var ending = ResolveBranchEndingSequence();
+            return ending != null && ending.IsPlaying;
+        }
+    }
 
     /// <summary>Корень карты помечен как стартовый (кэш актуален после последнего <see cref="RefreshMinimapDiscoveryFromStartNodes"/>).</summary>
     public bool IsMinimapStartMapRoot(Node mapRoot) =>
@@ -346,7 +363,7 @@ public class GameManager : MonoBehaviour
         if (debugRevealFullMinimap)
             return false;
 
-        if (_mapSelectionTravelInProgress || IsGraphRewindInProgress)
+        if (_mapSelectionTravelInProgress || IsGraphRewindInProgress || IsBranchEndingSequenceInProgress)
             return true;
 
         if (TryBeginMapTravelToNeighbor(logicalOwner, clickedNode))
@@ -905,9 +922,15 @@ public class GameManager : MonoBehaviour
         if (clip == null)
             return;
 
+        var isFinal = IsBranchFinalForPlayback(node);
         mapVideoPlayer.clip = clip;
-        mapVideoPlayer.isLooping = true;
+        mapVideoPlayer.isLooping = !isFinal;
         mapVideoPlayer.Play();
+
+        if (isFinal)
+            RegisterBranchFinalVideoEndHandler(node);
+        else
+            ClearBranchFinalVideoEndHandler();
     }
 
     private void BeginGroupPlaylist(Node root)
@@ -932,6 +955,7 @@ public class GameManager : MonoBehaviour
 
         _groupPlaylistRoot = null;
         _groupPlaylistFocusNode = null;
+        ClearBranchFinalVideoEndHandler();
     }
 
     private void RegisterGroupLoopHandler()
@@ -952,6 +976,15 @@ public class GameManager : MonoBehaviour
             return;
 
         Node next = GetNextInGroupPlaylist(_groupPlaylistRoot, _groupPlaylistFocusNode);
+        if (IsBranchFinalForPlayback(_groupPlaylistRoot) &&
+            _groupPlaylistFocusNode != null &&
+            _groupPlaylistFocusNode != _groupPlaylistRoot &&
+            next == _groupPlaylistRoot)
+        {
+            TryTriggerBranchEnding(_groupPlaylistRoot);
+            return;
+        }
+
         PlayGroupClip(next);
     }
 
@@ -1047,8 +1080,79 @@ public class GameManager : MonoBehaviour
         _mapVideoPlaybackIsEdgeTravel = false;
         mapVideoPlayer.Stop();
         EndGroupPlaylist();
+        ClearBranchFinalVideoEndHandler();
         if (playIntroLoopAfterStop)
             TryStartIntroLoopMinimapVideo();
+    }
+
+    private static bool IsBranchFinalForPlayback(Node node)
+    {
+        if (node == null)
+            return false;
+        if (node.IsBranchFinalNode)
+            return true;
+        var owner = node.SelectionOwner;
+        return owner != null && owner != node && owner.IsBranchFinalNode;
+    }
+
+    private void RegisterBranchFinalVideoEndHandler(Node node)
+    {
+        if (mapVideoPlayer == null || node == null)
+            return;
+
+        ClearBranchFinalVideoEndHandler();
+        _branchFinalVideoWatchNode = node;
+        _branchFinalVideoEndHandler = OnBranchFinalVideoLoopPointReached;
+        mapVideoPlayer.loopPointReached += _branchFinalVideoEndHandler;
+    }
+
+    private void ClearBranchFinalVideoEndHandler()
+    {
+        if (mapVideoPlayer != null && _branchFinalVideoEndHandler != null)
+            mapVideoPlayer.loopPointReached -= _branchFinalVideoEndHandler;
+
+        _branchFinalVideoEndHandler = null;
+        _branchFinalVideoWatchNode = null;
+    }
+
+    private void OnBranchFinalVideoLoopPointReached(VideoPlayer source)
+    {
+        if (mapVideoPlayer == null || source != mapVideoPlayer || _branchFinalVideoWatchNode == null)
+            return;
+
+        var selected = CurrentSelectedMapNode;
+        if (selected != _branchFinalVideoWatchNode && selected?.SelectionOwner != _branchFinalVideoWatchNode)
+            return;
+
+        var finalNode = _branchFinalVideoWatchNode;
+        ClearBranchFinalVideoEndHandler();
+        TryTriggerBranchEnding(finalNode);
+    }
+
+    private void TryTriggerBranchEnding(Node finalNode)
+    {
+        var ending = ResolveBranchEndingSequence();
+        if (ending == null)
+        {
+            Debug.LogWarning("[GameManager] BranchEndingSequenceController не найден в сцене.", this);
+            return;
+        }
+
+        if (ending.IsPlaying)
+            return;
+
+        ending.PlayForBranchEnd(finalNode);
+    }
+
+    private BranchEndingSequenceController _branchEndingSequenceCached;
+
+    private BranchEndingSequenceController ResolveBranchEndingSequence()
+    {
+        if (branchEndingSequence != null)
+            return branchEndingSequence;
+        if (_branchEndingSequenceCached == null)
+            _branchEndingSequenceCached = FindObjectOfType<BranchEndingSequenceController>();
+        return _branchEndingSequenceCached;
     }
 
     /// <summary>Стартовое зацикленное интро на <see cref="mapVideoPlayer"/> (для секвенции перезагрузки и т.п.).</summary>

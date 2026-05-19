@@ -51,6 +51,9 @@ public partial class Node : MonoBehaviour
     [Tooltip("Ролик мини-карты для этой ноды (уникальный). Воспроизведение ведёт GameManager.")]
     [SerializeField] private VideoClip minimapVideoClip;
 
+    [Tooltip("Финальная нода ветки: после окончания ролика (без лупа) запускается BranchEndingSequenceController.")]
+    [SerializeField] private bool isBranchFinalNode;
+
     [Tooltip("Палитра графа: общие Color A/B/C для кнопки «Применить цвета к нодам» в ассете палитры (SpriteRendererGradientPropertyDriver). Тот же ассет, что на MinimapEdgeRegistry.")]
     [SerializeField] private MinimapGraphVisualPalette mapVisualPalette;
 
@@ -101,6 +104,9 @@ public partial class Node : MonoBehaviour
 
     /// <summary>Клип мини-карты; для группы задаётся на родительской ноде (логический выбор — SelectionOwner).</summary>
     public VideoClip MinimapVideoClip => minimapVideoClip;
+
+    /// <summary>Конец ветки: ролик не зацикливается, по окончании — секвенция концовки.</summary>
+    public bool IsBranchFinalNode => isBranchFinalNode;
 
     /// <summary>Палитра визуала карты для этой ноды.</summary>
     public MinimapGraphVisualPalette MapVisualPalette => mapVisualPalette;

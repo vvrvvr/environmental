@@ -4335,10 +4335,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76152cf735ff6f8498ed41b16f144304, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  restartTriggerButton: {fileID: 1635355282}
   minimapGraphRewind: {fileID: 1448228955}
   graphImpulseJellyTilt: {fileID: 0}
   minimapCameraAnchorFollow: {fileID: 0}
+  restartTriggerButton: {fileID: 1635355282}
   blocks:
   - blockNote: "\u0432\u044B\u043A\u043B\u044E\u0447\u0430\u0435\u043C \u0441\u043A\u0440\u0438\u043F\u0442
       \u0434\u0451\u0440\u0433\u0430\u043D\u0438\u044F \u044D\u043A\u0440\u0430\u043D\u0430"
@@ -5005,6 +5005,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Color.r
       value: 0.9529412
+      objectReference: {fileID: 0}
+    - target: {fileID: 3593893925033089739, guid: cca2fb2ed0776494c825f6c2973e1d6d,
+        type: 3}
+      propertyPath: isBranchFinalNode
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
@@ -13108,6 +13113,7 @@ MonoBehaviour:
   debugTargetNode: {fileID: 0}
   enableNodeStateHotkeys: 0
   graphRewind: {fileID: 1448228955}
+  branchEndingSequence: {fileID: 0}
 --- !u!4 &1448228954
 Transform:
   m_ObjectHideFlags: 0
@@ -15703,6 +15709,11 @@ PrefabInstance:
       propertyPath: m_Color.r
       value: 0.9529412
       objectReference: {fileID: 0}
+    - target: {fileID: 3593893925033089739, guid: cca2fb2ed0776494c825f6c2973e1d6d,
+        type: 3}
+      propertyPath: isBranchFinalNode
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorA.b
@@ -17624,6 +17635,67 @@ MonoBehaviour:
   cachedPlannedLocalScaleY: 0
   cachedAppearDurationSeconds: 0
   configuredShiftBackPercentOfEdgeLength: 30
+--- !u!1 &2006962824
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2006962826}
+  - component: {fileID: 2006962825}
+  m_Layer: 0
+  m_Name: ending sequence
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2006962825
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2006962824}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8a63edb91514dc44a3ea2f96f72d3a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  minimapGraphRewind: {fileID: 1448228955}
+  graphImpulseJellyTilt: {fileID: 1018280887}
+  minimapCameraAnchorFollow: {fileID: 0}
+  blocks:
+  - blockNote: "\u043E\u0442\u043C\u0430\u0442\u044B\u0432\u0430\u0435\u043C \u0433\u0440\u0430\u0444
+      \u043D\u0430\u0437\u0430\u0434"
+    action: 2
+    waitForCompletion: 1
+    float0: 0
+    reloadSceneName: 
+    enableComponent: 0
+    graphImpulseJellyTilt: {fileID: 0}
+    rotateTarget: {fileID: 0}
+    tweenEase: 0
+    minimapCameraAnchorFollow: {fileID: 0}
+    scaleTarget: {fileID: 0}
+    scaleFromZero: 0
+--- !u!4 &2006962826
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2006962824}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -14.305822, y: 7.6521254, z: -0.1077303}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2011324369
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -19588,6 +19660,7 @@ SceneRoots:
   - {fileID: 2094650667}
   - {fileID: 1301778872}
   - {fileID: 408488966}
+  - {fileID: 2006962826}
   - {fileID: 52173939}
   - {fileID: 1242072635}
   - {fileID: 1657977835}
