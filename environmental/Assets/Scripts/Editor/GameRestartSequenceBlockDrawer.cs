@@ -24,7 +24,7 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
         {
             case GameRestartSequenceAction.MinimapGraphRewind:
                 extraHelp = HelpBoxHeight(
-                    "Видео не меняется. Float0 не используется. Minimap Graph Rewind — на контроллере.",
+                    "Видео не меняется; слайдер прогресса не скрывается во время отмотки. Перед отмоткой: SetMinimapVideoProgressSliderAutoUpdate = false.",
                     w);
                 bodyLines = 2f;
                 break;
@@ -33,6 +33,10 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
                 extraHelp = HelpBoxHeight(
                     "Мгновенно: intro-loop на mapVideoPlayer (GameManager.Instance). Wait / Float0 не используются.",
                     w);
+                break;
+            case GameRestartSequenceAction.SetMinimapVideoProgressSliderVisible:
+            case GameRestartSequenceAction.SetMinimapVideoProgressSliderAutoUpdate:
+                bodyLines = 3f;
                 break;
             case GameRestartSequenceAction.SetGraphImpulseJellyTiltEnabled:
                 bodyLines = 3f;
@@ -112,6 +116,23 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
             return;
         }
 
+        if (action == GameRestartSequenceAction.SetMinimapVideoProgressSliderVisible ||
+            action == GameRestartSequenceAction.SetMinimapVideoProgressSliderAutoUpdate)
+        {
+            var enableLabel = action == GameRestartSequenceAction.SetMinimapVideoProgressSliderVisible
+                ? "Slider Visible"
+                : "Auto Update";
+            EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), enableProp, new GUIContent(enableLabel));
+            y += lineH + sp;
+            var sliderHelp = action == GameRestartSequenceAction.SetMinimapVideoProgressSliderVisible
+                ? "Мгновенно: SetActive на minimapVideoProgressSlider. Auto Update выкл. — слайдер не скрывается при остановке видео."
+                : "Мгновенно: выкл. — GameManager не скрывает/не обновляет слайдер (удобно во время отмотки). Вкл. — снова от mapVideoPlayer.";
+            var sliderHelpH = HelpBoxHeight(sliderHelp, iw);
+            EditorGUI.HelpBox(new Rect(ix, y, iw, sliderHelpH), sliderHelp, MessageType.Info);
+            EditorGUI.EndProperty();
+            return;
+        }
+
         if (action == GameRestartSequenceAction.SetGraphImpulseJellyTiltEnabled)
         {
             EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), enableProp, new GUIContent("Enable Component"));
@@ -176,9 +197,11 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
                 break;
 
             case GameRestartSequenceAction.MinimapGraphRewind:
-                var helpH = HelpBoxHeight("Float0 не используется. Укажите Minimap Graph Rewind на контроллере.", iw);
+                var helpH = HelpBoxHeight(
+                    "Видео не меняется; слайдер не скрывается во время отмотки. Auto Update выкл. — поставьте блоком до отмотки.",
+                    iw);
                 EditorGUI.HelpBox(new Rect(ix, y, iw, helpH),
-                    "Float0 не используется. Укажите Minimap Graph Rewind на контроллере.",
+                    "Видео не меняется; слайдер не скрывается во время отмотки. Auto Update выкл. — поставьте блоком до отмотки.",
                     MessageType.Info);
                 break;
         }

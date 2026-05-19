@@ -104,6 +104,38 @@ public sealed class GameRestartSequenceController : MonoBehaviour
                     continue;
                 }
 
+                if (block.action == GameRestartSequenceAction.SetMinimapVideoProgressSliderVisible)
+                {
+                    if (GameManager.Instance == null)
+                    {
+                        Debug.LogWarning(
+                            $"[{nameof(GameRestartSequenceController)}] Блок {i}: GameManager.Instance не найден — пропуск.",
+                            this);
+                    }
+                    else
+                    {
+                        GameManager.Instance.SetMinimapVideoProgressSliderVisible(block.enableComponent);
+                    }
+
+                    continue;
+                }
+
+                if (block.action == GameRestartSequenceAction.SetMinimapVideoProgressSliderAutoUpdate)
+                {
+                    if (GameManager.Instance == null)
+                    {
+                        Debug.LogWarning(
+                            $"[{nameof(GameRestartSequenceController)}] Блок {i}: GameManager.Instance не найден — пропуск.",
+                            this);
+                    }
+                    else
+                    {
+                        GameManager.Instance.SetMinimapVideoProgressSliderAutoUpdate(block.enableComponent);
+                    }
+
+                    continue;
+                }
+
                 if (block.action == GameRestartSequenceAction.SwitchMinimapToIntroLoopVideo)
                 {
                     if (GameManager.Instance == null)
@@ -332,6 +364,12 @@ public enum GameRestartSequenceAction
 
     [Tooltip("Вернуть якорь к стартовой позиции (moveEase на MinimapCameraAnchorFollowSelection). Float0 = длительность; Wait For Completion.")]
     MinimapAnchorReturnToStart = 7,
+
+    [Tooltip("Показать/скрыть слайдер прогресса видео мини-карты (Enable Component).")]
+    SetMinimapVideoProgressSliderVisible = 9,
+
+    [Tooltip("Вкл. — GameManager сам управляет слайдером от видео; выкл. — не трогать (Enable Component).")]
+    SetMinimapVideoProgressSliderAutoUpdate = 10,
 }
 
 [Serializable]
@@ -352,7 +390,7 @@ public struct GameRestartSequenceBlock
     [Tooltip("Только для ReloadScene: имя сцены в Build Settings; пусто — перезагрузка текущей.")]
     public string reloadSceneName;
 
-    [Tooltip("SetGraphImpulseJellyTiltEnabled: включить (true) или выключить (false) компонент.")]
+    [Tooltip("SetGraphImpulseJellyTilt / слайдер прогресса видео: true = вкл., false = выкл.")]
     public bool enableComponent;
 
     [Tooltip("SetGraphImpulseJellyTiltEnabled: цель; пусто — с контроллера или FindObjectOfType.")]

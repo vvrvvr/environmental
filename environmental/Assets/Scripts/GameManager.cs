@@ -115,6 +115,8 @@ public class GameManager : MonoBehaviour
     /// <summary>Корни карты с <see cref="Node.IsMinimapStartNode"/>; обновляется в <see cref="RefreshMinimapDiscoveryFromStartNodes"/> для линий при отсутствии выбора.</summary>
     private readonly HashSet<Node> _minimapStartRootCache = new HashSet<Node>();
 
+    private bool _minimapVideoProgressSliderAutoUpdate = true;
+
     public Camera MapCamera => mapCamera;
 
     /// <summary>Назначен общий UI прогресса — локальный обратный отсчёт на ноде не показываем.</summary>
@@ -1184,9 +1186,31 @@ public class GameManager : MonoBehaviour
         UpdateMinimapVideoProgressSlider();
     }
 
+    /// <summary>Вкл./выкл. слайдер прогресса видео (GameObject). Для секвенции перезагрузки.</summary>
+    public void SetMinimapVideoProgressSliderVisible(bool visible)
+    {
+        if (minimapVideoProgressSlider == null)
+            return;
+        minimapVideoProgressSlider.gameObject.SetActive(visible);
+    }
+
+    /// <summary>
+    /// Вкл. — GameManager сам показывает/скрывает слайдер от состояния <see cref="mapVideoPlayer"/>.
+    /// Выкл. — слайдер не трогается (ручное управление из секвенции).
+    /// </summary>
+    public void SetMinimapVideoProgressSliderAutoUpdate(bool autoUpdate)
+    {
+        _minimapVideoProgressSliderAutoUpdate = autoUpdate;
+        if (autoUpdate)
+            UpdateMinimapVideoProgressSlider();
+    }
+
     private void UpdateMinimapVideoProgressSlider()
     {
         if (minimapVideoProgressSlider == null)
+            return;
+
+        if (!_minimapVideoProgressSliderAutoUpdate || IsGraphRewindInProgress)
             return;
 
         var go = minimapVideoProgressSlider.gameObject;
