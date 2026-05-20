@@ -201,6 +201,9 @@ public abstract class MapSequenceControllerBase : MonoBehaviour
             case GameRestartSequenceAction.MinimapAnchorReturnToStart:
                 return Sequence_MinimapAnchorReturnToStart(block);
 
+            case GameRestartSequenceAction.MoveGameObjectUpToLocalY:
+                return Sequence_MoveGameObjectUpToLocalY(block);
+
             default:
                 if (block.action != GameRestartSequenceAction.None &&
                     block.action != GameRestartSequenceAction.ReloadScene)
@@ -296,6 +299,39 @@ public abstract class MapSequenceControllerBase : MonoBehaviour
 
         var duration = Mathf.Max(0f, block.float0);
         return follow.TweenAnchorToInitialPosition(duration);
+    }
+
+    private Tween Sequence_MoveGameObjectUpToLocalY(GameRestartSequenceBlock block)
+    {
+        if (block.moveTarget == null)
+        {
+            Debug.LogWarning($"[{GetType().Name}] MoveGameObjectUpToLocalY: не задан Move Target.", this);
+            return null;
+        }
+
+        var tr = block.moveTarget.transform;
+        var local = tr.localPosition;
+        var endY = block.moveEndLocalY;
+
+        if (local.y >= endY)
+        {
+            local.y = endY;
+            tr.localPosition = local;
+            return null;
+        }
+
+        var duration = Mathf.Max(0f, block.float0);
+        if (duration <= 0f)
+        {
+            local.y = endY;
+            tr.localPosition = local;
+            return null;
+        }
+
+        var ease = block.tweenEase == Ease.Unset ? Ease.Linear : block.tweenEase;
+        return tr.DOLocalMoveY(endY, duration)
+            .SetEase(ease)
+            .SetUpdate(isIndependentUpdate: true);
     }
 
     protected MinimapGraphRewind ResolveMinimapGraphRewind()

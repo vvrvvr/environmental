@@ -54,6 +54,9 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
                 bodyLines = 3f;
                 extraHelp = HelpBoxHeight("Ease и unscaled time берутся с MinimapCameraAnchorFollowSelection (moveEase).", w);
                 break;
+            case GameRestartSequenceAction.MoveGameObjectUpToLocalY:
+                bodyLines = 6f;
+                break;
             case GameRestartSequenceAction.WaitSeconds:
             case GameRestartSequenceAction.ReloadScene:
                 bodyLines = 3f;
@@ -85,6 +88,8 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
         var scaleTargetProp = property.FindPropertyRelative("scaleTarget");
         var scaleFromZeroProp = property.FindPropertyRelative("scaleFromZero");
         var anchorFollowProp = property.FindPropertyRelative("minimapCameraAnchorFollow");
+        var moveTargetProp = property.FindPropertyRelative("moveTarget");
+        var moveEndLocalYProp = property.FindPropertyRelative("moveEndLocalY");
 
         y = DrawNoteSection(position.x, y, contentW, noteProp);
         y += SectionGap;
@@ -190,6 +195,16 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
                 EditorGUI.HelpBox(new Rect(ix, y, iw, anchorHelpH),
                     "Ease и unscaled time берутся с MinimapCameraAnchorFollowSelection (moveEase).",
                     MessageType.Info);
+                break;
+
+            case GameRestartSequenceAction.MoveGameObjectUpToLocalY:
+                EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), moveTargetProp, new GUIContent("Move Target"));
+                y += lineH + sp;
+                EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), float0Prop, new GUIContent("Duration (sec)"));
+                y += lineH + sp;
+                EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), moveEndLocalYProp, new GUIContent("End Local Y"));
+                y += lineH + sp;
+                EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), tweenEaseProp, new GUIContent("Tween Ease"));
                 break;
 
             case GameRestartSequenceAction.ReloadScene:

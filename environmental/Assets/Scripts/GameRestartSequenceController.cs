@@ -70,6 +70,9 @@ public enum GameRestartSequenceAction
 
     [Tooltip("Вкл. — GameManager управляет слайдером; выкл. — не трогать (Enable Component).")]
     SetMinimapVideoProgressSliderAutoUpdate = 10,
+
+    [Tooltip("Move Target: localPosition.y → Move End Local Y за Float0 сек (unscaled). Разное расстояние — одно время. Wait For Completion.")]
+    MoveGameObjectUpToLocalY = 11,
 }
 
 [Serializable]
@@ -84,7 +87,7 @@ public struct GameRestartSequenceBlock
     [Tooltip("WaitSeconds / MinimapGraphRewind / твины: ждать завершения.")]
     public bool waitForCompletion;
 
-    [Tooltip("WaitSeconds / Rotate / Scale / MinimapAnchorReturnToStart: длительность (сек, unscaled).")]
+    [Tooltip("WaitSeconds / Rotate / Scale / Anchor / MoveGameObjectUpToLocalY: длительность (сек, unscaled).")]
     public float float0;
 
     [Tooltip("Только для ReloadScene.")]
@@ -99,7 +102,7 @@ public struct GameRestartSequenceBlock
     [Tooltip("RotateGameObject180AroundY: объект для поворота.")]
     public GameObject rotateTarget;
 
-    [Tooltip("Rotate / Scale: easing. UnimapAnchor — moveEase на компоненте.")]
+    [Tooltip("Rotate / Scale / MoveGameObjectUpToLocalY: easing (Unset → Linear). Anchor — moveEase на компоненте.")]
     public Ease tweenEase;
 
     [Tooltip("MinimapAnchorReturnToStart: цель.")]
@@ -110,4 +113,10 @@ public struct GameRestartSequenceBlock
 
     [Tooltip("ScaleGameObjectToOrFromZero: выкл. → 0; вкл. → восстановить scale.")]
     public bool scaleFromZero;
+
+    [Tooltip("MoveGameObjectUpToLocalY: объект для перемещения.")]
+    public GameObject moveTarget;
+
+    [Tooltip("MoveGameObjectUpToLocalY: целевая localPosition.y (движение вверх, если текущая Y меньше).")]
+    public float moveEndLocalY;
 }
