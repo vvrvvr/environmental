@@ -23,6 +23,7 @@ public abstract class MapSequenceControllerBase : MonoBehaviour
 
     protected Coroutine RunRoutine;
     protected readonly Dictionary<int, Vector3> CachedLocalScales = new();
+    protected readonly Dictionary<int, float> CachedMoveTargetOriginalLocalY = new();
 
     public bool IsPlaying => RunRoutine != null;
 
@@ -204,6 +205,9 @@ public abstract class MapSequenceControllerBase : MonoBehaviour
             case GameRestartSequenceAction.MoveGameObjectUpToLocalY:
                 return Sequence_MoveGameObjectUpToLocalY(block);
 
+            case GameRestartSequenceAction.ReturnGameObjectUpFromBelowToCachedLocalY:
+                return Sequence_ReturnGameObjectUpFromBelowToCachedLocalY(block);
+
             default:
                 if (block.action != GameRestartSequenceAction.None &&
                     block.action != GameRestartSequenceAction.ReloadScene)
@@ -310,6 +314,10 @@ public abstract class MapSequenceControllerBase : MonoBehaviour
         }
 
         var tr = block.moveTarget.transform;
+        var cacheKey = tr.GetInstanceID();
+        if (!CachedMoveTargetOriginalLocalY.ContainsKey(cacheKey))
+            CachedMoveTargetOriginalLocalY[cacheKey] = tr.localPosition.y;
+
         var local = tr.localPosition;
         var endY = block.moveEndLocalY;
 
@@ -330,6 +338,44 @@ public abstract class MapSequenceControllerBase : MonoBehaviour
 
         var ease = block.tweenEase == Ease.Unset ? Ease.Linear : block.tweenEase;
         return tr.DOLocalMoveY(endY, duration)
+            .SetEase(ease)
+            .SetUpdate(isIndependentUpdate: true);
+    }
+
+    private Tween Sequence_ReturnGameObjectUpFromBelowToCachedLocalY(GameRestartSequenceBlock block)
+    {
+        if (block.moveTarget == null)
+        {
+            Debug.LogWarning(
+                $"[{GetType().Name}] ReturnGameObjectUpFromBelowToCachedLocalY: не задан Move Target.",
+                this);
+            return null;
+        }
+
+        var tr = block.moveTarget.transform;
+        var cacheKey = tr.GetInstanceID();
+        if (!CachedMoveTargetOriginalLocalY.TryGetValue(cacheKey, out var cachedY))
+        {
+            Debug.LogWarning(
+                $"[{GetType().Name}] ReturnGameObjectUpFromBelowToCachedLocalY: нет сохранённой Y для «{block.moveTarget.name}» — сначала MoveGameObjectUpToLocalY.",
+                this);
+            cachedY = tr.localPosition.y;
+        }
+
+        var local = tr.localPosition;
+        local.y = block.moveDownToLocalY;
+        tr.localPosition = local;
+
+        var duration = Mathf.Max(0f, block.float0);
+        if (Mathf.Approximately(tr.localPosition.y, cachedY) || duration <= 0f)
+        {
+            local.y = cachedY;
+            tr.localPosition = local;
+            return null;
+        }
+
+        var ease = block.tweenEase == Ease.Unset ? Ease.Linear : block.tweenEase;
+        return tr.DOLocalMoveY(cachedY, duration)
             .SetEase(ease)
             .SetUpdate(isIndependentUpdate: true);
     }

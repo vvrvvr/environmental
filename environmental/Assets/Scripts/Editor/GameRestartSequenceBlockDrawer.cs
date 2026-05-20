@@ -57,6 +57,12 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
             case GameRestartSequenceAction.MoveGameObjectUpToLocalY:
                 bodyLines = 6f;
                 break;
+            case GameRestartSequenceAction.ReturnGameObjectUpFromBelowToCachedLocalY:
+                bodyLines = 5f;
+                extraHelp = HelpBoxHeight(
+                    "Сначала тот же Move Target в MoveGameObjectUpToLocalY (запомнит Y). Снизу — мгновенно, подъём — к сохранённой Y.",
+                    w);
+                break;
             case GameRestartSequenceAction.WaitSeconds:
             case GameRestartSequenceAction.ReloadScene:
                 bodyLines = 3f;
@@ -90,6 +96,7 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
         var anchorFollowProp = property.FindPropertyRelative("minimapCameraAnchorFollow");
         var moveTargetProp = property.FindPropertyRelative("moveTarget");
         var moveEndLocalYProp = property.FindPropertyRelative("moveEndLocalY");
+        var moveDownToLocalYProp = property.FindPropertyRelative("moveDownToLocalY");
 
         y = DrawNoteSection(position.x, y, contentW, noteProp);
         y += SectionGap;
@@ -205,6 +212,23 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
                 EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), moveEndLocalYProp, new GUIContent("End Local Y"));
                 y += lineH + sp;
                 EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), tweenEaseProp, new GUIContent("Tween Ease"));
+                break;
+
+            case GameRestartSequenceAction.ReturnGameObjectUpFromBelowToCachedLocalY:
+                EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), moveTargetProp, new GUIContent("Move Target"));
+                y += lineH + sp;
+                EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), moveDownToLocalYProp, new GUIContent("Down To Local Y"));
+                y += lineH + sp;
+                EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), float0Prop, new GUIContent("Up Duration (sec)"));
+                y += lineH + sp;
+                EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), tweenEaseProp, new GUIContent("Tween Ease"));
+                y += lineH + sp;
+                var returnHelpH = HelpBoxHeight(
+                    "Сначала тот же Move Target в MoveGameObjectUpToLocalY (запомнит Y). Снизу — мгновенно, подъём — к сохранённой Y.",
+                    iw);
+                EditorGUI.HelpBox(new Rect(ix, y, iw, returnHelpH),
+                    "Сначала тот же Move Target в MoveGameObjectUpToLocalY (запомнит Y). Снизу — мгновенно, подъём — к сохранённой Y.",
+                    MessageType.Info);
                 break;
 
             case GameRestartSequenceAction.ReloadScene:
