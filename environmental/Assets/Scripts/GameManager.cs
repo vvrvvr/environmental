@@ -311,6 +311,9 @@ public class GameManager : MonoBehaviour
     /// <summary>Вызывается из <see cref="Node"/> после каждого успешного перехода стейт-машины карты.</summary>
     public event Action<Node, NodeMapState, NodeMapState?> MapNodeStateChanged;
 
+    /// <summary>Сменился фокус воспроизведения внутри выбранной группы (<see cref="CurrentGroupPlaybackFocusNode"/>).</summary>
+    public event Action GroupPlaybackFocusChanged;
+
     /// <summary>
     /// Уведомление о смене состояния ноды (вызывается из <see cref="Node"/>). Позже сюда можно добавить фильтры и правила «одна активная нода».
     /// </summary>
@@ -956,6 +959,7 @@ public class GameManager : MonoBehaviour
         _groupPlaylistRoot = null;
         _groupPlaylistFocusNode = null;
         ClearBranchFinalVideoEndHandler();
+        NotifyGroupPlaybackFocusChanged();
     }
 
     private void RegisterGroupLoopHandler()
@@ -1012,6 +1016,11 @@ public class GameManager : MonoBehaviour
         return root;
     }
 
+    private void NotifyGroupPlaybackFocusChanged()
+    {
+        GroupPlaybackFocusChanged?.Invoke();
+    }
+
     private void PlayGroupClip(Node target, int skipDepth = 0)
     {
         if (mapVideoPlayer == null || _groupPlaylistRoot == null || target == null)
@@ -1022,6 +1031,7 @@ public class GameManager : MonoBehaviour
             return;
 
         _groupPlaylistFocusNode = target;
+        NotifyGroupPlaybackFocusChanged();
         VideoClip clip = target.MinimapVideoClip;
         if (clip == null)
         {

@@ -88,6 +88,8 @@ public partial class Node
 
     private void Start()
     {
+        BeginCurrentActiveRefreshTracking();
+
         if (isMinimapStartNode)
         {
             PrepareInitialHiddenMapScaleForAppear();
@@ -444,6 +446,8 @@ public partial class Node
                  CurrentState == NodeMapState.Deselected);
             selectionRing.gameObject.SetActive(active && showRing);
         }
+
+        ApplyCurrentActiveVisibility(active);
 
         for (var i = 0; i < _cachedColliders.Length; i++)
         {

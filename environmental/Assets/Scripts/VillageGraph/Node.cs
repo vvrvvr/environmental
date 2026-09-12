@@ -43,6 +43,12 @@ public partial class Node : MonoBehaviour
     [SerializeField, Min(0f)] private float selectionRingDisappearDuration = 0.12f;
     [SerializeField] private Ease selectionRingDisappearEase = Ease.InQuad;
 
+    [Tooltip("Маркер текущей активной ноды: альфа у выбранной ноды (в группе — у той, чей ролик сейчас играет). Объект всегда включён, видимость — через альфу.")]
+    [SerializeField] private SpriteRenderer currentActiveSprite;
+
+    [Tooltip("Фейд альфы current active: 0 ↔ максимум из цвета спрайта в инспекторе.")]
+    [SerializeField, Min(0f)] private float currentActiveFadeSeconds = 0.2f;
+
     [Header("Minimap")]
     [Tooltip("Стартовая нода карты: при старте Visible; сразу видны исходящие рёбра и ноды на их концах (один шаг). Остальные корни карты — Inactive. См. GameManager.")]
     [SerializeField] private bool isMinimapStartNode;
@@ -214,6 +220,7 @@ public partial class Node : MonoBehaviour
         _cachedColliders = GetComponentsInChildren<Collider>(true);
 
         CacheSelectionRingBaseScale();
+        InitializeCurrentActiveSprite();
 
         TryCacheMapCamera();
     }
@@ -228,6 +235,8 @@ public partial class Node : MonoBehaviour
 
     private void OnDisable()
     {
+        EndCurrentActiveRefreshTracking();
+        KillCurrentActiveFadeTween();
         KillHoverTween();
         KillClickTween();
         KillSelectionRingTween();

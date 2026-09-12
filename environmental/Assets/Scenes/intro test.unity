@@ -11991,7 +11991,7 @@ MonoBehaviour:
     moveLocalZDelta: 0
   - action: 10
     waitForTweenCompletion: 0
-    float0: 2
+    float0: 1
     waitForButton: {fileID: 0}
     fadeUiImage: {fileID: 0}
     fadeUiFadeIn: 0
