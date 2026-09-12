@@ -17211,6 +17211,7 @@ GameObject:
   - component: {fileID: 1850578684}
   - component: {fileID: 1850578683}
   - component: {fileID: 1850578682}
+  - component: {fileID: 1850578686}
   m_Layer: 0
   m_Name: intro video
   m_TagString: Untagged
@@ -17299,12 +17300,36 @@ Transform:
   m_GameObject: {fileID: 1850578681}
   serializedVersion: 2
   m_LocalRotation: {x: -0.000002078712, y: -0.7071057, z: 0.70710796, w: 0.0000023245811}
-  m_LocalPosition: {x: -0.2088, y: 0.06339979, z: 21.71}
+  m_LocalPosition: {x: -0.21, y: 0.06, z: 20.53}
   m_LocalScale: {x: 4.486901, y: 1.2068264, z: 2.4989765}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1301778872}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 180}
+--- !u!114 &1850578686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1850578681}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f3a2c91e4b58d64a9f0e1b2c3d4e5f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  screenTarget: {fileID: 1850578685}
+  referenceCamera: {fileID: 330585545}
+  maxYawDegrees: 10
+  maxPitchDegrees: 10
+  tiltInputScale: 1
+  maxTotalTiltDegrees: 12
+  pointerSmoothTime: 0.3
+  rotationFollowSharpness: 12
+  mouseReference: 0
+  invertPitch: 0
+  ignoreWhenCursorLocked: 1
+  useUnscaledTime: 1
 --- !u!1001 &1914486663
 PrefabInstance:
   m_ObjectHideFlags: 0
