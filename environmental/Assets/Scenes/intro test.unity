@@ -10388,7 +10388,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!328 &1173002159
 VideoPlayer:
   m_ObjectHideFlags: 0
@@ -12016,6 +12016,21 @@ MonoBehaviour:
     objectsToActivate: []
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
+    fadeTmpText: {fileID: 0}
+    moveTarget: {fileID: 0}
+    moveLocalZDelta: 0
+  - action: 8
+    waitForTweenCompletion: 0
+    float0: 5
+    waitForButton: {fileID: 0}
+    fadeUiImage: {fileID: 0}
+    fadeUiFadeIn: 0
+    fadeUiEndAlpha: 0
+    objectsToDeactivate: []
+    objectsToActivate:
+    - {fileID: 1173002158}
+    fadeMaterial: {fileID: 2100000, guid: 0062339f01ebba04890e05f5c008ebc8, type: 2}
+    fadeMaterialEndAlpha: 1
     fadeTmpText: {fileID: 0}
     moveTarget: {fileID: 0}
     moveLocalZDelta: 0
