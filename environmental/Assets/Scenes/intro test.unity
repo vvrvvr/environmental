@@ -2881,7 +2881,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.0099792, y: 260}
+  m_AnchoredPosition: {x: -0.0099792, y: 0}
   m_SizeDelta: {x: 1920, y: 359.2591}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &213802644
@@ -2904,7 +2904,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "death \nstranding"
+  m_text: "\u043F\u043E\u0432\u0441\u0435\u0434\u043D\u0435\u0432\u043D\u043E\u0441\u0442\u044C"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d78bff65522465544b7840976cc0ab2c, type: 2}
   m_sharedMaterial: {fileID: 3927886726570525697, guid: d78bff65522465544b7840976cc0ab2c,
@@ -2942,7 +2942,7 @@ MonoBehaviour:
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
-  m_characterSpacing: 55.14
+  m_characterSpacing: 25.39
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -10959,7 +10959,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 642.9763, y: -14.855103}
+  m_AnchoredPosition: {x: 642.9763, y: -430}
   m_SizeDelta: {x: 626.1886, y: 241.9199}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1242072634
@@ -11566,8 +11566,7 @@ PrefabInstance:
         type: 3}
       propertyPath: edgeTravelVideoClip
       value: 
-      objectReference: {fileID: 32900000, guid: 0ee86963e82ac2d4a94e9397e6d2b5fa,
-        type: 3}
+      objectReference: {fileID: 0}
     - target: {fileID: 4456970236048550630, guid: b92ba7495596c0e4394b2af662820f29,
         type: 3}
       propertyPath: anchorsFollowLinkedNodes
@@ -13197,7 +13196,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -96}
+  m_AnchoredPosition: {x: 0, y: -161}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1441437385
@@ -18005,7 +18004,7 @@ MonoBehaviour:
   - blockNote: "\u043F\u043E\u0434\u043D\u0438\u043C\u0430\u0435\u043C \u044D\u043A\u0440\u0430\u043D
       \u0432\u0432\u0435\u0440\u0445"
     action: 11
-    waitForCompletion: 1
+    waitForCompletion: 0
     float0: 6
     reloadSceneName: 
     enableComponent: 0
