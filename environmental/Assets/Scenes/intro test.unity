@@ -629,6 +629,8 @@ MonoBehaviour:
   hideDelaySeconds: 0.3
   panelFadeInSeconds: 0.3
   panelFadeOutSeconds: 0.3
+  graphImpulseJellyTilt: {fileID: 1018280887}
+  hoverKickAngle: 2
 --- !u!1001 &60889963
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12064,7 +12066,7 @@ MonoBehaviour:
     moveLocalZDelta: 0
   - action: 1
     waitForTweenCompletion: 1
-    float0: 2
+    float0: 0.5
     waitForButton: {fileID: 0}
     fadeUiImage: {fileID: 0}
     fadeUiFadeIn: 0
@@ -15156,6 +15158,8 @@ MonoBehaviour:
   hideDelaySeconds: 0.18
   panelFadeInSeconds: 0.15
   panelFadeOutSeconds: 0.12
+  graphImpulseJellyTilt: {fileID: 1018280887}
+  hoverKickAngle: 2
 --- !u!114 &1635355286
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18808,7 +18812,7 @@ MonoBehaviour:
   m_Color: {r: 0.7882353, g: 0.7882353, b: 0.7882353, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
+  m_Maskable: 0
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []

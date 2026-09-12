@@ -56,6 +56,17 @@ public sealed class PlaylistVolumeHoverControl : MonoBehaviour
     [Min(0f)]
     private float panelFadeOutSeconds = 0.12f;
 
+    [Space(8)]
+    [Header("Наклон экрана при наведении на иконку")]
+    [Tooltip("Пусто — FindObjectOfType при первом kick. Должен быть включён (как при работе с графом).")]
+    [SerializeField]
+    private GraphImpulseJellyTilt graphImpulseJellyTilt;
+
+    [Tooltip("Сила kick при входе/выходе курсора с иконки (градусы). 0 — отключено.")]
+    [SerializeField]
+    [Min(0f)]
+    private float hoverKickAngle = 10f;
+
     private Canvas _rootCanvas;
     private Coroutine _hideRoutine;
     private CanvasGroup _panelGroup;
@@ -64,6 +75,7 @@ public sealed class PlaylistVolumeHoverControl : MonoBehaviour
     private bool _panelFadeTweenIsHide;
 
     private Image _speakerIconImage;
+    private bool _wasOverSpeakerIcon;
 
     private void Awake()
     {
@@ -128,6 +140,8 @@ public sealed class PlaylistVolumeHoverControl : MonoBehaviour
         var panelActive = volumePanel.gameObject.activeSelf;
         var overPanel = panelActive && RectTransformUtility.RectangleContainsScreenPoint(volumePanel, mouse, cam);
 
+        UpdateSpeakerHoverKick(overSpeaker);
+
         if (overSpeaker || overPanel)
         {
             StopHideDelayCoroutine();
@@ -160,6 +174,29 @@ public sealed class PlaylistVolumeHoverControl : MonoBehaviour
         if (_rootCanvas == null)
             return null;
         return _rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _rootCanvas.worldCamera;
+    }
+
+    private void UpdateSpeakerHoverKick(bool overSpeaker)
+    {
+        if (overSpeaker == _wasOverSpeakerIcon)
+            return;
+
+        _wasOverSpeakerIcon = overSpeaker;
+        TryApplyHoverKick();
+    }
+
+    private void TryApplyHoverKick()
+    {
+        if (hoverKickAngle <= 0f)
+            return;
+
+        var tilt = graphImpulseJellyTilt != null
+            ? graphImpulseJellyTilt
+            : graphImpulseJellyTilt = FindObjectOfType<GraphImpulseJellyTilt>();
+        if (tilt == null || !tilt.enabled)
+            return;
+
+        tilt.ApplyRandomKick(hoverKickAngle);
     }
 
     private void ShowPanel()

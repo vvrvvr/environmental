@@ -88,9 +88,23 @@ public sealed class GraphImpulseJellyTilt : MonoBehaviour
         transform.rotation = _restWorldRotation * tiltLocal;
     }
 
+    /// <summary>Случайный kick в произвольном направлении (UI hover и т.п.).</summary>
+    public void ApplyRandomKick(float kickAngleDegrees)
+    {
+        ApplyKick(kickAngleDegrees, impulseDirectionWorldXY: Vector2.zero, useImpulseDirection: false);
+    }
+
     private void OnGraphImpulseApplied(float impulseMagnitude, Vector3 impulseDirectionWorldXY, Rigidbody targetBody)
     {
         var kickAngle = ResolveKickAngle(impulseMagnitude);
+        ApplyKick(
+            kickAngle,
+            new Vector2(impulseDirectionWorldXY.x, impulseDirectionWorldXY.y),
+            useImpulseDirection: true);
+    }
+
+    private void ApplyKick(float kickAngle, Vector2 impulseDirectionWorldXY, bool useImpulseDirection)
+    {
         if (kickAngle <= 0.001f)
             return;
 
@@ -99,14 +113,21 @@ public sealed class GraphImpulseJellyTilt : MonoBehaviour
             random2 = Vector2.up;
         random2.Normalize();
 
-        // "Pull away" feel: random reaction opposite to touch, with random side jitter.
-        var away = -new Vector2(impulseDirectionWorldXY.x, impulseDirectionWorldXY.y);
-        if (away.sqrMagnitude < 1e-6f)
-            away = random2;
+        Vector2 mixed;
+        if (useImpulseDirection)
+        {
+            // "Pull away" feel: random reaction opposite to touch, with random side jitter.
+            var away = -impulseDirectionWorldXY;
+            if (away.sqrMagnitude < 1e-6f)
+                mixed = random2;
+            else
+                mixed = (away.normalized + random2 * 0.55f).normalized;
+        }
         else
-            away.Normalize();
+        {
+            mixed = random2;
+        }
 
-        var mixed = (away + random2 * 0.55f).normalized;
         var pitch = mixed.y * kickAngle * randomPitchScale;
         var yaw = mixed.x * kickAngle * randomYawScale;
         _targetTiltDeg = new Vector2(pitch, yaw);

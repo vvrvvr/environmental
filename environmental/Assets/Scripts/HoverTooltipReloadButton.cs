@@ -33,11 +33,23 @@ public sealed class HoverTooltipReloadButton : MonoBehaviour
     [Min(0f)]
     private float panelFadeOutSeconds = 0.12f;
 
+    [Space(8)]
+    [Header("Наклон экрана при наведении на кнопку")]
+    [Tooltip("Пусто — FindObjectOfType при первом kick. Должен быть включён (как при работе с графом).")]
+    [SerializeField]
+    private GraphImpulseJellyTilt graphImpulseJellyTilt;
+
+    [Tooltip("Сила kick при входе/выходе курсора с кнопки (градусы). 0 — отключено.")]
+    [SerializeField]
+    [Min(0f)]
+    private float hoverKickAngle = 10f;
+
     private Canvas _rootCanvas;
     private Coroutine _hideRoutine;
     private CanvasGroup _panelGroup;
     private Tweener _panelFadeTween;
     private bool _panelFadeTweenIsHide;
+    private bool _wasOverReloadButton;
 
     private void Awake()
     {
@@ -75,6 +87,8 @@ public sealed class HoverTooltipReloadButton : MonoBehaviour
         var panelActive = tooltipPanel.gameObject.activeSelf;
         var overPanel = panelActive && RectTransformUtility.RectangleContainsScreenPoint(tooltipPanel, mouse, cam);
 
+        UpdateReloadButtonHoverKick(overButton);
+
         if (overButton || overPanel)
         {
             StopHideDelayCoroutine();
@@ -106,6 +120,29 @@ public sealed class HoverTooltipReloadButton : MonoBehaviour
         if (_rootCanvas == null)
             return null;
         return _rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _rootCanvas.worldCamera;
+    }
+
+    private void UpdateReloadButtonHoverKick(bool overButton)
+    {
+        if (overButton == _wasOverReloadButton)
+            return;
+
+        _wasOverReloadButton = overButton;
+        TryApplyHoverKick();
+    }
+
+    private void TryApplyHoverKick()
+    {
+        if (hoverKickAngle <= 0f)
+            return;
+
+        var tilt = graphImpulseJellyTilt != null
+            ? graphImpulseJellyTilt
+            : graphImpulseJellyTilt = FindObjectOfType<GraphImpulseJellyTilt>();
+        if (tilt == null || !tilt.enabled)
+            return;
+
+        tilt.ApplyRandomKick(hoverKickAngle);
     }
 
     private void ShowPanel()
