@@ -185,6 +185,9 @@ public sealed class IntroSequenceController : MonoBehaviour
             case IntroSequenceAction.FadeTMPTextAlphaToZero:
                 return Intro_FadeTMPTextAlphaToZero(block);
 
+            case IntroSequenceAction.MoveLocalZByDelta:
+                return Intro_MoveLocalZByDelta(block);
+
             default:
                 Debug.LogWarning($"[{nameof(IntroSequenceController)}] Нет обработчика для {block.action}.", this);
                 return null;
@@ -352,6 +355,29 @@ public sealed class IntroSequenceController : MonoBehaviour
             .SetUpdate(isIndependentUpdate: true);
     }
 
+    /// <summary>Один объект: <see cref="Transform.localPosition"/>.z += <see cref="IntroSequenceBlock.moveLocalZDelta"/> за <see cref="IntroSequenceBlock.float0"/> сек (unscaled).</summary>
+    private Tween Intro_MoveLocalZByDelta(IntroSequenceBlock block)
+    {
+        var go = block.moveTarget;
+        var duration = Mathf.Max(0f, block.float0);
+        var delta = block.moveLocalZDelta;
+        if (go == null)
+            return null;
+
+        var tr = go.transform;
+        var end = tr.localPosition;
+        end.z += delta;
+
+        if (duration <= 0f)
+        {
+            tr.localPosition = end;
+            return null;
+        }
+
+        var ease = introMoveFourEase == Ease.Unset ? Ease.InOutQuad : introMoveFourEase;
+        return tr.DOLocalMove(end, duration).SetEase(ease).SetUpdate(isIndependentUpdate: true);
+    }
+
     /// <summary>Альфа <see cref="TMP_Text.color"/>: от текущего значения к 0 за <see cref="IntroSequenceBlock.float0"/> сек (unscaled). RGB не меняется.</summary>
     private Tween Intro_FadeTMPTextAlphaToZero(IntroSequenceBlock block)
     {
@@ -491,6 +517,9 @@ public enum IntroSequenceAction
 
     [Tooltip("TextMesh Pro: текущая альфа → 0 за Float0 сек (unscaled). Поле текста в блоке. Ждать конца — галка Wait For Tween Completion.")]
     FadeTMPTextAlphaToZero = 10,
+
+    [Tooltip("Один объект: localPosition.z += Move Local Z Delta за Float0 сек (unscaled). Ease — общий Intro Move Four Ease на контроллере.")]
+    MoveLocalZByDelta = 11,
 }
 
 [Serializable]
@@ -502,7 +531,7 @@ public struct IntroSequenceBlock
     [Tooltip("Если вкл. — следующий блок стартует после завершения твина этого; иначе — сразу (параллельно). Для блоков без твина не используется.")]
     public bool waitForTweenCompletion;
 
-    [Tooltip("WaitSeconds / MoveFour / MoveFourBack / FadeUIImage / FadeMaterialAlpha / FadeTMPTextAlphaToZero: длительность (сек, unscaled). WaitForButtonClick / DeactivateGameObjects / ActivateGameObjects / DisableMoveFourEnableGraphAndVideo: не используется.")]
+    [Tooltip("WaitSeconds / MoveFour / MoveFourBack / MoveLocalZByDelta / FadeUIImage / FadeMaterialAlpha / FadeTMPTextAlphaToZero: длительность (сек, unscaled). WaitForButtonClick / DeactivateGameObjects / ActivateGameObjects / DisableMoveFourEnableGraphAndVideo: не используется.")]
     public float float0;
 
     [Tooltip("Для WaitForButtonClick: кнопка, по нажатию на которую секвенция продолжится.")]
@@ -533,4 +562,10 @@ public struct IntroSequenceBlock
 
     [Tooltip("Для FadeTMPTextAlphaToZero: TextMesh Pro (UI или 3D).")]
     public TMP_Text fadeTmpText;
+
+    [Tooltip("Для MoveLocalZByDelta: объект, который сдвигается по local Z.")]
+    public GameObject moveTarget;
+
+    [Tooltip("Для MoveLocalZByDelta: на сколько единиц изменить localPosition.z (отрицательное — «назад»).")]
+    public float moveLocalZDelta;
 }

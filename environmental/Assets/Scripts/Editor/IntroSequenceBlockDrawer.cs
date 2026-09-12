@@ -24,6 +24,8 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
                 return 5;
             case IntroSequenceAction.FadeTMPTextAlphaToZero:
                 return 4;
+            case IntroSequenceAction.MoveLocalZByDelta:
+                return 5;
             default:
                 return 3;
         }
@@ -78,6 +80,8 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
         var fadeMaterialProp = property.FindPropertyRelative("fadeMaterial");
         var fadeMaterialEndAlphaProp = property.FindPropertyRelative("fadeMaterialEndAlpha");
         var fadeTmpTextProp = property.FindPropertyRelative("fadeTmpText");
+        var moveTargetProp = property.FindPropertyRelative("moveTarget");
+        var moveLocalZDeltaProp = property.FindPropertyRelative("moveLocalZDelta");
 
         var row0 = new Rect(position.x, y, position.width, lineH);
         row0 = EditorGUI.PrefixLabel(row0, GUIUtility.GetControlID(FocusType.Passive), label);
@@ -116,6 +120,14 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
             EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), float0Prop);
             y += lineH + sp;
             EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), fadeTmpTextProp);
+        }
+        else if (action == IntroSequenceAction.MoveLocalZByDelta)
+        {
+            EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), float0Prop);
+            y += lineH + sp;
+            EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), moveTargetProp);
+            y += lineH + sp;
+            EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), moveLocalZDeltaProp);
         }
         else if (action == IntroSequenceAction.DeactivateGameObjects)
         {

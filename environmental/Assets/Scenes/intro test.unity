@@ -10959,7 +10959,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 642.9763, y: -430}
+  m_AnchoredPosition: {x: 642.9763, y: -150}
   m_SizeDelta: {x: 626.1886, y: 241.9199}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1242072634
@@ -11876,7 +11876,7 @@ Transform:
   m_GameObject: {fileID: 1301778868}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 5.32, z: -15.34}
+  m_LocalPosition: {x: 0, y: 5.32, z: -14.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -11925,6 +11925,8 @@ MonoBehaviour:
     fadeMaterial: {fileID: 2100000, guid: 0062339f01ebba04890e05f5c008ebc8, type: 2}
     fadeMaterialEndAlpha: 1
     fadeTmpText: {fileID: 0}
+    moveTarget: {fileID: 0}
+    moveLocalZDelta: 0
   - action: 5
     waitForTweenCompletion: 0
     float0: 5
@@ -11940,9 +11942,11 @@ MonoBehaviour:
     fadeMaterial: {fileID: 2100000, guid: 0062339f01ebba04890e05f5c008ebc8, type: 2}
     fadeMaterialEndAlpha: 1
     fadeTmpText: {fileID: 0}
+    moveTarget: {fileID: 0}
+    moveLocalZDelta: 0
   - action: 4
     waitForTweenCompletion: 0
-    float0: 15
+    float0: 5
     waitForButton: {fileID: 0}
     fadeUiImage: {fileID: 837903886}
     fadeUiFadeIn: 0
@@ -11952,6 +11956,8 @@ MonoBehaviour:
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
     fadeTmpText: {fileID: 0}
+    moveTarget: {fileID: 0}
+    moveLocalZDelta: 0
   - action: 3
     waitForTweenCompletion: 1
     float0: 3
@@ -11964,6 +11970,8 @@ MonoBehaviour:
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
     fadeTmpText: {fileID: 0}
+    moveTarget: {fileID: 0}
+    moveLocalZDelta: 0
   - action: 5
     waitForTweenCompletion: 0
     float0: 3
@@ -11977,6 +11985,8 @@ MonoBehaviour:
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
     fadeTmpText: {fileID: 0}
+    moveTarget: {fileID: 0}
+    moveLocalZDelta: 0
   - action: 10
     waitForTweenCompletion: 0
     float0: 2
@@ -11991,6 +12001,8 @@ MonoBehaviour:
     fadeMaterial: {fileID: 2100000, guid: 0062339f01ebba04890e05f5c008ebc8, type: 2}
     fadeMaterialEndAlpha: 1
     fadeTmpText: {fileID: 213802644}
+    moveTarget: {fileID: 0}
+    moveLocalZDelta: 0
   - action: 2
     waitForTweenCompletion: 1
     float0: 3
@@ -12003,6 +12015,24 @@ MonoBehaviour:
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
     fadeTmpText: {fileID: 0}
+    moveTarget: {fileID: 0}
+    moveLocalZDelta: 0
+  - action: 11
+    waitForTweenCompletion: 1
+    float0: 1
+    waitForButton: {fileID: 0}
+    fadeUiImage: {fileID: 0}
+    fadeUiFadeIn: 0
+    fadeUiEndAlpha: 0
+    objectsToDeactivate: []
+    objectsToActivate:
+    - {fileID: 1482531312}
+    - {fileID: 1598500341}
+    fadeMaterial: {fileID: 2100000, guid: 0062339f01ebba04890e05f5c008ebc8, type: 2}
+    fadeMaterialEndAlpha: 1
+    fadeTmpText: {fileID: 0}
+    moveTarget: {fileID: 1850578681}
+    moveLocalZDelta: 9
   - action: 5
     waitForTweenCompletion: 1
     float0: 3
@@ -12016,6 +12046,8 @@ MonoBehaviour:
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
     fadeTmpText: {fileID: 0}
+    moveTarget: {fileID: 0}
+    moveLocalZDelta: 0
   - action: 7
     waitForTweenCompletion: 1
     float0: 3
@@ -12028,6 +12060,8 @@ MonoBehaviour:
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
     fadeTmpText: {fileID: 0}
+    moveTarget: {fileID: 0}
+    moveLocalZDelta: 0
   - action: 1
     waitForTweenCompletion: 1
     float0: 2
@@ -12040,6 +12074,8 @@ MonoBehaviour:
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
     fadeTmpText: {fileID: 0}
+    moveTarget: {fileID: 0}
+    moveLocalZDelta: 0
   - action: 8
     waitForTweenCompletion: 1
     float0: 3
@@ -12055,6 +12091,8 @@ MonoBehaviour:
     fadeMaterial: {fileID: 0}
     fadeMaterialEndAlpha: 0
     fadeTmpText: {fileID: 0}
+    moveTarget: {fileID: 0}
+    moveLocalZDelta: 0
   - action: 9
     waitForTweenCompletion: 1
     float0: 5
@@ -12069,6 +12107,8 @@ MonoBehaviour:
     fadeMaterial: {fileID: 2100000, guid: 0062339f01ebba04890e05f5c008ebc8, type: 2}
     fadeMaterialEndAlpha: 1
     fadeTmpText: {fileID: 0}
+    moveTarget: {fileID: 0}
+    moveLocalZDelta: 0
 --- !u!1 &1323788866
 GameObject:
   m_ObjectHideFlags: 0
