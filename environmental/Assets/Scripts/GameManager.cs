@@ -554,6 +554,10 @@ public class GameManager : MonoBehaviour
             if (!towardInactive && !towardBlockedDiscover)
                 continue;
 
+            var rewind = debugRevealFullMinimap ? null : ResolveGraphRewind();
+            rewind?.RecordEdgeAppeared(e);
+            rewind?.RecordNodeAppeared(farRoot);
+
             // Отдельное случайное значение для каждого ребра (не один раз на весь набор).
             float delay = maxD > minD ? UnityEngine.Random.Range(minD, maxD) : minD;
             e.SetPendingOutgoingAppearStagger(true);
@@ -592,7 +596,10 @@ public class GameManager : MonoBehaviour
         {
             var sel = CurrentSelectedMapNode;
             CurrentSelectedMapNode = null;
-            sel.ForceMapState(NodeMapState.Visible);
+            if (sel.CurrentState == NodeMapState.Selected)
+                sel.ReleaseMapSelectionForGraphRewind();
+            else
+                sel.ForceMapState(NodeMapState.Visible);
         }
 
         StopMinimapVideo(playIntroLoopAfterStop: false);
@@ -644,7 +651,10 @@ public class GameManager : MonoBehaviour
             if (root == null)
                 continue;
             if (root.IsMinimapStartNode)
+            {
+                root.ResetMapGradientSlidersToPrePlayBaseline();
                 root.ForceMapState(NodeMapState.Visible);
+            }
             else
                 root.ForceMapState(NodeMapState.Inactive);
         }
@@ -707,14 +717,11 @@ public class GameManager : MonoBehaviour
             yield break;
         }
 
-        var rewind = debugRevealFullMinimap ? null : ResolveGraphRewind();
-
         var es = edge.CurrentEdgeState;
         if (es == MinimapEdgeState.Disabled || MinimapEdgeStateUtil.IsFullLineIdleLike(es))
         {
             edge.SetPendingOutgoingAppearStagger(false);
             bool useUnblockOnComplete = towardBlockedDiscover;
-            rewind?.RecordEdgeAppeared(edge);
             edge.SetEdgeState(
                 MinimapEdgeState.Appearing,
                 forceLog: false,
@@ -724,30 +731,18 @@ public class GameManager : MonoBehaviour
                     if (farRoot == null)
                         return;
                     if (useUnblockOnComplete)
-                    {
-                        rewind?.RecordNodeAppeared(farRoot);
                         farRoot.MapPlayUnblockedGradientSequenceAfterIncomingEdgeGrowthComplete();
-                    }
                     else
-                    {
-                        rewind?.RecordNodeAppeared(farRoot);
                         farRoot.ForceMapState(NodeMapState.Appearing);
-                    }
                 });
         }
         else
         {
             edge.SetPendingOutgoingAppearStagger(false);
             if (towardBlockedDiscover)
-            {
-                rewind?.RecordNodeAppeared(farRoot);
                 farRoot.MapPlayUnblockedGradientSequenceAfterIncomingEdgeGrowthComplete();
-            }
             else
-            {
-                rewind?.RecordNodeAppeared(farRoot);
                 farRoot.ForceMapState(NodeMapState.Appearing);
-            }
         }
     }
 
@@ -1373,6 +1368,9 @@ public class GameManager : MonoBehaviour
         if (_mapSelectionTravelInProgress)
             return;
 
+        if (IsGraphRewindInProgress)
+            return;
+
         if (_suppressMinimapPostNotify)
             return;
 
@@ -1549,6 +1547,9 @@ public class GameManager : MonoBehaviour
 
         return list;
     }
+
+    /// <summary>Реестр рёбер мини-карты (для отмотки и правил карты).</summary>
+    public MinimapEdgeRegistry GetMinimapEdgeRegistry() => ResolveMinimapEdgeRegistry();
 
     private MinimapEdgeRegistry ResolveMinimapEdgeRegistry()
     {

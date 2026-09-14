@@ -579,6 +579,27 @@ public partial class Node : MonoBehaviour
         _selectedMapSliderAcRampCoroutine = null;
     }
 
+    /// <summary>Слайдеры AB/AC как у невыбранной стартовой ноды; останавливает ramp выбора / Blocked.</summary>
+    public void ResetMapGradientSlidersToPrePlayBaseline()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        StopSelectedMapSliderAcRamp();
+        StopMapNodeUnblockedGradientSequence();
+        StopMapNodeBlockedSlidersSequence(resetSlidersToZero: true);
+    }
+
+    /// <summary>Снять выбор перед отмоткой графа: baseline-градиент и Visible без кольца.</summary>
+    public void ReleaseMapSelectionForGraphRewind()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        ResetMapGradientSlidersToPrePlayBaseline();
+        ForceMapState(NodeMapState.Visible);
+    }
+
     /// <summary>Сброс счётчика входящих ramp Blocked-рёбер при первом входе ноды в Blocked (корень карты).</summary>
     public void MapResetIncomingBlockedEdgeRampTallyOnEnterBlocked()
     {
