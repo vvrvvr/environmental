@@ -69,6 +69,12 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private bool showMinimapVideoProgressForEdgeTravel;
 
+    [Tooltip("Датамош-переход для рёбер без ролика (компонент EdgeDatamoshTransition). Пусто — ищется на этом объекте, затем в сцене. Нет компонента — старое поведение (таймер ребра).")]
+    [SerializeField]
+    private EdgeDatamoshTransition edgeDatamoshTransition;
+
+    private bool _edgeDatamoshResolved;
+
     private bool _mapVideoPlaybackIsEdgeTravel;
 
     private Node _groupPlaylistRoot;
@@ -921,7 +927,11 @@ public class GameManager : MonoBehaviour
             return;
 
         var isFinal = IsBranchFinalForPlayback(node);
+        var sameClip = mapVideoPlayer.clip == clip;
         mapVideoPlayer.clip = clip;
+        // Тот же клип (например, после паузы на датамоше) — Play() продолжил бы с места паузы; нужен старт с начала.
+        if (sameClip)
+            mapVideoPlayer.time = 0;
         mapVideoPlayer.isLooping = !isFinal;
         mapVideoPlayer.Play();
 
@@ -1036,7 +1046,10 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        var sameClip = mapVideoPlayer.clip == clip;
         mapVideoPlayer.clip = clip;
+        if (sameClip)
+            mapVideoPlayer.time = 0;
         mapVideoPlayer.isLooping = false;
         mapVideoPlayer.Play();
     }
@@ -1202,6 +1215,97 @@ public class GameManager : MonoBehaviour
             return;
         _mapVideoPlaybackIsEdgeTravel = false;
         mapVideoPlayer.Stop();
+    }
+
+    /// <summary>
+    /// Можно ли сделать датамош-переход по ребру без ролика: есть компонент и шейдер, видео карты пишет в RenderTexture,
+    /// у ноды на конце ребра есть что играть. <paramref name="durationSeconds"/> — длительность перехода.
+    /// </summary>
+    public bool TryGetEdgeDatamoshPlan(MinimapEdge edge, out float durationSeconds)
+    {
+        durationSeconds = 0f;
+        if (edge == null || debugRevealFullMinimap)
+            return false;
+
+        var mosh = ResolveEdgeDatamoshTransition();
+        if (mosh == null || !mosh.isActiveAndEnabled || !mosh.IsSupported)
+            return false;
+
+        if (mapVideoPlayer == null ||
+            mapVideoPlayer.renderMode != VideoRenderMode.RenderTexture ||
+            mapVideoPlayer.targetTexture == null)
+            return false;
+
+        if (GetFirstPlaybackClip(edge.ToNode) == null)
+            return false;
+
+        durationSeconds = mosh.TransitionDuration;
+        return true;
+    }
+
+    /// <summary>Старт датамоша на время MovingAlongEdge (вызывает <see cref="MinimapEdge"/>).</summary>
+    public bool TryBeginEdgeDatamosh(MinimapEdge edge, float durationSeconds)
+    {
+        var mosh = ResolveEdgeDatamoshTransition();
+        if (mosh == null || edge == null || mapVideoPlayer == null)
+            return false;
+
+        var clip = GetFirstPlaybackClip(edge.ToNode);
+        if (clip == null)
+            return false;
+
+        if (!mosh.Begin(mapVideoPlayer, clip, durationSeconds))
+            return false;
+
+        _mapVideoPlaybackIsEdgeTravel = true;
+        return true;
+    }
+
+    /// <summary>Конец или прерывание датамоша; в render texture остаётся первый кадр следующего ролика.</summary>
+    public void EndEdgeDatamosh()
+    {
+        var mosh = ResolveEdgeDatamoshTransition();
+        if (mosh != null)
+            mosh.End();
+        _mapVideoPlaybackIsEdgeTravel = false;
+    }
+
+    private EdgeDatamoshTransition ResolveEdgeDatamoshTransition()
+    {
+        if (edgeDatamoshTransition != null || _edgeDatamoshResolved)
+            return edgeDatamoshTransition;
+
+        _edgeDatamoshResolved = true;
+        edgeDatamoshTransition = GetComponent<EdgeDatamoshTransition>();
+        if (edgeDatamoshTransition == null)
+            edgeDatamoshTransition = FindObjectOfType<EdgeDatamoshTransition>();
+        return edgeDatamoshTransition;
+    }
+
+    /// <summary>Первый клип, который сыграет нода при выборе (для группы — как в <see cref="PlayGroupClip"/>: родитель, затем дети по порядку).</summary>
+    private static VideoClip GetFirstPlaybackClip(Node anyNode)
+    {
+        if (anyNode == null)
+            return null;
+
+        var root = anyNode.SelectionOwner;
+        if (root == null)
+            return null;
+
+        if (root.MinimapVideoClip != null)
+            return root.MinimapVideoClip;
+
+        if (!root.IsGroupParent)
+            return null;
+
+        var children = root.OrderedChildNodes;
+        for (var i = 0; i < children.Count; i++)
+        {
+            if (children[i] != null && children[i].MinimapVideoClip != null)
+                return children[i].MinimapVideoClip;
+        }
+
+        return null;
     }
 
     /// <summary>

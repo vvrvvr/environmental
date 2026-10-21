@@ -180,6 +180,8 @@ public class MinimapEdge : MonoBehaviour
     private bool _blockedRampNotifyCountedWithEndRoot;
     private bool _blockedEdgeLineAcFullNotifiedToEndNode;
     private bool _edgeTravelVideoPlaying;
+    /// <summary>Идёт датамош-переход GameManager (ребро без ролика).</summary>
+    private bool _edgeDatamoshActive;
     /// <summary>В Play при <see cref="MinimapEdgeState.Appearing"/>: 0 — линия у старта, 1 — полный отрезок. Вне Appearing всегда 1.</summary>
     private float _appearLineT = 1f;
 
@@ -354,7 +356,7 @@ public class MinimapEdge : MonoBehaviour
         return Mathf.Max(0.01f, movingAlongEdgeDuration);
     }
 
-    private void BeginMovingAlongPresentation()
+    private void BeginMovingAlongPresentation(bool useDatamosh, float durationSeconds)
     {
         EndMovingAlongPresentation();
 
@@ -362,6 +364,13 @@ public class MinimapEdge : MonoBehaviour
         {
             travelMoveVisual.SetActive(true);
             travelMoveVisual.transform.position = startAnchor.position;
+        }
+
+        if (useDatamosh)
+        {
+            _edgeDatamoshActive = GameManager.Instance != null &&
+                                  GameManager.Instance.TryBeginEdgeDatamosh(this, durationSeconds);
+            return;
         }
 
         _edgeTravelVideoPlaying = edgeTravelVideoClip != null &&
@@ -387,11 +396,29 @@ public class MinimapEdge : MonoBehaviour
         if (_edgeTravelVideoPlaying && GameManager.Instance != null)
             GameManager.Instance.StopMinimapEdgeTravelVideo();
         _edgeTravelVideoPlaying = false;
+
+        if (_edgeDatamoshActive && GameManager.Instance != null)
+            GameManager.Instance.EndEdgeDatamosh();
+        _edgeDatamoshActive = false;
     }
 
     private IEnumerator CoMovingAlongEdge()
     {
-        float duration = ComputeTravelDurationSeconds();
+        // Ребро без ролика: если GameManager может сделать датамош — длительность перехода берётся у него.
+        bool useDatamosh = false;
+        float duration;
+        if (edgeTravelVideoClip == null &&
+            GameManager.Instance != null &&
+            GameManager.Instance.TryGetEdgeDatamoshPlan(this, out var datamoshDuration))
+        {
+            useDatamosh = true;
+            duration = datamoshDuration;
+        }
+        else
+        {
+            duration = ComputeTravelDurationSeconds();
+        }
+
         var gradientDriver = ResolveLineGradientDriver();
         float acTarget = Mathf.Clamp(travelAlongEdgeSliderAcTargetPercent, 0f, 100f);
         if (gradientDriver != null)
@@ -402,7 +429,7 @@ public class MinimapEdge : MonoBehaviour
         else
             _travelSliderAcTweenActive = false;
 
-        BeginMovingAlongPresentation();
+        BeginMovingAlongPresentation(useDatamosh, duration);
 
         float t = 0f;
         while (t < duration)
