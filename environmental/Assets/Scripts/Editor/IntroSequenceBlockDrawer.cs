@@ -28,6 +28,8 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
                 return 5;
             case IntroSequenceAction.FadeBackgroundAlpha:
                 return 4;
+            case IntroSequenceAction.AllowMinimapVideoSlider:
+                return 2;
             default:
                 return 3;
         }
@@ -90,10 +92,17 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
         EditorGUI.PropertyField(row0, actionProp, GUIContent.none);
         y += lineH + sp;
 
+        var action = (IntroSequenceAction)actionProp.intValue;
+        if (action == IntroSequenceAction.AllowMinimapVideoSlider)
+        {
+            EditorGUI.LabelField(new Rect(position.x, y, position.width, lineH), " ", "Мгновенно: слайдер видео разрешён, появится со скейлом.");
+            EditorGUI.EndProperty();
+            return;
+        }
+
         EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), waitTweenProp);
         y += lineH + sp;
 
-        var action = (IntroSequenceAction)actionProp.intValue;
         if (action == IntroSequenceAction.WaitForButtonClick)
         {
             EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), buttonProp);

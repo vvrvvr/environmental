@@ -191,6 +191,13 @@ public sealed class IntroSequenceController : MonoBehaviour
             case IntroSequenceAction.FadeBackgroundAlpha:
                 return Intro_FadeBackgroundAlpha(block);
 
+            case IntroSequenceAction.AllowMinimapVideoSlider:
+                if (GameManager.Instance != null)
+                    GameManager.Instance.SetMinimapVideoProgressSliderAllowed(true);
+                else
+                    Debug.LogWarning($"[{nameof(IntroSequenceController)}] AllowMinimapVideoSlider: GameManager не найден.", this);
+                return null;
+
             default:
                 Debug.LogWarning($"[{nameof(IntroSequenceController)}] Нет обработчика для {block.action}.", this);
                 return null;
@@ -539,6 +546,9 @@ public enum IntroSequenceAction
 
     [Tooltip("Задний фон (BackgroundController): альфа текущая → Fade Material End Alpha за Float0 сек (unscaled). Замена FadeMaterialAlpha для фона.")]
     FadeBackgroundAlpha = 12,
+
+    [Tooltip("Мгновенно: разрешить слайдер прогресса видео (GameManager). Он появится со скейлом, как только играет видео. Float0 / Wait не используются.")]
+    AllowMinimapVideoSlider = 13,
 }
 
 [Serializable]

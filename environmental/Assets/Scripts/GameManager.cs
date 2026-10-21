@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Video;
@@ -68,6 +69,38 @@ public class GameManager : MonoBehaviour
     [Tooltip("Если вкл., тот же слайдер показывает прогресс ролика перехода по ребру; иначе только ролики нод/группы.")]
     [SerializeField]
     private bool showMinimapVideoProgressForEdgeTravel;
+
+    public enum SliderScaleInMode
+    {
+        [Tooltip("Появляется сразу, без анимации.")]
+        Off = 0,
+        [Tooltip("Скейл из нуля только при первом появлении (после интро).")]
+        FirstTimeOnly = 1,
+        [Tooltip("Скейл из нуля каждый раз, когда слайдер снова становится видимым.")]
+        EveryShow = 2,
+    }
+
+    [Tooltip("Появление слайдера прогресса со скейлом из нуля (как в секвенции перезагрузки).")]
+    [SerializeField]
+    private SliderScaleInMode sliderScaleIn = SliderScaleInMode.FirstTimeOnly;
+
+    [Tooltip("Длительность скейла слайдера (сек, unscaled).")]
+    [SerializeField, Min(0f)]
+    private float sliderScaleInDuration = 0.4f;
+
+    [SerializeField]
+    private Ease sliderScaleInEase = Ease.InSine;
+
+    [Tooltip("Слайдер скрыт, пока интро не разрешит его блоком AllowMinimapVideoSlider (видео при этом может уже играть). Выкл. — показывается сразу, как заиграет видео.")]
+    [SerializeField]
+    private bool sliderHiddenUntilIntroAllows = true;
+
+    private bool _sliderAllowed = true;
+
+    private Vector3 _sliderBaseScale = Vector3.one;
+    private bool _sliderWasVisible;
+    private bool _sliderScaledInOnce;
+    private Tween _sliderScaleTween;
 
     [Tooltip("Датамош-переход для рёбер без ролика (компонент EdgeDatamoshTransition). Пусто — ищется на этом объекте, затем в сцене. Нет компонента — старое поведение (таймер ребра).")]
     [SerializeField]
@@ -1385,6 +1418,12 @@ public class GameManager : MonoBehaviour
         }
 
         Instance = this;
+        _sliderAllowed = !sliderHiddenUntilIntroAllows;
+        if (minimapVideoProgressSlider != null)
+        {
+            var s = minimapVideoProgressSlider.transform.localScale;
+            _sliderBaseScale = s.sqrMagnitude > 1e-8f ? s : Vector3.one;
+        }
         _lastDebugRevealFullMinimap = debugRevealFullMinimap;
         if (graphRewind == null)
             graphRewind = GetComponent<MinimapGraphRewind>();
@@ -1392,6 +1431,10 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator Start()
     {
+        // Без интро в сцене разрешать слайдер некому — показываем как обычно.
+        if (!_sliderAllowed && FindObjectOfType<IntroSequenceController>(true) == null)
+            _sliderAllowed = true;
+
         TryStartIntroLoopMinimapVideo();
         yield return null;
         yield return null;
@@ -1453,6 +1496,56 @@ public class GameManager : MonoBehaviour
             Instance = null;
     }
 
+    /// <summary>
+    /// Скейл слайдера из нуля в момент, когда он стал видимым (включился сам или его родитель — например интро включило «graph and video»).
+    /// LateUpdate — после корутин интро, чтобы слайдер не мелькнул полным размером в кадр включения.
+    /// Пока секвенции управляют слайдером вручную (Auto Update выкл.) или идёт отмотка — не вмешиваемся.
+    /// </summary>
+    private void LateUpdate()
+    {
+        if (minimapVideoProgressSlider == null)
+            return;
+
+        bool visible = minimapVideoProgressSlider.gameObject.activeInHierarchy;
+        bool manual = !_minimapVideoProgressSliderAutoUpdate || IsGraphRewindInProgress;
+
+        if (visible && !_sliderWasVisible && !manual)
+        {
+            bool play = sliderScaleIn == SliderScaleInMode.EveryShow ||
+                        (sliderScaleIn == SliderScaleInMode.FirstTimeOnly && !_sliderScaledInOnce);
+            if (play)
+                PlaySliderScaleIn();
+            _sliderScaledInOnce = true;
+        }
+        else if (!visible && _sliderWasVisible && _sliderScaleTween != null)
+        {
+            // Спрятался посреди анимации — следующее появление начнётся с нуля, а не с середины.
+            _sliderScaleTween.Kill();
+            _sliderScaleTween = null;
+            minimapVideoProgressSlider.transform.localScale = _sliderBaseScale;
+        }
+
+        _sliderWasVisible = visible;
+    }
+
+    private void PlaySliderScaleIn()
+    {
+        var tr = minimapVideoProgressSlider.transform;
+        _sliderScaleTween?.Kill();
+        if (sliderScaleInDuration <= 0f)
+        {
+            tr.localScale = _sliderBaseScale;
+            return;
+        }
+
+        tr.localScale = Vector3.zero;
+        _sliderScaleTween = tr.DOScale(_sliderBaseScale, sliderScaleInDuration)
+            .SetEase(sliderScaleInEase == Ease.Unset ? Ease.InSine : sliderScaleInEase)
+            .SetUpdate(isIndependentUpdate: true)
+            .SetLink(tr.gameObject)
+            .OnKill(() => _sliderScaleTween = null);
+    }
+
     private void Update()
     {
         if (debugRevealFullMinimap != _lastDebugRevealFullMinimap)
@@ -1468,6 +1561,13 @@ public class GameManager : MonoBehaviour
         }
 
         TryDebugNodeStateHotkeys();
+        UpdateMinimapVideoProgressSlider();
+    }
+
+    /// <summary>Разрешить показ слайдера прогресса (блок интро AllowMinimapVideoSlider). При первом показе — скейл из нуля.</summary>
+    public void SetMinimapVideoProgressSliderAllowed(bool allowed)
+    {
+        _sliderAllowed = allowed;
         UpdateMinimapVideoProgressSlider();
     }
 
@@ -1499,6 +1599,13 @@ public class GameManager : MonoBehaviour
             return;
 
         var go = minimapVideoProgressSlider.gameObject;
+        if (!_sliderAllowed)
+        {
+            if (go.activeSelf)
+                go.SetActive(false);
+            return;
+        }
+
         if (mapVideoPlayer == null ||
             !mapVideoPlayer.isPlaying ||
             mapVideoPlayer.clip == null)

@@ -12184,6 +12184,20 @@ MonoBehaviour:
     fadeTmpText: {fileID: 0}
     moveTarget: {fileID: 0}
     moveLocalZDelta: 0
+  - action: 13
+    waitForTweenCompletion: 0
+    float0: 0
+    waitForButton: {fileID: 0}
+    fadeUiImage: {fileID: 0}
+    fadeUiFadeIn: 0
+    fadeUiEndAlpha: 0
+    objectsToDeactivate: []
+    objectsToActivate: []
+    fadeMaterial: {fileID: 0}
+    fadeMaterialEndAlpha: 0
+    fadeTmpText: {fileID: 0}
+    moveTarget: {fileID: 0}
+    moveLocalZDelta: 0
   - action: 12
     waitForTweenCompletion: 1
     float0: 5
