@@ -36,6 +36,11 @@ Shader "Hidden/Environmental/EdgeDatamosh"
         float  _Seed;
         float  _Settle;          // 0..1 сведение к чистому _TargetTex
         float4 _FitScaleOffset;  // xy = scale, zw = offset (UV RT → UV видео)
+        float  _VoronoiCells;    // число ячеек «клоков» по ширине кадра
+        float  _VoronoiSpread;   // доля порога от расстояния до центра ячейки (рост клока от центра к краю)
+        float  _VoronoiJitter;   // разброс порога по блокам (рваная кромка клока)
+        float  _VoronoiSeed;     // случайный на каждый переход
+        float  _Aspect;          // ширина / высота кадра
         float  _FlipY;
 
         float Luma(float3 c) { return dot(c, float3(0.299, 0.587, 0.114)); }
@@ -45,6 +50,40 @@ Shader "Hidden/Environmental/EdgeDatamosh"
             float3 p3 = frac(float3(p.xyx) * 0.1031);
             p3 += dot(p3, p3.yzx + 33.33);
             return frac((p3.x + p3.y) * p3.z);
+        }
+
+        float2 Hash22(float2 p)
+        {
+            float3 p3 = frac(float3(p.xyx) * float3(0.1031, 0.1030, 0.0973));
+            p3 += dot(p3, p3.yzx + 33.33);
+            return frac((p3.xx + p3.yz) * p3.zy);
+        }
+
+        // Расстояние до ближайшей точки Вороного (F1) и id её ячейки.
+        float VoronoiF1(float2 p, float seed, out float2 cellId)
+        {
+            float2 ip = floor(p);
+            float2 fp = frac(p);
+            float best = 8.0;
+            cellId = ip;
+            [unroll]
+            for (int y = -1; y <= 1; y++)
+            {
+                [unroll]
+                for (int x = -1; x <= 1; x++)
+                {
+                    float2 g = float2(x, y);
+                    float2 o = Hash22(ip + g + seed);
+                    float2 r = g + o - fp;
+                    float d = dot(r, r);
+                    if (d < best)
+                    {
+                        best = d;
+                        cellId = ip + g;
+                    }
+                }
+            }
+            return sqrt(best);
         }
 
         float LumaCur(float2 uv)  { return Luma(tex2Dlod(_CurTex,  float4(uv, 0, 0)).rgb); }
@@ -123,8 +162,16 @@ Shader "Hidden/Environmental/EdgeDatamosh"
                 float3 residual = tex2D(_CurTex, i.uv).rgb - tex2D(_PrevTex, i.uv).rgb;
                 col.rgb += residual * _Residual;
 
-                // Порог «прорастания» блока: фиксированный на весь переход.
-                float threshold = Hash12(block + 17.13) * 0.98 + 0.01;
+                // Порог «прорастания» блока: фиксированный на весь переход. Клоки: у каждой ячейки Вороного своё время,
+                // внутри ячейки блоки прорастают от центра к краю, кромка рваная за счёт разброса по блокам.
+                float2 vp = blockCenterUv * float2(_VoronoiCells, _VoronoiCells / max(_Aspect, 1e-3));
+                float2 cellId;
+                float f1 = VoronoiF1(vp, _VoronoiSeed, cellId);
+                float cellTime = Hash12(cellId * 1.13 + _VoronoiSeed * 3.7);
+                float grow = saturate(f1 / 0.8);
+                float threshold = cellTime * (1.0 - _VoronoiSpread) + grow * _VoronoiSpread;
+                threshold += (Hash12(block + 17.13) - 0.5) * _VoronoiJitter;
+                threshold = clamp(threshold, 0.01, 0.99);
                 bool refreshNow = (_Refresh >= threshold) && (_RefreshPrev < threshold);
 
                 // Редкие случайные I-блоки — «ключевые кадры» посреди моша.

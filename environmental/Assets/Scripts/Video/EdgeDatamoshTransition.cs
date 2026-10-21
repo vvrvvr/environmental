@@ -59,6 +59,23 @@ public sealed class EdgeDatamoshTransition : MonoBehaviour
     [SerializeField, Range(0f, 0.05f)]
     private float glitchKeyBlockChance = 0.002f;
 
+    [Header("Мош — клоки (Вороной)")]
+    [Tooltip("Сколько крупных клоков по ширине кадра. Меньше — крупнее клоки.")]
+    [SerializeField, Range(1f, 20f)]
+    private float voronoiCellsAcross = 4f;
+
+    [Tooltip("0 — клок прорастает целиком сразу; 1 — растёт от центра к краям, а время разных клоков почти не различается.")]
+    [SerializeField, Range(0f, 1f)]
+    private float voronoiSpread = 0.35f;
+
+    [Tooltip("Рваность кромки клока: случайный разброс порога по блокам.")]
+    [SerializeField, Range(0f, 0.5f)]
+    private float voronoiJitter = 0.12f;
+
+    [Tooltip("Новый рисунок клоков на каждый переход. Выкл. — всегда один и тот же.")]
+    [SerializeField]
+    private bool randomizeVoronoiPerTransition = true;
+
     [Header("Отладка")]
     [Tooltip("Если кадр следующего ролика оказался вверх ногами — включить.")]
     [SerializeField]
@@ -82,6 +99,11 @@ public sealed class EdgeDatamoshTransition : MonoBehaviour
     private static readonly int IdSettle = Shader.PropertyToID("_Settle");
     private static readonly int IdFitScaleOffset = Shader.PropertyToID("_FitScaleOffset");
     private static readonly int IdFlipY = Shader.PropertyToID("_FlipY");
+    private static readonly int IdVoronoiCells = Shader.PropertyToID("_VoronoiCells");
+    private static readonly int IdVoronoiSpread = Shader.PropertyToID("_VoronoiSpread");
+    private static readonly int IdVoronoiJitter = Shader.PropertyToID("_VoronoiJitter");
+    private static readonly int IdVoronoiSeed = Shader.PropertyToID("_VoronoiSeed");
+    private static readonly int IdAspect = Shader.PropertyToID("_Aspect");
 
     private const int PassFlow = 0;
     private const int PassMosh = 1;
@@ -107,6 +129,7 @@ public sealed class EdgeDatamoshTransition : MonoBehaviour
     private float _startTime;
     private float _duration;
     private float _refreshPrev;
+    private float _voronoiSeed;
 
     public float TransitionDuration => transitionDuration;
 
@@ -169,6 +192,7 @@ public sealed class EdgeDatamoshTransition : MonoBehaviour
         _sourceStarted = false;
         _frame0Captured = false;
         _refreshPrev = 0f;
+        _voronoiSeed = randomizeVoronoiPerTransition ? Random.Range(0f, 100f) : 0f;
         _startTime = Time.time;
         _duration = Mathf.Max(0.1f, durationSeconds);
 
@@ -274,6 +298,11 @@ public sealed class EdgeDatamoshTransition : MonoBehaviour
         _material.SetFloat(IdRefreshPrev, _refreshPrev);
         _material.SetFloat(IdGlitchChance, progress > 0f ? glitchKeyBlockChance : 0f);
         _material.SetFloat(IdSeed, frameIdx * 0.731f);
+        _material.SetFloat(IdVoronoiCells, voronoiCellsAcross);
+        _material.SetFloat(IdVoronoiSpread, voronoiSpread);
+        _material.SetFloat(IdVoronoiJitter, voronoiJitter);
+        _material.SetFloat(IdVoronoiSeed, _voronoiSeed);
+        _material.SetFloat(IdAspect, _moshRead.width / (float)Mathf.Max(1, _moshRead.height));
         Graphics.Blit(_moshRead, _moshWrite, _material, PassMosh);
 
         (_moshRead, _moshWrite) = (_moshWrite, _moshRead);
