@@ -916,6 +916,14 @@ public class GameManager : MonoBehaviour
         _mapVideoPlaybackIsEdgeTravel = false;
         EndGroupPlaylist();
 
+        // Финальная нода, которой нечего играть: концовка по окончании ролика никогда бы не сработала — запускаем сразу.
+        if (IsBranchFinalForPlayback(node) && GetFirstPlaybackClip(node) == null)
+        {
+            Debug.LogWarning($"[GameManager] Финальная нода «{node.name}» без видео — концовка запускается сразу.", node);
+            TryTriggerBranchEnding(node.SelectionOwner != null ? node.SelectionOwner : node);
+            return;
+        }
+
         if (node.IsGroupParent && node.OrderedChildNodes.Count > 0)
         {
             BeginGroupPlaylist(node);
@@ -1361,7 +1369,44 @@ public class GameManager : MonoBehaviour
         yield return null;
         yield return null;
         if (this != null)
+        {
             RefreshMinimapDiscoveryFromStartNodes();
+            WarnAboutMapNodesWithoutVideo();
+        }
+    }
+
+    /// <summary>Предупреждение в консоль: корни карты, которым нечего играть (для группы — ни у родителя, ни у детей).</summary>
+    private void WarnAboutMapNodesWithoutVideo()
+    {
+        var roots = CollectMapRootNodes();
+        var finals = new List<string>();
+        var others = new List<string>();
+        Node firstOffender = null;
+
+        for (var i = 0; i < roots.Count; i++)
+        {
+            var root = roots[i];
+            if (root == null || GetFirstPlaybackClip(root) != null)
+                continue;
+
+            if (firstOffender == null)
+                firstOffender = root;
+            if (root.IsBranchFinalNode)
+                finals.Add(root.name);
+            else
+                others.Add(root.name);
+        }
+
+        if (finals.Count == 0 && others.Count == 0)
+            return;
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"[GameManager] Ноды карты без видео: {finals.Count + others.Count}.");
+        if (finals.Count > 0)
+            sb.Append($"\nФинальные (концовка запустится сразу по прибытии): {string.Join(", ", finals)}");
+        if (others.Count > 0)
+            sb.Append($"\nОбычные (останется прошлый ролик, ребро в них — без датамоша): {string.Join(", ", others)}");
+        Debug.LogWarning(sb.ToString(), firstOffender);
     }
 
     private void OnDestroy()
