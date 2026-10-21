@@ -101,6 +101,9 @@ public class GameManager : MonoBehaviour
     private bool _sliderWasVisible;
     private bool _sliderScaledInOnce;
     private Tween _sliderScaleTween;
+    private bool _sliderScalingOut;
+    private bool _sliderPendingScaleIn;
+    private bool _edgeDatamoshRunning;
 
     [Tooltip("Датамош-переход для рёбер без ролика (компонент EdgeDatamoshTransition). Пусто — ищется на этом объекте, затем в сцене. Нет компонента — старое поведение (таймер ребра).")]
     [SerializeField]
@@ -1325,6 +1328,7 @@ public class GameManager : MonoBehaviour
         if (!mosh.Begin(mapVideoPlayer, clip, durationSeconds))
             return false;
 
+        _edgeDatamoshRunning = true;
         _mapVideoPlaybackIsEdgeTravel = true;
         return true;
     }
@@ -1335,6 +1339,7 @@ public class GameManager : MonoBehaviour
         var mosh = ResolveEdgeDatamoshTransition();
         if (mosh != null)
             mosh.End();
+        _edgeDatamoshRunning = false;
         _mapVideoPlaybackIsEdgeTravel = false;
     }
 
@@ -1511,10 +1516,14 @@ public class GameManager : MonoBehaviour
 
         if (visible && !_sliderWasVisible && !manual)
         {
-            bool play = sliderScaleIn == SliderScaleInMode.EveryShow ||
+            bool play = _sliderPendingScaleIn ||
+                        sliderScaleIn == SliderScaleInMode.EveryShow ||
                         (sliderScaleIn == SliderScaleInMode.FirstTimeOnly && !_sliderScaledInOnce);
             if (play)
                 PlaySliderScaleIn();
+            else if (_sliderScaleTween == null)
+                minimapVideoProgressSlider.transform.localScale = _sliderBaseScale; // не остаться в нуле после скейла наружу
+            _sliderPendingScaleIn = false;
             _sliderScaledInOnce = true;
         }
         else if (!visible && _sliderWasVisible && _sliderScaleTween != null)
@@ -1526,6 +1535,47 @@ public class GameManager : MonoBehaviour
         }
 
         _sliderWasVisible = visible;
+    }
+
+    /// <summary>Слайдер скейлом в ноль (та же длительность/ease, что у появления), затем выключается.</summary>
+    private void BeginSliderScaleOutForDatamosh()
+    {
+        if (_sliderScalingOut)
+            return;
+
+        var tr = minimapVideoProgressSlider.transform;
+        var go = tr.gameObject;
+        _sliderScaleTween?.Kill();
+        _sliderScalingOut = true;
+        _sliderPendingScaleIn = true;
+        minimapVideoProgressSlider.interactable = false;
+
+        _sliderScaleTween = tr.DOScale(Vector3.zero, sliderScaleInDuration)
+            .SetEase(sliderScaleInEase == Ease.Unset ? Ease.InSine : sliderScaleInEase)
+            .SetUpdate(isIndependentUpdate: true)
+            .SetLink(go)
+            .OnComplete(() =>
+            {
+                if (go != null)
+                    go.SetActive(false);
+            })
+            .OnKill(() =>
+            {
+                _sliderScaleTween = null;
+                _sliderScalingOut = false;
+            });
+    }
+
+    /// <summary>Секвенции берут слайдер вручную (Auto Update выкл.): наш скейл гасим, масштаб — исходный, чтобы их «скейл из нуля» запомнил правильный размер.</summary>
+    private void ResetSliderScaleForManualControl()
+    {
+        if (minimapVideoProgressSlider == null)
+            return;
+        _sliderScaleTween?.Kill();
+        _sliderScaleTween = null;
+        _sliderScalingOut = false;
+        _sliderPendingScaleIn = false;
+        minimapVideoProgressSlider.transform.localScale = _sliderBaseScale;
     }
 
     private void PlaySliderScaleIn()
@@ -1585,6 +1635,8 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void SetMinimapVideoProgressSliderAutoUpdate(bool autoUpdate)
     {
+        if (!autoUpdate)
+            ResetSliderScaleForManualControl();
         _minimapVideoProgressSliderAutoUpdate = autoUpdate;
         if (autoUpdate)
             UpdateMinimapVideoProgressSlider();
@@ -1610,6 +1662,16 @@ public class GameManager : MonoBehaviour
             !mapVideoPlayer.isPlaying ||
             mapVideoPlayer.clip == null)
         {
+            // Датамош (видео на паузе): слайдер уходит скейлом в ноль, значение замирает; появится снова со скейлом.
+            if (_edgeDatamoshRunning && go.activeSelf && sliderScaleInDuration > 0f)
+            {
+                BeginSliderScaleOutForDatamosh();
+                return;
+            }
+
+            if (_sliderScalingOut)
+                return;
+
             minimapVideoProgressSlider.SetValueWithoutNotify(minimapVideoProgressSlider.minValue);
             minimapVideoProgressSlider.interactable = false;
             if (go.activeSelf)
