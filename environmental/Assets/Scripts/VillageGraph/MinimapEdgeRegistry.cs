@@ -176,6 +176,9 @@ public class MinimapEdgeRegistry : MonoBehaviour
 
     private void OnMapNodeStateChanged(Node node, NodeMapState newState, NodeMapState? previousState)
     {
+        // Во время отмотки линии гаснут по шагам (MinimapGraphRewind); пересчёт по выбору спрятал бы рёбра текущей ноды разом.
+        if (MinimapGraphRewind.IsAnyRewinding)
+            return;
         RefreshOutgoingLineVisibilityForMapSelection();
     }
 
@@ -504,6 +507,19 @@ public class MinimapEdgeRegistry : MonoBehaviour
             if (e.PendingOutgoingAppearStagger)
                 continue;
             e.SetEdgeState(MinimapEdgeState.Idle, forceLog: false);
+        }
+    }
+
+    /// <summary>Конец отмотки графа: все рёбра (включая Blocked / Selected / в анимации) — как до первого выбора на карте.</summary>
+    public void ResetAllEdgesToPrePlayBaseline()
+    {
+        if (edges == null)
+            return;
+        StopBlockedAlternateBatchSecondPhaseCoroutine();
+        for (var i = 0; i < edges.Count; i++)
+        {
+            if (edges[i] != null)
+                edges[i].ResetToPrePlayBaselineForGraphRewind();
         }
     }
 

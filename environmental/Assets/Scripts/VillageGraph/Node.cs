@@ -619,6 +619,15 @@ public partial class Node : MonoBehaviour
         StopMapNodeBlockedSlidersSequence(resetSlidersToZero: true);
     }
 
+    /// <summary>Конец отмотки графа: градиент как до игры и флаг «была выбрана» сброшен (иначе при новом проходе ветка может не раскрыться).</summary>
+    public void ResetForGraphRewindBaseline()
+    {
+        if (!Application.isPlaying)
+            return;
+        ResetMapGradientSlidersToPrePlayBaseline();
+        _mapWasEverSelectedOnMinimap = false;
+    }
+
     /// <summary>Снять выбор перед отмоткой графа: baseline-градиент и Visible без кольца.</summary>
     public void ReleaseMapSelectionForGraphRewind()
     {

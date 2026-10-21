@@ -134,6 +134,9 @@ public class MinimapEdge : MonoBehaviour
 
     public MinimapEdgeState CurrentEdgeState => _currentState;
 
+    /// <summary>Линия ребра сейчас реально отрисовывается.</summary>
+    public bool IsLineVisible => lineRenderer != null && lineRenderer.enabled && lineRenderer.gameObject.activeInHierarchy;
+
     /// <summary>Текущая палитра (задаётся с <see cref="MinimapEdgeRegistry"/> или вручную).</summary>
     public MinimapGraphVisualPalette LineColorPalette => lineColorPalette;
 
@@ -180,6 +183,9 @@ public class MinimapEdge : MonoBehaviour
     private bool _blockedRampNotifyCountedWithEndRoot;
     private bool _blockedEdgeLineAcFullNotifiedToEndNode;
     private bool _edgeTravelVideoPlaying;
+    private float _prePlaySliderAb;
+    private float _prePlaySliderAc;
+    private bool _prePlaySlidersCaptured;
     /// <summary>Идёт датамош-переход GameManager (ребро без ролика).</summary>
     private bool _edgeDatamoshActive;
     /// <summary>В Play при <see cref="MinimapEdgeState.Appearing"/>: 0 — линия у старта, 1 — полный отрезок. Вне Appearing всегда 1.</summary>
@@ -204,6 +210,40 @@ public class MinimapEdge : MonoBehaviour
         if (!Application.isPlaying)
             return;
         _currentState = MinimapEdgeState.Idle;
+        var driver = ResolveLineGradientDriver();
+        if (driver != null)
+        {
+            _prePlaySliderAb = driver.GetSliderAB();
+            _prePlaySliderAc = driver.GetSliderAC();
+            _prePlaySlidersCaptured = true;
+        }
+        ApplyCombinedVisual();
+    }
+
+    /// <summary>
+    /// Конец отмотки графа: остановить всё, вернуть слайдеры линии к значениям на старте сцены, состояние <see cref="MinimapEdgeState.Idle"/>.
+    /// В отличие от <see cref="MinimapEdgeRegistry.SetAllEdgesVisualStateIdle"/> не пропускает Blocked / Selected / анимации.
+    /// </summary>
+    public void ResetToPrePlayBaselineForGraphRewind()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        StopEdgePlayCoroutines();
+        StopBlockedSlidersRamp(restore: false);
+        _pendingOutgoingAppearStagger = false;
+        _onAppearingIdleComplete = null;
+        _stateAfterMovingCompletes = MinimapEdgeState.Idle;
+        _currentState = MinimapEdgeState.Idle;
+        _appearLineT = 1f;
+
+        var driver = ResolveLineGradientDriver();
+        if (driver != null && _prePlaySlidersCaptured)
+        {
+            driver.SetSliderAB(_prePlaySliderAb);
+            driver.SetSliderAC(_prePlaySliderAc);
+        }
+
         ApplyCombinedVisual();
     }
 

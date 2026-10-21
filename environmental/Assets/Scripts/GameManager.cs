@@ -178,7 +178,8 @@ public class GameManager : MonoBehaviour
     public bool DebugRevealFullMinimap => debugRevealFullMinimap;
 
     /// <summary>Идёт пошаговая отмотка раскрытия карты (<see cref="MinimapGraphRewind"/>).</summary>
-    public bool IsGraphRewindInProgress => graphRewind != null && graphRewind.IsRewinding;
+    public bool IsGraphRewindInProgress =>
+        MinimapGraphRewind.IsAnyRewinding || (graphRewind != null && graphRewind.IsRewinding);
 
     /// <summary>Идёт секвенция концовки ветки (<see cref="BranchEndingSequenceController"/>).</summary>
     public bool IsBranchEndingSequenceInProgress
@@ -719,16 +720,17 @@ public class GameManager : MonoBehaviour
             var root = mapRoots[i];
             if (root == null)
                 continue;
+            root.ResetForGraphRewindBaseline();
             if (root.IsMinimapStartNode)
-            {
-                root.ResetMapGradientSlidersToPrePlayBaseline();
                 root.ForceMapState(NodeMapState.Visible);
-            }
             else
                 root.ForceMapState(NodeMapState.Inactive);
         }
 
-        ResetAllMinimapEdgesIdle();
+        // Жёсткий сброс всех рёбер (включая Blocked — они видны всегда и иначе остались бы «висеть»).
+        var registry = ResolveMinimapEdgeRegistry();
+        if (registry != null)
+            registry.ResetAllEdgesToPrePlayBaseline();
         RefreshMinimapEdgeRegistryLines();
     }
 
