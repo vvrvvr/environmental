@@ -188,6 +188,9 @@ public sealed class IntroSequenceController : MonoBehaviour
             case IntroSequenceAction.MoveLocalZByDelta:
                 return Intro_MoveLocalZByDelta(block);
 
+            case IntroSequenceAction.FadeBackgroundAlpha:
+                return Intro_FadeBackgroundAlpha(block);
+
             default:
                 Debug.LogWarning($"[{nameof(IntroSequenceController)}] Нет обработчика для {block.action}.", this);
                 return null;
@@ -355,6 +358,19 @@ public sealed class IntroSequenceController : MonoBehaviour
             .SetUpdate(isIndependentUpdate: true);
     }
 
+    /// <summary>Проявление/скрытие заднего фона через <see cref="BackgroundController"/> (ассет материала не трогается).</summary>
+    private Tween Intro_FadeBackgroundAlpha(IntroSequenceBlock block)
+    {
+        var bg = BackgroundController.Instance;
+        if (bg == null)
+        {
+            Debug.LogWarning($"[{nameof(IntroSequenceController)}] FadeBackgroundAlpha: BackgroundController в сцене не найден.", this);
+            return null;
+        }
+
+        return bg.FadeAlpha(block.fadeMaterialEndAlpha, Mathf.Max(0f, block.float0));
+    }
+
     /// <summary>Один объект: <see cref="Transform.localPosition"/>.z += <see cref="IntroSequenceBlock.moveLocalZDelta"/> за <see cref="IntroSequenceBlock.float0"/> сек (unscaled).</summary>
     private Tween Intro_MoveLocalZByDelta(IntroSequenceBlock block)
     {
@@ -520,6 +536,9 @@ public enum IntroSequenceAction
 
     [Tooltip("Один объект: localPosition.z += Move Local Z Delta за Float0 сек (unscaled). Ease — общий Intro Move Four Ease на контроллере.")]
     MoveLocalZByDelta = 11,
+
+    [Tooltip("Задний фон (BackgroundController): альфа текущая → Fade Material End Alpha за Float0 сек (unscaled). Замена FadeMaterialAlpha для фона.")]
+    FadeBackgroundAlpha = 12,
 }
 
 [Serializable]

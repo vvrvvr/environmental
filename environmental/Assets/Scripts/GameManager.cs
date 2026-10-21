@@ -75,6 +75,9 @@ public class GameManager : MonoBehaviour
 
     private bool _edgeDatamoshResolved;
 
+    /// <summary>Нода, для которой смена фона уже запущена кликом (до прибытия по ребру).</summary>
+    private Node _backgroundChangedOnClickFor;
+
     private bool _mapVideoPlaybackIsEdgeTravel;
 
     private Node _groupPlaylistRoot;
@@ -335,6 +338,10 @@ public class GameManager : MonoBehaviour
         if (newState == NodeMapState.Selected)
         {
             CurrentSelectedMapNode = node;
+            // Фон для ноды, к которой уже ехали по ребру, стартовал в момент клика — второй раз не запускаем.
+            if (!ReferenceEquals(node, _backgroundChangedOnClickFor))
+                TryChangeBackgroundForArrivedNode(node);
+            _backgroundChangedOnClickFor = null;
             PlayMinimapVideoForSelectedNode(node);
             if (node.GroupParent == null && node.IsMinimapStartNode)
             {
@@ -361,6 +368,22 @@ public class GameManager : MonoBehaviour
         }
 
         ApplyMinimapRulesAfterMapNotify();
+    }
+
+    /// <summary>Нода с флагом смены фона: фейд в чёрный → её картинка → фейд в её цвет (BackgroundController.Instance).</summary>
+    private static void TryChangeBackgroundForArrivedNode(Node node)
+    {
+        if (node == null || !node.ChangesBackgroundOnArrive)
+            return;
+
+        var bg = BackgroundController.Instance;
+        if (bg == null)
+        {
+            Debug.LogWarning($"[GameManager] У ноды «{node.name}» включена смена фона, но BackgroundController в сцене нет.", node);
+            return;
+        }
+
+        bg.ChangeTo(node.BackgroundTexture, node.BackgroundColor);
     }
 
     /// <summary>
@@ -443,6 +466,9 @@ public class GameManager : MonoBehaviour
         }
 
         _mapTravelTargetRoot = logicalOwner;
+        // Смена фона — сразу по клику, параллельно с переходом по ребру.
+        TryChangeBackgroundForArrivedNode(logicalOwner);
+        _backgroundChangedOnClickFor = logicalOwner;
         _mapTravelCoroutine = StartCoroutine(CoMapSelectionTravel(registry, selected, logicalOwner, edge));
         return true;
     }
@@ -597,6 +623,7 @@ public class GameManager : MonoBehaviour
         _suppressMapTravelSelectionClear = false;
         _mapTravelTargetRoot = null;
         _pendingArrivalEdgeToBlockWhenLeavingEndNode = null;
+        _backgroundChangedOnClickFor = null;
 
         if (CurrentSelectedMapNode != null)
         {

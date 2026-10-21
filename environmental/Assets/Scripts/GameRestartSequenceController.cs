@@ -76,6 +76,9 @@ public enum GameRestartSequenceAction
 
     [Tooltip("Move Target: сначала local Y = Move Down To Local Y, затем вверх до сохранённой Y за Float0 сек (после MoveGameObjectUpToLocalY).")]
     ReturnGameObjectUpFromBelowToCachedLocalY = 12,
+
+    [Tooltip("Задний фон к дефолту через чёрное (BackgroundController). Float0 > 0 — общая длительность (пополам: в чёрный / из чёрного); 0 — длительности с контроллера.")]
+    ResetBackgroundToDefault = 13,
 }
 
 [Serializable]

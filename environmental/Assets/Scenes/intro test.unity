@@ -4380,6 +4380,21 @@ MonoBehaviour:
   minimapCameraAnchorFollow: {fileID: 0}
   restartTriggerButton: {fileID: 1635355282}
   blocks:
+  - blockNote: "\u0444\u043E\u043D \u043A \u0434\u0435\u0444\u043E\u043B\u0442\u0443"
+    action: 13
+    waitForCompletion: 0
+    float0: 0
+    reloadSceneName: 
+    enableComponent: 0
+    graphImpulseJellyTilt: {fileID: 0}
+    rotateTarget: {fileID: 0}
+    tweenEase: 0
+    minimapCameraAnchorFollow: {fileID: 0}
+    scaleTarget: {fileID: 0}
+    scaleFromZero: 0
+    moveTarget: {fileID: 0}
+    moveEndLocalY: 0
+    moveDownToLocalY: 0
   - blockNote: "\u0432\u044B\u043A\u043B\u044E\u0447\u0430\u0435\u043C \u0441\u043A\u0440\u0438\u043F\u0442
       \u0434\u0451\u0440\u0433\u0430\u043D\u0438\u044F \u044D\u043A\u0440\u0430\u043D\u0430"
     action: 4
@@ -7173,6 +7188,31 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 32900000, guid: b830402a5a3d2cf45a6f35e4364b23aa,
         type: 3}
+    - target: {fileID: 3593893925033089739, guid: cca2fb2ed0776494c825f6c2973e1d6d,
+        type: 3}
+      propertyPath: backgroundColor.b
+      value: 0.6754716
+      objectReference: {fileID: 0}
+    - target: {fileID: 3593893925033089739, guid: cca2fb2ed0776494c825f6c2973e1d6d,
+        type: 3}
+      propertyPath: backgroundColor.g
+      value: 0.13119344
+      objectReference: {fileID: 0}
+    - target: {fileID: 3593893925033089739, guid: cca2fb2ed0776494c825f6c2973e1d6d,
+        type: 3}
+      propertyPath: backgroundColor.r
+      value: 0.04970444
+      objectReference: {fileID: 0}
+    - target: {fileID: 3593893925033089739, guid: cca2fb2ed0776494c825f6c2973e1d6d,
+        type: 3}
+      propertyPath: backgroundTexture
+      value: 
+      objectReference: {fileID: 2800000, guid: 4348e04cc7e61a145bef7fe40496ced2, type: 3}
+    - target: {fileID: 3593893925033089739, guid: cca2fb2ed0776494c825f6c2973e1d6d,
+        type: 3}
+      propertyPath: changeBackgroundOnArrive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4286243998312935147, guid: cca2fb2ed0776494c825f6c2973e1d6d,
         type: 3}
       propertyPath: colorA.b
@@ -7675,6 +7715,7 @@ GameObject:
   - component: {fileID: 847799397}
   - component: {fileID: 847799396}
   - component: {fileID: 847799395}
+  - component: {fileID: 847799398}
   m_Layer: 0
   m_Name: Background
   m_TagString: Untagged
@@ -7769,6 +7810,34 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 847799393}
   m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &847799398
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 847799393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca71452fd6f0e9a468da680dd8e8fc8d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetRenderer: {fileID: 847799396}
+  defaultTexture: {fileID: 2800000, guid: 86fcda91ec8a23a48bc1f24603a54c04, type: 3}
+  defaultColor: {r: 0.4641509, g: 0, b: 0.3309463, a: 1}
+  startHidden: 1
+  fadeToBlackSeconds: 1.5
+  holdBlackSeconds: 0.2
+  fadeFromBlackSeconds: 3
+  fadeEase: 4
+  textureProperty: _BaseMap
+  colorProperty: _BaseColor
+  logChanges: 0
+  debugPreview: 0
+  debugSource: 0
+  debugTexture: {fileID: 0}
+  debugColor: {r: 1, g: 1, b: 1, a: 1}
+  debugTargetNode: {fileID: 0}
 --- !u!1001 &858288017
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12115,7 +12184,7 @@ MonoBehaviour:
     fadeTmpText: {fileID: 0}
     moveTarget: {fileID: 0}
     moveLocalZDelta: 0
-  - action: 9
+  - action: 12
     waitForTweenCompletion: 1
     float0: 5
     waitForButton: {fileID: 0}
@@ -13511,6 +13580,22 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   glitchKeyBlockChance: 0.002
+  voronoiCellsAcross: 4
+  voronoiSpread: 0.35
+  voronoiJitter: 0.12
+  randomizeVoronoiPerTransition: 1
+  pulseSource: 1
+  pulseBaseline: 0.15
+  quantizeRefreshToBeats: 1
+  refreshStepAttack: 12
+  musicPulse: {fileID: 0}
+  liveEnvelopeGain: 1.2
+  liveRefreshMaxLag: 0.25
+  bpm: 90
+  beatsPerBar: 4
+  beatClockOffsetSeconds: 0
+  pulseDecay: 7
+  downbeatAccent: 1.6
   flipSourceY: 0
   logTransitions: 0
 --- !u!1 &1449366749

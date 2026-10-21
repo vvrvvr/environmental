@@ -13,7 +13,7 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
     private static int GetLineCount(SerializedProperty property)
     {
         var actionProp = property.FindPropertyRelative("action");
-        var action = (IntroSequenceAction)actionProp.enumValueIndex;
+        var action = (IntroSequenceAction)actionProp.intValue;
         switch (action)
         {
             case IntroSequenceAction.WaitForButtonClick:
@@ -26,6 +26,8 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
                 return 4;
             case IntroSequenceAction.MoveLocalZByDelta:
                 return 5;
+            case IntroSequenceAction.FadeBackgroundAlpha:
+                return 4;
             default:
                 return 3;
         }
@@ -33,7 +35,7 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
 
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
-        var action = (IntroSequenceAction)property.FindPropertyRelative("action").enumValueIndex;
+        var action = (IntroSequenceAction)property.FindPropertyRelative("action").intValue;
         if (action == IntroSequenceAction.DeactivateGameObjects || action == IntroSequenceAction.ActivateGameObjects)
         {
             var lineH = EditorGUIUtility.singleLineHeight;
@@ -91,7 +93,7 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
         EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), waitTweenProp);
         y += lineH + sp;
 
-        var action = (IntroSequenceAction)actionProp.enumValueIndex;
+        var action = (IntroSequenceAction)actionProp.intValue;
         if (action == IntroSequenceAction.WaitForButtonClick)
         {
             EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), buttonProp);
@@ -128,6 +130,12 @@ public sealed class IntroSequenceBlockDrawer : PropertyDrawer
             EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), moveTargetProp);
             y += lineH + sp;
             EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), moveLocalZDeltaProp);
+        }
+        else if (action == IntroSequenceAction.FadeBackgroundAlpha)
+        {
+            EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), float0Prop, new GUIContent("Duration (sec)"));
+            y += lineH + sp;
+            EditorGUI.PropertyField(new Rect(position.x, y, position.width, lineH), fadeMaterialEndAlphaProp, new GUIContent("Background End Alpha"));
         }
         else if (action == IntroSequenceAction.DeactivateGameObjects)
         {

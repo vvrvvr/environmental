@@ -63,6 +63,16 @@ public partial class Node : MonoBehaviour
     [Tooltip("Палитра графа: общие Color A/B/C для кнопки «Применить цвета к нодам» в ассете палитры (SpriteRendererGradientPropertyDriver). Тот же ассет, что на MinimapEdgeRegistry.")]
     [SerializeField] private MinimapGraphVisualPalette mapVisualPalette;
 
+    [Header("Задний фон")]
+    [Tooltip("При попадании на ноду (выбор на карте) сменить задний фон: фейд в чёрный → картинка → фейд в цвет. Контроллер фона находится сам (BackgroundController.Instance).")]
+    [SerializeField] private bool changeBackgroundOnArrive;
+
+    [Tooltip("Картинка фона. Пусто — картинка остаётся текущей, меняется только цвет.")]
+    [SerializeField] private Texture backgroundTexture;
+
+    [Tooltip("Цвет фона (альфа — видимость).")]
+    [SerializeField] private Color backgroundColor = Color.white;
+
     [Header("Map state: Selected (gradient sliders)")]
     [Tooltip(
         "В Play: при входе ноды карты в NodeMapState.Selected у всех SpriteRendererGradientPropertyDriver под этой нодой Slider AC за это время линейно идёт от текущего значения до 100. При смене выбора на карте AC не сбрасывается. У дочерней ноды группы перед ramp добавляется случайная задержка 0…Group Child Visual Stagger Delay Max (см. State machine).")]
@@ -113,6 +123,25 @@ public partial class Node : MonoBehaviour
 
     /// <summary>Конец ветки: ролик не зацикливается, по окончании — секвенция концовки.</summary>
     public bool IsBranchFinalNode => isBranchFinalNode;
+
+    /// <summary>При выборе на карте сменить задний фон (см. <see cref="BackgroundController"/>).</summary>
+    public bool ChangesBackgroundOnArrive => changeBackgroundOnArrive;
+
+    /// <summary>Картинка фона для этой ноды; null — оставить текущую.</summary>
+    public Texture BackgroundTexture => backgroundTexture;
+
+    /// <summary>Цвет фона для этой ноды.</summary>
+    public Color BackgroundColor => backgroundColor;
+
+#if UNITY_EDITOR
+    /// <summary>Только редактор: записать настройки фона (кнопка «Записать в ноду» на BackgroundController).</summary>
+    public void EditorSetBackground(bool change, Texture texture, Color color)
+    {
+        changeBackgroundOnArrive = change;
+        backgroundTexture = texture;
+        backgroundColor = color;
+    }
+#endif
 
     /// <summary>Палитра визуала карты для этой ноды.</summary>
     public MinimapGraphVisualPalette MapVisualPalette => mapVisualPalette;

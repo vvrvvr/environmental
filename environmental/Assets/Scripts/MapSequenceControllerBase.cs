@@ -208,6 +208,9 @@ public abstract class MapSequenceControllerBase : MonoBehaviour
             case GameRestartSequenceAction.ReturnGameObjectUpFromBelowToCachedLocalY:
                 return Sequence_ReturnGameObjectUpFromBelowToCachedLocalY(block);
 
+            case GameRestartSequenceAction.ResetBackgroundToDefault:
+                return Sequence_ResetBackgroundToDefault(block);
+
             default:
                 if (block.action != GameRestartSequenceAction.None &&
                     block.action != GameRestartSequenceAction.ReloadScene)
@@ -378,6 +381,20 @@ public abstract class MapSequenceControllerBase : MonoBehaviour
         return tr.DOLocalMoveY(cachedY, duration)
             .SetEase(ease)
             .SetUpdate(isIndependentUpdate: true);
+    }
+
+    private Tween Sequence_ResetBackgroundToDefault(GameRestartSequenceBlock block)
+    {
+        var bg = BackgroundController.Instance;
+        if (bg == null)
+        {
+            Debug.LogWarning($"[{GetType().Name}] ResetBackgroundToDefault: BackgroundController в сцене не найден.", this);
+            return null;
+        }
+
+        if (block.float0 > 0f)
+            return bg.ResetToDefault(block.float0 * 0.5f, block.float0 * 0.5f);
+        return bg.ResetToDefault();
     }
 
     protected MinimapGraphRewind ResolveMinimapGraphRewind()

@@ -9,13 +9,16 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
     private const float SectionGap = 6f;
     private const float NoteMinLines = 2f;
 
+    private const string ResetBackgroundHelp =
+        "Фон к дефолту через чёрное (BackgroundController). Duration > 0 — общая длительность пополам; 0 — длительности с контроллера.";
+
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
         var lineH = EditorGUIUtility.singleLineHeight;
         var sp = EditorGUIUtility.standardVerticalSpacing;
         var w = GetContentWidth(property);
         var noteH = GetNoteHeight(property.FindPropertyRelative("blockNote"), w);
-        var action = (GameRestartSequenceAction)property.FindPropertyRelative("action").enumValueIndex;
+        var action = (GameRestartSequenceAction)property.FindPropertyRelative("action").intValue;
 
         var bodyLines = action == GameRestartSequenceAction.None ? 1f : 2f;
         var extraHelp = 0f;
@@ -67,6 +70,10 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
             case GameRestartSequenceAction.ReloadScene:
                 bodyLines = 3f;
                 break;
+            case GameRestartSequenceAction.ResetBackgroundToDefault:
+                bodyLines = 3f;
+                extraHelp = HelpBoxHeight(ResetBackgroundHelp, w);
+                break;
         }
 
         return noteH + SectionGap + bodyLines * lineH + (bodyLines - 1) * sp + extraHelp +
@@ -106,7 +113,7 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
         EditorGUI.PropertyField(rowAction, actionProp, GUIContent.none);
         y += lineH + sp;
 
-        var action = (GameRestartSequenceAction)actionProp.enumValueIndex;
+        var action = (GameRestartSequenceAction)actionProp.intValue;
         if (action == GameRestartSequenceAction.None)
         {
             EditorGUI.EndProperty();
@@ -233,6 +240,13 @@ public sealed class GameRestartSequenceBlockDrawer : PropertyDrawer
 
             case GameRestartSequenceAction.ReloadScene:
                 EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), sceneProp, new GUIContent("Reload Scene Name"));
+                break;
+
+            case GameRestartSequenceAction.ResetBackgroundToDefault:
+                EditorGUI.PropertyField(new Rect(ix, y, iw, lineH), float0Prop, new GUIContent("Duration (sec)"));
+                y += lineH + sp;
+                var bgHelpH = HelpBoxHeight(ResetBackgroundHelp, iw);
+                EditorGUI.HelpBox(new Rect(ix, y, iw, bgHelpH), ResetBackgroundHelp, MessageType.Info);
                 break;
 
             case GameRestartSequenceAction.MinimapGraphRewind:
