@@ -76,6 +76,68 @@ public sealed class EdgeDatamoshTransition : MonoBehaviour
     [SerializeField]
     private bool randomizeVoronoiPerTransition = true;
 
+    public enum PulseSource
+    {
+        [Tooltip("Без пульсации — равномерно.")]
+        None = 0,
+        [Tooltip("Живой звук трека из музыкального плеера (MusicPulseAnalyzer). Нет музыки — равномерно.")]
+        LiveMusic = 1,
+        [Tooltip("Виртуальная сетка BPM ниже.")]
+        BpmGrid = 2,
+    }
+
+    [Header("Пульсация")]
+    [Tooltip("Откуда брать пульс моша.")]
+    [SerializeField]
+    private PulseSource pulseSource = PulseSource.LiveMusic;
+
+    [Tooltip("Сила моша между ударами (доля от удара). 0 — между ударами картинка почти стоит.")]
+    [SerializeField, Range(0f, 1f)]
+    private float pulseBaseline = 0.15f;
+
+    [Tooltip("Клоки прорастают порциями сразу после удара, а не равномерно.")]
+    [SerializeField]
+    private bool quantizeRefreshToBeats = true;
+
+    [Tooltip("Как быстро порция клоков прорастает после удара. Больше — почти мгновенно.")]
+    [SerializeField, Range(1f, 40f)]
+    private float refreshStepAttack = 12f;
+
+    [Header("Пульсация — живой звук")]
+    [Tooltip("Анализатор музыки. Пусто — ищется на этом объекте, затем в сцене; нет нигде — добавляется на этот объект.")]
+    [SerializeField]
+    private MusicPulseAnalyzer musicPulse;
+
+    [Tooltip("Усиление волны трека перед применением к мошу.")]
+    [SerializeField, Range(0f, 3f)]
+    private float liveEnvelopeGain = 1.2f;
+
+    [Tooltip("Насколько прорастание клоков может отставать от времени перехода, если ударов нет (доля прогресса). Чтобы на треке без ритма клоки всё равно проросли.")]
+    [SerializeField, Range(0f, 1f)]
+    private float liveRefreshMaxLag = 0.25f;
+
+    [Header("Пульсация — сетка BPM")]
+
+    [Tooltip("Темп. Пока музыка не подключена — виртуальный трек, «начавшийся» при запуске сцены.")]
+    [SerializeField, Range(30f, 240f)]
+    private float bpm = 90f;
+
+    [Tooltip("Долей в такте; первая доля такта — с акцентом.")]
+    [SerializeField, Range(1, 16)]
+    private int beatsPerBar = 4;
+
+    [Tooltip("Сдвиг виртуального трека (сек): двигает, где приходятся доли.")]
+    [SerializeField]
+    private float beatClockOffsetSeconds;
+
+    [Tooltip("Скорость спада импульса после доли. Больше — короче, резче удар.")]
+    [SerializeField, Range(1f, 30f)]
+    private float pulseDecay = 7f;
+
+    [Tooltip("Множитель удара на первой доле такта.")]
+    [SerializeField, Range(1f, 3f)]
+    private float downbeatAccent = 1.6f;
+
     [Header("Отладка")]
     [Tooltip("Если кадр следующего ролика оказался вверх ногами — включить.")]
     [SerializeField]
@@ -130,6 +192,11 @@ public sealed class EdgeDatamoshTransition : MonoBehaviour
     private float _duration;
     private float _refreshPrev;
     private float _voronoiSeed;
+    private float _beatClockOrigin;
+    private int _lastSeenOnsetCount;
+    private float _liveRefreshTarget;
+    private float _liveRefreshShown;
+    private float _lastMoshStepTime;
 
     public float TransitionDuration => transitionDuration;
 
@@ -149,6 +216,33 @@ public sealed class EdgeDatamoshTransition : MonoBehaviour
             datamoshShader = Shader.Find("Hidden/Environmental/EdgeDatamosh");
     }
 #endif
+
+    private void Awake()
+    {
+        _beatClockOrigin = Time.time;
+    }
+
+    private MusicPulseAnalyzer ResolveMusicPulse()
+    {
+        if (musicPulse != null)
+            return musicPulse;
+        musicPulse = GetComponent<MusicPulseAnalyzer>();
+        if (musicPulse == null)
+            musicPulse = FindObjectOfType<MusicPulseAnalyzer>();
+        if (musicPulse == null && Application.isPlaying)
+            musicPulse = gameObject.AddComponent<MusicPulseAnalyzer>();
+        return musicPulse;
+    }
+
+    /// <summary>Время виртуального трека в долях (позже — время настоящего трека).</summary>
+    private double CurrentBeats()
+    {
+        double seconds = Time.time - _beatClockOrigin + beatClockOffsetSeconds;
+        return seconds * Mathf.Max(1f, bpm) / 60.0;
+    }
+
+    private float ProgressAt(float transitionTime, float moshWindow) =>
+        Mathf.Clamp01((transitionTime - freezeSeconds) / moshWindow);
 
     private Shader ResolveShader()
     {
@@ -192,6 +286,11 @@ public sealed class EdgeDatamoshTransition : MonoBehaviour
         _sourceStarted = false;
         _frame0Captured = false;
         _refreshPrev = 0f;
+        var pulseAnalyzer = pulseSource == PulseSource.LiveMusic ? ResolveMusicPulse() : null;
+        _lastSeenOnsetCount = pulseAnalyzer != null ? pulseAnalyzer.OnsetCount : 0;
+        _liveRefreshTarget = 0f;
+        _liveRefreshShown = 0f;
+        _lastMoshStepTime = Time.time;
         _voronoiSeed = randomizeVoronoiPerTransition ? Random.Range(0f, 100f) : 0f;
         _startTime = Time.time;
         _duration = Mathf.Max(0.1f, durationSeconds);
@@ -278,9 +377,60 @@ public sealed class EdgeDatamoshTransition : MonoBehaviour
         float t = Time.time - _startTime;
         float settleStart = Mathf.Max(freezeSeconds, _duration - settleSeconds);
         float moshWindow = Mathf.Max(0.01f, settleStart - freezeSeconds);
-        float progress = Mathf.Clamp01((t - freezeSeconds) / moshWindow);
-        float refresh = Mathf.Clamp01(refreshOverProgress.Evaluate(progress));
-        float strength = flowStrength * Mathf.Max(0f, flowStrengthOverProgress.Evaluate(progress));
+        float progress = ProgressAt(t, moshWindow);
+
+        // Пульсация: резкая атака на долю, экспоненциальный спад; первая доля такта сильнее.
+        float pulse = 1f;
+        float envelope = 1f;
+        float refreshProgress = progress;
+        float stepDt = Mathf.Max(0f, Time.time - _lastMoshStepTime);
+        _lastMoshStepTime = Time.time;
+
+        var live = pulseSource == PulseSource.LiveMusic ? ResolveMusicPulse() : null;
+        if (live != null && live.HasSignal)
+        {
+            // Волна трека → сила рывков; удары → порции прорастания клоков и ключевые блоки.
+            envelope = Mathf.Clamp(live.Envelope * liveEnvelopeGain, 0f, 2f);
+            pulse = pulseBaseline + (1f - pulseBaseline) * envelope;
+
+            bool onset = live.OnsetCount != _lastSeenOnsetCount;
+            _lastSeenOnsetCount = live.OnsetCount;
+            if (onset)
+                _liveRefreshTarget = Mathf.Max(_liveRefreshTarget, progress);
+            _liveRefreshTarget = Mathf.Max(_liveRefreshTarget, progress - liveRefreshMaxLag);
+
+            if (quantizeRefreshToBeats)
+            {
+                _liveRefreshShown = Mathf.Lerp(_liveRefreshShown, _liveRefreshTarget, 1f - Mathf.Exp(-refreshStepAttack * stepDt));
+                refreshProgress = _liveRefreshShown;
+            }
+
+            if (onset)
+                envelope = Mathf.Max(envelope, live.LastOnsetStrength * 1.5f);
+        }
+        else if (pulseSource == PulseSource.BpmGrid)
+        {
+            double beats = CurrentBeats();
+            long beatIndex = (long)System.Math.Floor(beats);
+            float beatFrac = (float)(beats - beatIndex);
+            bool downbeat = beatsPerBar <= 1 || beatIndex % beatsPerBar == 0;
+
+            envelope = Mathf.Exp(-pulseDecay * beatFrac) * (downbeat ? downbeatAccent : 1f);
+            pulse = pulseBaseline + (1f - pulseBaseline) * envelope;
+
+            if (quantizeRefreshToBeats)
+            {
+                float beatDuration = 60f / Mathf.Max(1f, bpm);
+                float tLastBeat = t - beatFrac * beatDuration;
+                float pLast = ProgressAt(tLastBeat, moshWindow);
+                float pNext = ProgressAt(tLastBeat + beatDuration, moshWindow);
+                float step = 1f - Mathf.Exp(-refreshStepAttack * beatFrac);
+                refreshProgress = Mathf.Lerp(pLast, pNext, step);
+            }
+        }
+
+        float refresh = Mathf.Max(_refreshPrev, Mathf.Clamp01(refreshOverProgress.Evaluate(refreshProgress)));
+        float strength = flowStrength * Mathf.Max(0f, flowStrengthOverProgress.Evaluate(progress)) * pulse;
 
         // Поле движения следующего ролика.
         _material.SetTexture(IdCurTex, _cur);
@@ -293,10 +443,10 @@ public sealed class EdgeDatamoshTransition : MonoBehaviour
         _material.SetTexture(IdFlowTex, _flow);
         _material.SetTexture(IdTargetTex, _frame0);
         _material.SetFloat(IdFlowStrength, strength);
-        _material.SetFloat(IdResidual, residual);
+        _material.SetFloat(IdResidual, residual * pulse);
         _material.SetFloat(IdRefresh, refresh);
         _material.SetFloat(IdRefreshPrev, _refreshPrev);
-        _material.SetFloat(IdGlitchChance, progress > 0f ? glitchKeyBlockChance : 0f);
+        _material.SetFloat(IdGlitchChance, progress > 0f ? glitchKeyBlockChance * envelope : 0f);
         _material.SetFloat(IdSeed, frameIdx * 0.731f);
         _material.SetFloat(IdVoronoiCells, voronoiCellsAcross);
         _material.SetFloat(IdVoronoiSpread, voronoiSpread);
