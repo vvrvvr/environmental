@@ -23,9 +23,23 @@ public partial class Node : MonoBehaviour
     [SerializeField] private Ease hoverEnterEase = Ease.OutQuad;
     [SerializeField] private Ease hoverExitEase = Ease.OutQuad;
 
+    public enum StartNodePulseMode
+    {
+        [Tooltip("Ровная синусоида с периодом Start Node Pulse Period.")]
+        Sine = 0,
+        [Tooltip("Толчок на каждый удар трека (MusicPulseAnalyzer). Нет музыки — синусоида.")]
+        MusicBeats = 1,
+    }
+
     [Header("Пульсация стартовой ноды")]
     [Tooltip("Стартовая нода пульсирует скейлом, пока её ни разу не выбрали (снова — после перезапуска графа).")]
     [SerializeField] private bool startNodePulse = true;
+    [Tooltip("Источник пульса.")]
+    [SerializeField] private StartNodePulseMode startNodePulseMode = StartNodePulseMode.MusicBeats;
+    [Tooltip("MusicBeats: за сколько секунд толчок спадает (примерно до трети).")]
+    [SerializeField, Min(0.02f)] private float startNodeBeatDecaySeconds = 0.22f;
+    [Tooltip("MusicBeats: минимальная сила толчка (0..1); итог = от этого значения до 1 по силе удара.")]
+    [SerializeField, Range(0f, 1f)] private float startNodeBeatMinKick = 0.6f;
     [Tooltip("Насколько нода вырастает на пике пульса (0.3 = +30%).")]
     [SerializeField, Range(0f, 1f)] private float startNodePulseAmount = 0.3f;
     [Tooltip("Период одного пульса (сек).")]
@@ -252,6 +266,8 @@ public partial class Node : MonoBehaviour
     private bool _startPulseApplied;
     private Vector3 _startPulseUnpulsedScale;
     private Vector3 _startPulseLastWritten;
+    private float _startBeatEnvelope;
+    private int _startBeatLastOnsetCount = -1;
 
     private void Awake()
     {
@@ -360,12 +376,43 @@ public partial class Node : MonoBehaviour
         }
 
         _startPulseTime += Time.deltaTime;
-        float wave = 0.5f - 0.5f * Mathf.Cos(_startPulseTime * Mathf.PI * 2f / Mathf.Max(0.05f, startNodePulsePeriod));
+        float wave = ComputeStartNodePulseWave();
         float factor = 1f + startNodePulseAmount * wave * _startPulseAmp;
         var pulsed = _startPulseUnpulsedScale * factor;
         mainSpriteTransform.localScale = pulsed;
         _startPulseLastWritten = pulsed;
         _startPulseApplied = true;
+    }
+
+    /// <summary>0..1: синусоида или толчки по ударам трека (без музыки — синусоида).</summary>
+    private float ComputeStartNodePulseWave()
+    {
+        float sine = 0.5f - 0.5f * Mathf.Cos(_startPulseTime * Mathf.PI * 2f / Mathf.Max(0.05f, startNodePulsePeriod));
+        if (startNodePulseMode != StartNodePulseMode.MusicBeats)
+            return sine;
+
+        var music = MusicPulseAnalyzer.Instance;
+        if (music == null || !music.HasSignal)
+        {
+            _startBeatEnvelope = 0f;
+            _startBeatLastOnsetCount = music != null ? music.OnsetCount : -1;
+            return sine;
+        }
+
+        // Первый кадр с музыкой — не считать старые удары новыми.
+        if (_startBeatLastOnsetCount < 0)
+            _startBeatLastOnsetCount = music.OnsetCount;
+
+        if (music.OnsetCount != _startBeatLastOnsetCount)
+        {
+            _startBeatLastOnsetCount = music.OnsetCount;
+            float kick = Mathf.Lerp(startNodeBeatMinKick, 1f, Mathf.Clamp01(music.LastOnsetStrength));
+            _startBeatEnvelope = Mathf.Max(_startBeatEnvelope, kick);
+        }
+
+        // Экспоненциальный спад: за decaySeconds — примерно до трети.
+        _startBeatEnvelope *= Mathf.Exp(-Time.deltaTime / Mathf.Max(0.02f, startNodeBeatDecaySeconds));
+        return _startBeatEnvelope;
     }
 
     /// <summary>Масштаб main sprite без пульса (для клика — чтобы «отпускание» не застряло в раздутом размере).</summary>

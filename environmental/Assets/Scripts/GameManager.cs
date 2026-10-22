@@ -1425,6 +1425,9 @@ public class GameManager : MonoBehaviour
         }
 
         Instance = this;
+        // Пульс трека нужен нодам (пульсация стартовой) и датамошу с самого начала — если анализатора в сцене нет, добавляем сюда.
+        if (FindObjectOfType<MusicPulseAnalyzer>(true) == null)
+            gameObject.AddComponent<MusicPulseAnalyzer>();
         _sliderAllowed = !sliderHiddenUntilIntroAllows;
         if (minimapVideoProgressSlider != null)
         {

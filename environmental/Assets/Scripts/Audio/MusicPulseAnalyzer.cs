@@ -85,6 +85,20 @@ public sealed class MusicPulseAnalyzer : MonoBehaviour
         Size2048 = 2048,
     }
 
+    /// <summary>Активный анализатор (последний включённый). Для потребителей без ссылки — ноды и т.п.</summary>
+    public static MusicPulseAnalyzer Instance { get; private set; }
+
+    private void OnEnable()
+    {
+        Instance = this;
+    }
+
+    private void OnDisable()
+    {
+        if (Instance == this)
+            Instance = null;
+    }
+
     private float[] _spectrumL;
     private float[] _spectrumR;
     private float _peak;

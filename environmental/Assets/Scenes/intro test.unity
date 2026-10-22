@@ -484,10 +484,10 @@ MonoBehaviour:
   loopPlaylist: 1
   randomPlayback: 1
   tracks:
-  - {fileID: 8300000, guid: 0672a219d97cfdf4087d1adc2bf5c673, type: 3}
-  - {fileID: 8300000, guid: ce47a71ada08f0c40aba11dea1082ff2, type: 3}
-  - {fileID: 8300000, guid: 9325b6e8a82e44c4aa6ec14156ae735e, type: 3}
-  - {fileID: 8300000, guid: e0d8bf818f5e6714e8c24dd17102d41a, type: 3}
+  - {fileID: 8300000, guid: f8f8940ca3047f2438e924243557dcd5, type: 3}
+  - {fileID: 8300000, guid: 29af68f7884ae9149aaed1e94d3b2abd, type: 3}
+  - {fileID: 8300000, guid: 78556d36bc993fa499c62691882be9db, type: 3}
+  - {fileID: 8300000, guid: 14f8824d091edb14db0a92f4222cc66d, type: 3}
   trackTitleText: {fileID: 1240650472}
   trackTitleFadeInSeconds: 0.5
   trackTitleVisibleSeconds: 1
