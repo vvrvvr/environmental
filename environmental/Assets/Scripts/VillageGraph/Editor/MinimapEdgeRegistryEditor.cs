@@ -6,10 +6,36 @@ using UnityEngine;
 [CustomEditor(typeof(MinimapEdgeRegistry))]
 public class MinimapEdgeRegistryEditor : Editor
 {
+    private static bool s_showSteps;
+
     public override void OnInspectorGUI()
     {
+        using (new EditorGUI.DisabledScope(serializedObject.isEditingMultipleObjects || Application.isPlaying))
+        {
+            if (GUILayout.Button("Собрать граф  (Ctrl+Shift+G)", GUILayout.Height(34f)))
+                VillageGraphBuildTool.BuildGraph(showDialogWhenClean: true);
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("Соединить 2 выделенные ноды  (Ctrl+Shift+E)"))
+                    VillageGraphBuildTool.ConnectSelectedNodes();
+                if (GUILayout.Button("Отвязать выделенные рёбра"))
+                    VillageGraphBuildTool.UnlinkSelectedEdges();
+            }
+
+            EditorGUILayout.HelpBox(
+                "Расставь ноды и рёбра (якоря ребра — на ноды «откуда» и «куда») или соедини ноды кнопкой выше, затем «Собрать граф». " +
+                "После перемещения / добавления / удаления — снова «Собрать граф»: физика и длины коллайдеров рёбер пересчитаются.",
+                MessageType.None);
+        }
+
+        EditorGUILayout.Space();
         DrawDefaultInspector();
         EditorGUILayout.Space();
+        s_showSteps = EditorGUILayout.Foldout(s_showSteps, "Отдельные шаги (вручную)", true);
+        if (!s_showSteps)
+            return;
+
         using (new EditorGUI.DisabledScope(serializedObject.isEditingMultipleObjects))
         {
             if (GUILayout.Button("Собрать все рёбра со сцены"))
