@@ -261,6 +261,7 @@ public partial class Node
                 ApplySelectionRingForState(state);
                 if (groupParent == null)
                     _mapWasEverSelectedOnMinimap = true;
+                DisarmStartNodePulse();
                 BeginSelectedMapSliderAcRamp();
                 break;
 

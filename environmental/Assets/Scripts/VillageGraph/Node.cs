@@ -22,6 +22,16 @@ public partial class Node : MonoBehaviour
     [SerializeField, Min(0f)] private float hoverExitDuration = 0.12f;
     [SerializeField] private Ease hoverEnterEase = Ease.OutQuad;
     [SerializeField] private Ease hoverExitEase = Ease.OutQuad;
+
+    [Header("Пульсация стартовой ноды")]
+    [Tooltip("Стартовая нода пульсирует скейлом, пока её ни разу не выбрали (снова — после перезапуска графа).")]
+    [SerializeField] private bool startNodePulse = true;
+    [Tooltip("Насколько нода вырастает на пике пульса (0.3 = +30%).")]
+    [SerializeField, Range(0f, 1f)] private float startNodePulseAmount = 0.3f;
+    [Tooltip("Период одного пульса (сек).")]
+    [SerializeField, Min(0.05f)] private float startNodePulsePeriod = 1.2f;
+    [Tooltip("За сколько секунд пульс плавно затихает / возвращается (наведение, выбор).")]
+    [SerializeField, Min(0f)] private float startNodePulseFadeSeconds = 0.2f;
     
     [Header("Click Animation")]
     [Tooltip("Во сколько раз сжимать текущий масштаб при клике.")]
@@ -235,6 +245,14 @@ public partial class Node : MonoBehaviour
     private Transform selectionRingTransform;
     private Vector3 selectionRingBaseScale;
 
+    // Пульсация: множитель поверх масштаба, который выставили твины (наведение / клик / появление).
+    private bool _startPulseArmed = true;
+    private float _startPulseAmp;
+    private float _startPulseTime;
+    private bool _startPulseApplied;
+    private Vector3 _startPulseUnpulsedScale;
+    private Vector3 _startPulseLastWritten;
+
     private void Awake()
     {
         // До Start (где для нод ставится 0): иначе startScale в StateMachine кешируется уже нулём.
@@ -278,6 +296,8 @@ public partial class Node : MonoBehaviour
         StopMapNodeBlockedSlidersSequence(resetSlidersToZero: true);
         StopMapNodeUnblockedGradientSequence();
         ApplyBaseScaleImmediate();
+        _startPulseApplied = false;
+        _startPulseAmp = 0f;
         mouseOver = false;
         ClearRemainingTimeText();
     }
@@ -287,6 +307,70 @@ public partial class Node : MonoBehaviour
         ProcessInput();
         UpdateRemainingTimeText();
     }
+
+    private void LateUpdate()
+    {
+        UpdateStartNodePulse();
+    }
+
+    /// <summary>Снова пульсировать (после перезапуска графа).</summary>
+    public void RearmStartNodePulse() => _startPulseArmed = true;
+
+    /// <summary>Перестать пульсировать (нода выбрана).</summary>
+    private void DisarmStartNodePulse() => _startPulseArmed = false;
+
+    private bool ShouldStartNodePulse()
+    {
+        if (!startNodePulse || !_startPulseArmed || !Application.isPlaying)
+            return false;
+        if (!isMinimapStartNode || groupParent != null || mainSpriteTransform == null)
+            return false;
+        if (CurrentState != NodeMapState.Visible)
+            return false;
+        // Пока идёт анимация появления — не мешаем ей.
+        if (_mapAppearScaleTween != null && _mapAppearScaleTween.IsActive())
+            return false;
+        return !mouseOver;
+    }
+
+    /// <summary>
+    /// Домножить масштаб main sprite на пульс. Твины пишут абсолютные значения — если кто-то записал масштаб после нас,
+    /// берём его как новый «без пульса»; иначе используем запомненный (чтобы пульс не накапливался).
+    /// </summary>
+    private void UpdateStartNodePulse()
+    {
+        if (mainSpriteTransform == null)
+            return;
+
+        float target = ShouldStartNodePulse() ? 1f : 0f;
+        float fade = startNodePulseFadeSeconds > 1e-4f ? Time.deltaTime / startNodePulseFadeSeconds : 1f;
+        _startPulseAmp = Mathf.MoveTowards(_startPulseAmp, target, fade);
+
+        var current = mainSpriteTransform.localScale;
+        if (!_startPulseApplied || (current - _startPulseLastWritten).sqrMagnitude > 1e-10f)
+            _startPulseUnpulsedScale = current;
+
+        if (_startPulseAmp <= 0f)
+        {
+            if (_startPulseApplied)
+                mainSpriteTransform.localScale = _startPulseUnpulsedScale;
+            _startPulseApplied = false;
+            _startPulseTime = 0f;
+            return;
+        }
+
+        _startPulseTime += Time.deltaTime;
+        float wave = 0.5f - 0.5f * Mathf.Cos(_startPulseTime * Mathf.PI * 2f / Mathf.Max(0.05f, startNodePulsePeriod));
+        float factor = 1f + startNodePulseAmount * wave * _startPulseAmp;
+        var pulsed = _startPulseUnpulsedScale * factor;
+        mainSpriteTransform.localScale = pulsed;
+        _startPulseLastWritten = pulsed;
+        _startPulseApplied = true;
+    }
+
+    /// <summary>Масштаб main sprite без пульса (для клика — чтобы «отпускание» не застряло в раздутом размере).</summary>
+    private Vector3 GetUnpulsedMainSpriteScale() =>
+        _startPulseApplied ? _startPulseUnpulsedScale : mainSpriteTransform.localScale;
 
     private void UpdateRemainingTimeText()
     {
@@ -442,7 +526,7 @@ public partial class Node : MonoBehaviour
         KillHoverTween();
         KillClickTween();
 
-        Vector3 startScale = mainSpriteTransform.localScale;
+        Vector3 startScale = GetUnpulsedMainSpriteScale();
         Vector3 pressedScale = startScale * clickScaleMultiplier;
         Sequence sequence = DOTween.Sequence();
         sequence.Append(mainSpriteTransform.DOScale(pressedScale, clickPressDuration).SetEase(clickPressEase));
@@ -626,6 +710,7 @@ public partial class Node : MonoBehaviour
             return;
         ResetMapGradientSlidersToPrePlayBaseline();
         _mapWasEverSelectedOnMinimap = false;
+        RearmStartNodePulse();
     }
 
     /// <summary>Снять выбор перед отмоткой графа: baseline-градиент и Visible без кольца.</summary>
