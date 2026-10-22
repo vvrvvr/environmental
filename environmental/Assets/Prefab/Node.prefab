@@ -539,7 +539,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mainSprite: {fileID: 3326045527658844680}
-  hoverScaleMultiplier: 1.08
+  hoverScaleMultiplier: 1.5
   hoverEnterDuration: 0.12
   hoverExitDuration: 0.12
   hoverEnterEase: 6

@@ -13472,6 +13472,10 @@ MonoBehaviour:
     type: 3}
   minimapVideoProgressSlider: {fileID: 291518809}
   showMinimapVideoProgressForEdgeTravel: 1
+  sliderScaleIn: 1
+  sliderScaleInDuration: 0.4
+  sliderScaleInEase: 2
+  sliderHiddenUntilIntroAllows: 1
   edgeDatamoshTransition: {fileID: 0}
   debugTargetNode: {fileID: 0}
   enableNodeStateHotkeys: 0
