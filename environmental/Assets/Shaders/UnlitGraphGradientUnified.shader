@@ -4,6 +4,7 @@ Shader "Custom/URP/UnlitGraphGradientUnified"
     {
         [Header(Graph shape)]
         _GraphVisualMode ("Visual mode Line0 Radial1", Float) = 0
+        _FlipAlong ("Flip along line (0/1)", Float) = 0
 
         _ColorA ("Color A", Color) = (1,1,1,1)
         _ColorB ("Color B", Color) = (1,0,0,1)
@@ -81,6 +82,7 @@ Shader "Custom/URP/UnlitGraphGradientUnified"
                 float4 _ColorC;
                 float4 _MainTex_ST;
                 float _GraphVisualMode;
+                float _FlipAlong;
                 float _BlendAB;
                 float _BlendAC;
                 float _SliderAB;
@@ -140,7 +142,9 @@ Shader "Custom/URP/UnlitGraphGradientUnified"
                 float blendAB = smoothstep(tAB - wAB, tAB + wAB, xAlong);
                 float4 colAB = lerp(_ColorA, _ColorB, blendAB);
 
-                float blendAC = smoothstep(tAC - wAC, tAC + wAC, xAlong);
+                // Разворот только перехода к C вдоль линии (повторный проход по ребру: зелёный бежит от начала); A/B остаются на месте.
+                float xAC = (!radial && _FlipAlong > 0.5) ? 1.0 - xAlong : xAlong;
+                float blendAC = smoothstep(tAC - wAC, tAC + wAC, xAC);
                 float4 finalCol = lerp(colAB, _ColorC, blendAC);
 
                 half4 tex = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uvTex);

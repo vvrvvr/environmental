@@ -62,6 +62,13 @@ public class MinimapEdge : MonoBehaviour
     [SerializeField, Range(0f, 100f)]
     private float travelAlongEdgeSliderAcTargetPercent = 100f;
 
+    [Tooltip("Повторный проход по уже пройденному ребру: после прибытия жёлтый снова пробегает по ребру за это время (сек).")]
+    [SerializeField, Min(0.01f)]
+    private float repeatTravelRestoreDuration = 0.6f;
+
+    /// <summary>По ребру уже проходили (в этой игре, включая прошлые маршруты до перезапуска).</summary>
+    public bool WasTraveledEver => _wasTraveledEver;
+
     [Tooltip(
         "Не во время travel: целевой Slider AB линии этого ребра (LineRenderer), когда нода у начального якоря (From) завершила полную секвенцию блокировки (градиент ноды, AB до 100%). См. GameManager.CoMapSelectionTravel.")]
     [SerializeField, Range(0f, 100f)]
@@ -186,6 +193,12 @@ public class MinimapEdge : MonoBehaviour
     private float _prePlaySliderAb;
     private float _prePlaySliderAc;
     private bool _prePlaySlidersCaptured;
+
+    /// <summary>По ребру хоть раз проходили (переживает перезапуск графа) — после сброса остаётся жёлтым.</summary>
+    private bool _wasTraveledEver;
+    /// <summary>Текущий проход — повторный: волна зелёного по жёлтому, затем при прибытии снова жёлтый.</summary>
+    private bool _travelIsRepeat;
+    private Coroutine _repeatTravelRestoreCoroutine;
     /// <summary>Идёт датамош-переход GameManager (ребро без ролика).</summary>
     private bool _edgeDatamoshActive;
     /// <summary>В Play при <see cref="MinimapEdgeState.Appearing"/>: 0 — линия у старта, 1 — полный отрезок. Вне Appearing всегда 1.</summary>
@@ -237,14 +250,54 @@ public class MinimapEdge : MonoBehaviour
         _currentState = MinimapEdgeState.Idle;
         _appearLineT = 1f;
 
+        StopRepeatTravelRestore(snapToYellow: false);
+        _travelIsRepeat = false;
+
         var driver = ResolveLineGradientDriver();
         if (driver != null && _prePlaySlidersCaptured)
         {
+            driver.SetFlipAlong(false);
             driver.SetSliderAB(_prePlaySliderAb);
-            driver.SetSliderAC(_prePlaySliderAc);
+            // Пройденное ребро остаётся жёлтым — видно, какой маршрут уже был.
+            driver.SetSliderAC(_wasTraveledEver ? 100f : _prePlaySliderAc);
         }
 
         ApplyCombinedVisual();
+    }
+
+    private IEnumerator CoRepeatTravelRestoreYellow(LineRendererGradientPropertyDriver driver)
+    {
+        float duration = Mathf.Max(0.01f, repeatTravelRestoreDuration);
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            if (driver != null)
+                driver.SetSliderAC(Mathf.Lerp(0f, 100f, Mathf.Clamp01(t / duration)));
+            yield return null;
+        }
+
+        if (driver != null)
+            driver.SetSliderAC(100f);
+        _repeatTravelRestoreCoroutine = null;
+    }
+
+    /// <summary>Остановить волну «снова жёлтый» после повторного прохода; <paramref name="snapToYellow"/> — сразу дорисовать.</summary>
+    private void StopRepeatTravelRestore(bool snapToYellow)
+    {
+        if (_repeatTravelRestoreCoroutine == null)
+            return;
+        StopCoroutine(_repeatTravelRestoreCoroutine);
+        _repeatTravelRestoreCoroutine = null;
+        if (snapToYellow)
+        {
+            var d = ResolveLineGradientDriver();
+            if (d != null)
+            {
+                d.SetFlipAlong(false);
+                d.SetSliderAC(100f);
+            }
+        }
     }
 
     private void OnEnable()
@@ -351,6 +404,8 @@ public class MinimapEdge : MonoBehaviour
         }
 
         StopEdgePlayCoroutines(next == MinimapEdgeState.Selected);
+        if (next == MinimapEdgeState.Blocked || next == MinimapEdgeState.Disabled)
+            StopRepeatTravelRestore(snapToYellow: true);
         var prevPlay = _currentState;
         if (prevPlay == MinimapEdgeState.Blocked && next != MinimapEdgeState.Blocked)
             StopBlockedSlidersRamp(restore: true);
@@ -461,10 +516,20 @@ public class MinimapEdge : MonoBehaviour
 
         var gradientDriver = ResolveLineGradientDriver();
         float acTarget = Mathf.Clamp(travelAlongEdgeSliderAcTargetPercent, 0f, 100f);
+        StopRepeatTravelRestore(snapToYellow: false);
+        _travelIsRepeat = _wasTraveledEver;
         if (gradientDriver != null)
         {
             _sliderAcAtTravelStart = gradientDriver.GetSliderAC();
             _travelSliderAcTweenActive = true;
+            if (_travelIsRepeat)
+            {
+                // Повторный проход: градиент развёрнут — уменьшение AC = зелёный растёт от начала ребра по жёлтому.
+                gradientDriver.SetFlipAlong(true);
+                _sliderAcAtTravelStart = 100f;
+                gradientDriver.SetSliderAC(100f);
+                acTarget = 0f;
+            }
         }
         else
             _travelSliderAcTweenActive = false;
@@ -486,6 +551,17 @@ public class MinimapEdge : MonoBehaviour
         if (gradientDriver != null)
             gradientDriver.SetSliderAC(acTarget);
         _travelSliderAcTweenActive = false;
+        _wasTraveledEver = true;
+
+        // Повторный проход: прибыли — жёлтый снова пробегает по ребру от начала (обычное направление).
+        if (_travelIsRepeat && gradientDriver != null)
+        {
+            gradientDriver.SetFlipAlong(false);
+            gradientDriver.SetSliderAC(0f);
+            _repeatTravelRestoreCoroutine = StartCoroutine(CoRepeatTravelRestoreYellow(gradientDriver));
+        }
+
+        _travelIsRepeat = false;
 
         EndMovingAlongPresentation();
 
@@ -600,9 +676,14 @@ public class MinimapEdge : MonoBehaviour
         {
             var d = ResolveLineGradientDriver();
             if (d != null)
+            {
+                d.SetFlipAlong(false);
                 d.SetSliderAC(_sliderAcAtTravelStart);
+            }
             _travelSliderAcTweenActive = false;
         }
+
+        _travelIsRepeat = false;
 
         EndMovingAlongPresentation();
         StopCoroutine(_movingCoroutine);

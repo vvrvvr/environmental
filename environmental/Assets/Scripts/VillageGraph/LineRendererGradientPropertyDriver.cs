@@ -19,6 +19,10 @@ public class LineRendererGradientPropertyDriver : MonoBehaviour
     private static readonly int IdSliderAB = Shader.PropertyToID("_SliderAB");
     private static readonly int IdSliderAC = Shader.PropertyToID("_SliderAC");
     private static readonly int IdGraphVisualMode = Shader.PropertyToID("_GraphVisualMode");
+    private static readonly int IdFlipAlong = Shader.PropertyToID("_FlipAlong");
+
+    /// <summary>Только в рантайме: градиент вдоль линии в обратную сторону (не сериализуется).</summary>
+    private bool _flipAlong;
 
     [Header("Colors (shader)")]
     [SerializeField] private Color colorA = Color.white;
@@ -94,6 +98,17 @@ public class LineRendererGradientPropertyDriver : MonoBehaviour
         PushPropertyBlock();
     }
 
+    public bool GetFlipAlong() => _flipAlong;
+
+    /// <summary>Развернуть направление градиента вдоль линии (x → 1 − x) и обновить MPB.</summary>
+    public void SetFlipAlong(bool flip)
+    {
+        if (_flipAlong == flip)
+            return;
+        _flipAlong = flip;
+        PushPropertyBlock();
+    }
+
     /// <summary>Применить текущие поля к MPB (можно вызвать из кода после смены значений).</summary>
     public void PushPropertyBlock()
     {
@@ -111,6 +126,7 @@ public class LineRendererGradientPropertyDriver : MonoBehaviour
         _propertyBlock.SetFloat(IdSliderAB, sliderAB);
         _propertyBlock.SetFloat(IdSliderAC, sliderAC);
         _propertyBlock.SetFloat(IdGraphVisualMode, 0f);
+        _propertyBlock.SetFloat(IdFlipAlong, _flipAlong ? 1f : 0f);
         _lineRenderer.SetPropertyBlock(_propertyBlock);
     }
 
